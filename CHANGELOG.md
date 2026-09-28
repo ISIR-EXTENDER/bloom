@@ -17,6 +17,28 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
   visibility, Dark, Colour-blind safe, Pastel), each proven for contrast, STOP prominence and red-green separation,
   replace the free colour pickers. An author picks one per app and, optionally, per role; an operator picks one for
   their tablet in **Settings > Colours**. Every stylesheet and the 3D view follow the chosen palette (ADR 0143).
+- **Speed up and Assist: the manager's two lasting behaviours.** cartesian_manager's `behaviour/intent_scaling`
+  (topic/intent_scaling) and `behaviour/shared_control` with its `/reset` (topic/shared_control) are accepted by the
+  grammar, modelled in the command state (each replaces the other, passthrough ends both, the reset enters shared
+  control) and measured from the manager's own feedback: the intent scale on `/cartesian_manager/intent_scale` and the
+  confidences on `/shared_control/confidences`, which publish only while the behaviour is on. Leaving the app or STOP
+  sends passthrough, as for a joint target. Both Manager apps get a **Behaviours** screen: the two toggles, Reset
+  assist, Cancel, sliders on the tuning the manager validates, an intent-scale gauge and the new **Confidence bars**
+  widget, one bar per goal id from the manager's dimension label. Both readers say **not publishing** the moment the
+  backend measures the topic silent. The kiosk bar shows **Speed up on** / **Assist on** on every screen while the
+  manager reports it. The 3D robot view takes **Goals topic** and **Soft goal topic** in the inspector and draws the
+  goals (PoseArray, `base_link` only) as named triads and the soft goal as a ringed marker, gone when Assist ends;
+  the Widget Lab's Robot screen has both wired. Purposes: Speed up, Assist and Reset assist for a command button;
+  Gripper, Speed up with intent and Assist to goals for a toggle (**What this toggle switches**). Builder presets
+  **Manager intent scaling** and **Manager shared control**; **Cancel manager behaviour** now names the three things it
+  cancels. A behaviour the running manager does not declare shows its controls unavailable, with the reason in the
+  profile's language, from the `behaviours.<name>.*` parameters Bloom reads at start. The server allows and bounds
+  the behaviours' tuning parameters as the manager validates them, and records `/cartesian_manager/intent_scale` and
+  the `/shared_control/*` topics. `npm run e2e:sim` proves both on the wire on each arm, and skips the nine checks with
+  the reason on a manager without them.
+- **Go home on the Kinova.** cartesian_manager main ships a seven-joint Kinova home, so the Kinova Manager's Positions
+  screen offers **Go home**, and the simulation check watches its press reach `/joint_target_command` with seven
+  joints.
 - **Say what a control does, in words.** A slider, a pad and a command button each get a choice in the inspector:
   a speed limit, hand height, pivot or snake gain; moving or turning the hand; Neutral, Jaco, Snake while held, Go
   home (with its second press), Release, or a drive frame. Each writes what the shipped Manager apps use, for this
@@ -86,6 +108,13 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Changed
 
+- **No Reset fault on the Kinova.** The manager no longer spawns `fault_controller`, so the Kinova Manager seed drops
+  its Reset fault buttons and preset (Drive · Bench's Snake gain widens into the space, Drive · Operator's STOP region
+  is full height again), the Kinova camera app and Bloom Debug drop the fault service and series, and
+  `BLOOM_ALLOWED_ROS_SERVICE_CALLS` is empty by default; a lab that runs the controller allows the service explicitly.
+  Faults: reset from the arm's web page, or turn it off and on.
+- **A press stays answered.** A latched control whose own write was seen no longer reads **Sending…** again when the
+  server's reset replaces that write within three seconds (STOP right after Assist on).
 - **A stateful control shows what the backend knows, and says where it comes from**
   ([ADR 0142](docs/decisions/0142-command-state-lives-in-the-backend.md)). Toggles, latched mode buttons and
   parameter switches used to show what this screen last sent and re-send it until the robot answered. They now render

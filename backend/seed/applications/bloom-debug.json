@@ -160,14 +160,6 @@
                     "enabled": false
                   },
                   {
-                    "topic": "/fault_controller/internal_fault",
-                    "message_type": "example_interfaces/msg/Bool",
-                    "field_path": "data",
-                    "label": "Kinova fault",
-                    "unit": "flag",
-                    "enabled": false
-                  },
-                  {
                     "topic": "/qontrol_controller/commands",
                     "message_type": "std_msgs/msg/Float64MultiArray",
                     "field_path": "data[0]",

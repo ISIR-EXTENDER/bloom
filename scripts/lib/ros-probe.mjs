@@ -24,6 +24,31 @@ export function rosParameter(node, name) {
   });
 }
 
+/** One `ros2 topic pub --once`, which waits for the topic's subscriber and returns once it has published. */
+export function rosPublishOnce(topic, messageType, yaml, { timeoutMs = 15000 } = {}) {
+  return new Promise((resolveDone, reject) => {
+    const child = spawn("ros2", ["topic", "pub", "--once", "-w", "1", topic, messageType, yaml], {
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    let output = "";
+    child.stdout.on("data", (chunk) => {
+      output += chunk;
+    });
+    child.stderr.on("data", (chunk) => {
+      output += chunk;
+    });
+    const timer = setTimeout(() => {
+      child.kill("SIGKILL");
+      reject(new Error(`ros2 topic pub ${topic} did not finish within ${timeoutMs} ms: ${output.trim()}`));
+    }, timeoutMs);
+    child.on("error", reject);
+    child.on("close", (code) => {
+      clearTimeout(timer);
+      code === 0 ? resolveDone(output) : reject(new Error(`ros2 topic pub ${topic} exited ${code}: ${output.trim()}`));
+    });
+  });
+}
+
 export async function startRosProbe({ source, readyTopic, readyTimeoutMs = 30000, settleMs = 1500 }) {
   const child = spawn("python3", ["-u", "-c", source], { stdio: ["ignore", "pipe", "inherit"] });
   const messages = new Map();

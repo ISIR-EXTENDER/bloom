@@ -99,7 +99,16 @@ const ACTION_CONTRACT_SETTINGS: InertSetting[] = [
   { key: "cancellable", reason: ACTION_CONTRACT_INERT },
 ];
 
-const READING_KINDS = new Set(["event-log", "gauge", "jacobian", "joint-table", "plot", "topic-echo", "topic-plot"]);
+const READING_KINDS = new Set([
+  "confidence-bars",
+  "event-log",
+  "gauge",
+  "jacobian",
+  "joint-table",
+  "plot",
+  "topic-echo",
+  "topic-plot",
+]);
 const JOINT_STATE_KINDS = new Set(["position-library", "robot-3d"]);
 const PUBLISHING_KINDS = new Set(["command-button", "gesture-pad", "joystick", "slider", "toggle"]);
 const ROBOT_3D_DEFAULT_TOPIC = "/joint_states";

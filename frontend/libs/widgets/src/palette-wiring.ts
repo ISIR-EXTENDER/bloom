@@ -2,6 +2,8 @@
  * What a widget does the moment it is placed from the palette: the manager contract both arms share,
  * as the shipped apps use it. Only placement reads this; saved widgets keep the contract defaults.
  */
+import { SHARED_CONTROL_CONFIDENCES_TOPIC } from "./manager-behaviours";
+
 const EE_POSE = { topic: "/ee_pose", messageType: "geometry_msgs/msg/PoseStamped" };
 const MODE_REQUEST = { topic: "/mode_request", messageType: "std_msgs/msg/String" };
 const HAND_AXES = ["x", "y", "z"].map((axis) => ({
@@ -52,6 +54,11 @@ export const PALETTE_WIRING: Readonly<Record<string, { title: string; settings: 
   },
   "plot-board": { title: "Hand position", settings: { series: HAND_AXES } },
   "value-strip": { title: "Hand position", settings: { series: HAND_AXES } },
+  // The manager's goal confidences, published only while behaviour/shared_control is active.
+  "confidence-bars": {
+    title: "Goal confidence",
+    settings: { topic: SHARED_CONTROL_CONFIDENCES_TOPIC, messageType: "std_msgs/msg/Float64MultiArray" },
+  },
 };
 
 const ARRIVES_AS_EXTRA: Readonly<Record<string, string>> = {

@@ -1800,6 +1800,88 @@ button.bloom-toggle-segment {
   font-weight: 800;
 }
 
+/* Confidence bars: one row per shared-control goal, the fill drawn like the gauge's. */
+.bloom-confidence-list {
+  display: grid;
+  gap: 8px;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.bloom-confidence-row {
+  --bloom-confidence: 0%;
+
+  display: grid;
+  grid-template-columns: minmax(64px, 1fr) minmax(0, 2fr) 48px;
+  gap: 10px;
+  align-items: center;
+  min-height: 28px;
+  font-family: var(--bloom-font-mono);
+  font-size: 15px;
+}
+
+.bloom-confidence-row meter {
+  width: 100%;
+  height: 16px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--bloom-primary) 18%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bloom-primary-container) 58%, var(--bloom-surface));
+  appearance: none;
+}
+
+.bloom-confidence-row meter::-webkit-meter-bar {
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+}
+
+.bloom-confidence-row meter::-webkit-meter-optimum-value,
+.bloom-confidence-row meter::-moz-meter-bar {
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bloom-accent) 52%, var(--bloom-surface-bright));
+}
+
+.bloom-confidence-name {
+  overflow: hidden;
+  color: var(--bloom-ink);
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bloom-confidence-value {
+  color: var(--bloom-ink-soft);
+  font-weight: 800;
+  text-align: right;
+}
+
+.bloom-confidence-empty {
+  margin: 0;
+  color: var(--bloom-muted);
+  font-size: 13px;
+}
+
+/* A slider's or gauge's readout is what the operator reads: it keeps its width, and a long title wraps
+   inside the head instead of squeezing the number to an ellipsis. */
+.bloom-slider-widget > .bloom-widget-head > .bloom-widget-readout,
+.bloom-gauge-widget > .bloom-display-header > span,
+.bloom-confidence-bars > .bloom-display-header > span {
+  flex: 0 0 auto;
+  max-width: 60%;
+}
+
+.bloom-slider-widget > .bloom-widget-head > strong,
+.bloom-gauge-widget > .bloom-display-header > strong,
+.bloom-confidence-bars > .bloom-display-header > strong {
+  flex: 1 1 auto;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
 .bloom-plot-widget {
   grid-template-rows: auto minmax(0, 1fr) auto;
   min-height: 0;

@@ -30,7 +30,7 @@ import {
   skip,
   waitReady,
 } from "./lib/e2e-checks.mjs";
-import { rosParameter, startRosProbe } from "./lib/ros-probe.mjs";
+import { rosParameter, rosPublishOnce, startRosProbe } from "./lib/ros-probe.mjs";
 import { STACK } from "./lib/stack-topics.mjs";
 
 const args = process.argv.slice(2);
@@ -61,7 +61,8 @@ const ROBOTS = {
     driveHoldMs: 2500,
     gripper: { close: [0.8], open: [0.0] },
     speed: { slow: 0.025, medium: 0.05 },
-    goHome: false,
+    // cartesian_manager main ships the gen3 its own seven-joint home.
+    goHome: true,
     // Mock hardware starts the gen3 fully upright, where Up has nowhere to go.
     settle: { control: "Height", end: "negative" },
   },
@@ -80,6 +81,10 @@ const {
   mode: MODE,
   jointTarget: JOINT_TARGET,
   cameraImage: CAMERA,
+  intentScale: INTENT_SCALE,
+  sharedControlConfidences: CONFIDENCES,
+  sharedControlGoals: GOALS,
+  sharedControlSoftGoal: SOFT_GOAL,
 } = STACK;
 const GESTURE = "/ui/widget_lab/gesture";
 const MARKERS = "/widget_lab/markers";
@@ -110,6 +115,7 @@ const openApp = (page, appName, roleName, layoutId) =>
   openRuntimeApp(page, dashboardUrl, { appName, roleName, layoutId });
 try {
   await operatorSession();
+  await behavioursSession();
   await benchSession();
   await debugSession();
   await authoredSession();
@@ -294,9 +300,11 @@ async function operatorSession() {
         await page.getByRole("button", { name: /Press again to move/ }).click();
         await ros.waitFor(MODE, (data) => data.data === "behaviour/joint_target/home", { since });
         const target = await ros.waitFor(JOINT_TARGET, () => true, { since, timeoutMs: 8000 });
+        // The manager sends the arm's own joint set: seven on the gen3, six on the Explorer.
+        assert(target.position.length === robot.joints, `home target names ${target.position.length} joints`);
         await page.waitForTimeout(800);
         await shot(page, "positions-home");
-        homeDetail = `home dispatched, ${JOINT_TARGET} ${fmtArray(target.position)}`;
+        homeDetail = `home dispatched, ${JOINT_TARGET} ${fmtArray(target.position)} (${target.position.length} joints)`;
       }
       const since = Date.now();
       await page.getByRole("button", { name: /^Cancel the pose/ }).click();
@@ -320,6 +328,362 @@ async function operatorSession() {
   } finally {
     await context.close();
   }
+}
+
+/**
+ * The manager's two lasting behaviours (topic/intent_scaling, topic/shared_control) from the Behaviours screen:
+ * each request on the wire, each effect on the manager's own feedback topics, and the screen reading it back.
+ * On a manager that does not declare them, every check here is skipped with the reason.
+ */
+async function behavioursSession() {
+  const MIN_SCALE = "behaviours.intent_scaling.min_scale";
+  const GOAL_MATCH = "behaviours.shared_control.goal_match_distance";
+  const declared = { minScale: await rosParameter("/cartesian_manager", MIN_SCALE) };
+  declared.goalMatch = await rosParameter("/cartesian_manager", GOAL_MATCH);
+  // An undeclared parameter answers "Parameter not set" on stderr, so the value line is empty: only a number counts.
+  const missing = Object.entries(declared)
+    .filter(([, value]) => !/^-?\d+(\.\d+)?$/.test(String(value).trim()))
+    .map(([name, value]) => `${name === "minScale" ? MIN_SCALE : GOAL_MATCH} (${String(value).trim() || "not set"})`);
+  const behaviourChecks = [
+    "behaviours-screen-offers-both",
+    "intent-scaling-speeds-up-a-held-push",
+    "intent-scaling-off-stops-the-scale",
+    "behaviour-slider-sets-a-manager-parameter",
+    "behaviour-chip-shows-on-every-screen",
+    "assist-follows-a-push-towards-a-goal",
+    "reset-assist-forgets-the-confidences",
+    "behaviours-replace-each-other",
+    "stop-ends-a-behaviour",
+    "leaving-the-app-ends-assist",
+  ];
+  if (missing.length > 0) {
+    const reason = `this manager does not declare ${missing.join(" and ")}: built without the behaviours`;
+    const { context, page } = await newPage({ width: 1280, height: 720 });
+    try {
+      for (const name of behaviourChecks) {
+        await check(page, name, async () => skip(reason));
+      }
+    } finally {
+      await context.close();
+    }
+    return;
+  }
+
+  const { context, page } = await newPage({ width: 1280, height: 720 });
+  const speedUp = () => toggleButton(page, "Speed up with intent");
+  const assist = () => toggleButton(page, "Assist to goals");
+  const translation = () => page.getByRole("application", { name: "Translation" });
+  const clearGoals = () =>
+    rosPublishOnce(
+      GOALS,
+      "geometry_msgs/msg/PoseArray",
+      JSON.stringify({ header: { frame_id: "base_link" }, poses: [] }),
+    );
+  let closed = false;
+  try {
+    const opened = await check(page, behaviourChecks[0], async () => {
+      // A passthrough on the wire before the page opens: once the toggle reads off from it, the store's snapshot
+      // has landed and availability is decided, not still unknown.
+      await rosPublishOnce(MODE, "std_msgs/msg/String", "{data: 'behaviour/passthrough'}");
+      await openApp(page, robot.app, "Operator", "manager_drive_operator");
+      await openScreen(page, "Behaviours", "manager_behaviours");
+      await speedUp().locator("xpath=ancestor::*[@data-command-state='off'][1]").waitFor({ timeout: 15000 });
+      const unavailable = await page.locator("[data-runtime-unavailable='true']").count();
+      assert(
+        unavailable === 0,
+        `${unavailable} behaviour widget(s) marked unavailable on a manager that declares both`,
+      );
+      await speedUp().waitFor();
+      await assist().waitFor();
+      await page.locator(".bloom-gauge-widget[data-live='false']").waitFor({ timeout: 10000 });
+      await page.locator(".bloom-confidence-bars[data-live='false']").waitFor({ timeout: 10000 });
+      await shot(page, "behaviours");
+      return `both offered; gauge and bars idle; ${MIN_SCALE} ${declared.minScale}, ${GOAL_MATCH} ${declared.goalMatch}`;
+    });
+    if (!opened) {
+      return;
+    }
+
+    await check(page, behaviourChecks[1], async () => {
+      let since = Date.now();
+      await switchBehaviour(page, "Speed up with intent", "on");
+      await ros.waitFor(MODE, (data) => data.data === "behaviour/intent_scaling", { since });
+      const idle = await ros.waitFor(INTENT_SCALE, () => true, { since, timeoutMs: 5000 });
+      since = Date.now();
+      const release = await pressJoystick(page, translation(), { x: 0, y: 2 });
+      // The push's first scale is the first sample after the twist reached the wire.
+      await ros.waitFor(TWIST, (data) => !isZeroTwist(data), { since });
+      const pushedAt = Date.now();
+      await ros.waitFor(INTENT_SCALE, (data) => data.data >= 0.9, { since: pushedAt, timeoutMs: 4000 });
+      const shown = Number(await page.locator(".bloom-gauge-widget[data-live='true'] meter").getAttribute("value"));
+      await shot(page, "intent-scaling-held");
+      await release();
+      const scales = ros.since(INTENT_SCALE, pushedAt).map((message) => message.data.data);
+      await ros.waitFor(TWIST, (data) => isZeroTwist(data), { since: Date.now(), timeoutMs: 2000 });
+      const start = scales[0] ?? Number.NaN;
+      const peak = Math.max(...scales);
+      assert(scales.length >= 20, `${scales.length} intent scale samples during the push, expected about 40`);
+      assert(start <= 0.5, `the push started at scale ${start}, expected min_scale (${declared.minScale})`);
+      assert(shown >= 0.85, `the gauge read ${shown} at the end of the push`);
+      const toggle = await toggleState(speedUp());
+      assert(toggle.state === "on" && toggle.source === "measured", `toggle reads ${JSON.stringify(toggle)}`);
+      // Back where it was, before the next push.
+      const back = await pressJoystick(page, translation(), { x: 0, y: -2 });
+      await page.waitForTimeout(2200);
+      await back();
+      await ros.waitFor(TWIST, (data) => isZeroTwist(data), { since: Date.now(), timeoutMs: 2000 });
+      return `idle scale ${idle.data}; held push ${start.toFixed(2)} -> ${peak.toFixed(2)} over ${scales.length} samples; gauge ${shown.toFixed(2)}; toggle on, reported by the robot`;
+    });
+
+    await check(page, behaviourChecks[2], async () => {
+      const since = Date.now();
+      await switchBehaviour(page, "Speed up with intent", "off");
+      await ros.waitFor(MODE, (data) => data.data === "behaviour/passthrough", { since });
+      // The store measures the topic silent within its 0.5 s window; the gauge says so at once, greyed.
+      const gauge = page.locator(".bloom-gauge-widget[data-live='false'][data-silent='true']");
+      await gauge.waitFor({ timeout: 5000 });
+      await expect(gauge.locator(".bloom-display-header span")).toHaveText("not publishing");
+      const silentAt = Date.now();
+      await page.waitForTimeout(800);
+      const late = ros.since(INTENT_SCALE, silentAt);
+      assert(late.length === 0, `${late.length} intent scale samples after the store marked the topic silent`);
+      const toggle = await toggleState(speedUp());
+      assert(toggle.state === "off", `toggle reads ${JSON.stringify(toggle)}`);
+      return `passthrough sent; ${INTENT_SCALE} silent; gauge greyed and says "not publishing"; toggle off`;
+    });
+
+    await check(page, behaviourChecks[3], async () => {
+      const before = await rosParameter("/cartesian_manager", MIN_SCALE);
+      const pushStart = page.getByRole("slider", { name: "Push start" });
+      const changed = async (from) => {
+        const deadline = Date.now() + 8000;
+        let value = from;
+        while (Date.now() < deadline && value === from) {
+          await page.waitForTimeout(250);
+          value = await rosParameter("/cartesian_manager", MIN_SCALE);
+        }
+        return value;
+      };
+      let after = before;
+      try {
+        await pushStart.focus();
+        await page.keyboard.press("ArrowLeft");
+        after = await changed(before);
+        assert(after !== before, `${MIN_SCALE} stayed at ${before}`);
+      } finally {
+        // Leave the manager as found: a lab manager keeps its parameters across runs.
+        await pushStart.focus();
+        await page.keyboard.press("ArrowRight");
+        const restored = await changed(after);
+        assert(restored === before, `${MIN_SCALE} restored to ${restored}, expected ${before}`);
+      }
+      return `${MIN_SCALE} ${before} -> ${after} -> ${before}`;
+    });
+
+    await check(page, behaviourChecks[4], async () => {
+      // A behaviour outlives a screen change: the kiosk bar says so on Drive, from the manager's feedback.
+      let since = Date.now();
+      await switchBehaviour(page, "Speed up with intent", "on");
+      await ros.waitFor(MODE, (data) => data.data === "behaviour/intent_scaling", { since });
+      await ros.waitFor(INTENT_SCALE, () => true, { since, timeoutMs: 5000 });
+      const chip = page.locator(".runtime-kiosk-behaviour[data-behaviour='intent_scaling']");
+      await chip.waitFor({ timeout: 5000 });
+      await openScreen(page, "Drive · Operator", "manager_drive_operator");
+      await expect(chip).toHaveText("Speed up on", { timeout: 5000 });
+      const stillOn = ros.since(INTENT_SCALE, Date.now() - 300);
+      assert(stillOn.length > 0, "the intent scale stopped when the screen changed");
+      await shot(page, "behaviour-chip-on-drive");
+      await openScreen(page, "Behaviours", "manager_behaviours");
+      since = Date.now();
+      await switchBehaviour(page, "Speed up with intent", "off");
+      await ros.waitFor(MODE, (data) => data.data === "behaviour/passthrough", { since });
+      await chip.waitFor({ state: "detached", timeout: 5000 });
+      return "Drive · Operator showed the Speed up on chip while the scale kept publishing; gone after passthrough";
+    });
+
+    await check(page, behaviourChecks[5], async () => {
+      // Two goals a quarter metre either side of the hand along the axis Forward drives, so one is aimed at.
+      const direction = await forwardDirection(page);
+      const hand = ros.latest(POSE).data.position;
+      const goal = (sign) => ({
+        position: { x: hand.x + sign * 0.25 * direction.x, y: hand.y + sign * 0.25 * direction.y, z: hand.z },
+        orientation: { x: 0, y: 0, z: 0, w: 1 },
+      });
+      const poses = [goal(1), goal(-1)];
+      await rosPublishOnce(
+        GOALS,
+        "geometry_msgs/msg/PoseArray",
+        JSON.stringify({ header: { frame_id: "base_link" }, poses }),
+      );
+      let since = Date.now();
+      await switchBehaviour(page, "Assist to goals", "on");
+      await ros.waitFor(MODE, (data) => data.data === "behaviour/shared_control", { since });
+      const idle = await ros.waitFor(CONFIDENCES, (data) => data.ids.length === 3, { since, timeoutMs: 8000 });
+      assert(idle.ids.join(",") === "agnostic,goal_0,goal_1", `manager names the goals ${idle.ids.join(",")}`);
+      await ros.waitFor(SOFT_GOAL, () => true, { since, timeoutMs: 5000 });
+      const rows = page.locator(".bloom-confidence-bars[data-live='true'] .bloom-confidence-row");
+      await rows.nth(2).waitFor({ timeout: 8000 });
+      const names = await rows.evaluateAll((elements) => elements.map((element) => element.getAttribute("data-goal")));
+      assert(names.join(",") === "agnostic,goal_0,goal_1", `bars named ${names.join(",")}`);
+      since = Date.now();
+      const release = await pressJoystick(page, translation(), { x: 0, y: 2 });
+      const aimedUp = await ros.waitFor(
+        CONFIDENCES,
+        (data) => data.data[1] >= 0.3 && data.data[1] > data.data[2] + 0.1,
+        {
+          since,
+          timeoutMs: 4000,
+        },
+      );
+      await expect(rows.nth(1)).toHaveAttribute("data-confidence", /^(0\.[2-9]\d|1\.00)$/, { timeout: 3000 });
+      const shownAimed = Number(await rows.nth(1).getAttribute("data-confidence"));
+      await shot(page, "assist-held");
+      await release();
+      await ros.waitFor(TWIST, (data) => isZeroTwist(data), { since: Date.now(), timeoutMs: 2000 });
+      const toggle = await toggleState(assist());
+      assert(toggle.state === "on" && toggle.source === "measured", `toggle reads ${JSON.stringify(toggle)}`);
+      return `goals at ±0.25 m along ${fmtVector(direction)}; idle ${fmtArray(idle.data)}; while pushing ${fmtArray(aimedUp.data)} for ${aimedUp.ids.join(",")}; bar ${shownAimed}; soft goal on ${SOFT_GOAL}; toggle on, reported by the robot`;
+    });
+
+    await check(page, behaviourChecks[6], async () => {
+      const since = Date.now();
+      await page.getByRole("button", { name: /^Reset assist/ }).click();
+      await ros.waitFor(MODE, (data) => data.data === "behaviour/shared_control/reset", { since });
+      const cleared = await ros.waitFor(CONFIDENCES, (data) => data.ids.length === 1 && data.data[0] > 0.99, {
+        since,
+        timeoutMs: 5000,
+      });
+      await page.locator(".bloom-confidence-bars[data-goals='1']").waitFor({ timeout: 8000 });
+      const toggle = await toggleState(assist());
+      assert(toggle.state === "on", `Assist reads ${JSON.stringify(toggle)} after its reset`);
+      return `reset dropped the goals: ${cleared.ids.join(",")} ${fmtArray(cleared.data)}; Assist still on`;
+    });
+
+    await check(page, behaviourChecks[7], async () => {
+      let since = Date.now();
+      await switchBehaviour(page, "Speed up with intent", "on");
+      await ros.waitFor(MODE, (data) => data.data === "behaviour/intent_scaling", { since });
+      await ros.waitFor(INTENT_SCALE, () => true, { since, timeoutMs: 5000 });
+      await page.locator(".bloom-confidence-bars[data-live='false']").waitFor({ timeout: 8000 });
+      const barsOffAt = Date.now();
+      await page.waitForTimeout(800);
+      const late = ros.since(CONFIDENCES, barsOffAt);
+      assert(late.length === 0, `${late.length} confidence samples while intent scaling runs`);
+      const speed = await toggleState(speedUp());
+      const help = await toggleState(assist());
+      assert(speed.state === "on" && help.state === "off", `Speed up ${speed.state}, Assist ${help.state}`);
+      await shot(page, "behaviours-exclusive");
+      // And back: Assist on ends intent scaling.
+      since = Date.now();
+      await switchBehaviour(page, "Assist to goals", "on");
+      await ros.waitFor(MODE, (data) => data.data === "behaviour/shared_control", { since });
+      await ros.waitFor(CONFIDENCES, () => true, { since, timeoutMs: 5000 });
+      await page.locator(".bloom-gauge-widget[data-live='false'][data-silent='true']").waitFor({ timeout: 5000 });
+      const gaugeOffAt = Date.now();
+      await page.waitForTimeout(800);
+      const scales = ros.since(INTENT_SCALE, gaugeOffAt);
+      assert(scales.length === 0, `${scales.length} intent scale samples while shared control runs`);
+      const speedAfter = await toggleState(speedUp());
+      assert(speedAfter.state === "off", `Speed up reads ${speedAfter.state} under Assist`);
+      return "Speed up on: confidences stop, Assist reads off; Assist on: intent scale stops, Speed up reads off";
+    });
+
+    await check(page, behaviourChecks[8], async () => {
+      const since = Date.now();
+      await page.getByRole("button", { name: "Stop the robot" }).click();
+      const resume = page.getByRole("button", { name: "Hold for one second to resume" });
+      await resume.waitFor();
+      await ros.waitFor(MODE, (data) => data.data === "behaviour/passthrough", { since });
+      await page.locator(".bloom-confidence-bars[data-live='false']").waitFor({ timeout: 5000 });
+      const barsOffAt = Date.now();
+      await page.waitForTimeout(800);
+      const late = ros.since(CONFIDENCES, barsOffAt);
+      assert(late.length === 0, `${late.length} confidence samples after STOP`);
+      const stoppedToggle = await toggleState(assist());
+      assert(stoppedToggle.state === "off", `Assist reads ${stoppedToggle.state} while stopped`);
+      await shot(page, "behaviours-stopped");
+      await hold(page, resume, 1300);
+      await page.getByRole("button", { name: "Stop the robot" }).waitFor();
+      const help = await toggleState(assist());
+      assert(help.state === "off", `Assist reads ${help.state} after STOP and resume`);
+      // Back where the assisted push left from, with nothing assisting.
+      const back = await pressJoystick(page, translation(), { x: 0, y: -2 });
+      await page.waitForTimeout(1500);
+      await back();
+      await ros.waitFor(TWIST, (data) => isZeroTwist(data), { since: Date.now(), timeoutMs: 2000 });
+      return "STOP sent passthrough, confidences stopped, Assist reads off while stopped and after resume";
+    });
+
+    await check(page, behaviourChecks[9], async () => {
+      let since = Date.now();
+      await switchBehaviour(page, "Assist to goals", "on");
+      await ros.waitFor(MODE, (data) => data.data === "behaviour/shared_control", { since });
+      await ros.waitFor(CONFIDENCES, () => true, { since, timeoutMs: 5000 });
+      since = Date.now();
+      closed = true;
+      await context.close();
+      await ros.waitFor(MODE, (data) => data.data === "behaviour/passthrough", { since, timeoutMs: 10000 });
+      // The manager stops the confidences on its next cycle; the probe sees none after a short grace.
+      const passthroughAt = Date.now();
+      await new Promise((resolvePromise) => setTimeout(resolvePromise, 800));
+      const late = ros.since(CONFIDENCES, passthroughAt + 300);
+      assert(late.length === 0, `${late.length} confidence samples after the operator left`);
+      return "the server sent behaviour/passthrough when the session closed; confidences stopped";
+    });
+  } finally {
+    // The goals were this session's: the next one, and a lab manager, start with none.
+    await clearGoals().catch(() => undefined);
+    if (!closed) {
+      await context.close();
+    }
+  }
+}
+
+/** The single toggle button, or one of the two offered while its state is unknown or another mode holds. */
+function toggleButton(page, title) {
+  return page.getByRole("button", { name: new RegExp(`^${title}:`) }).first();
+}
+
+/** What a toggle shows: its command state and where it came from, off its card's data attributes. */
+async function toggleState(button) {
+  const card = button.locator("xpath=ancestor::*[@data-command-state][1]");
+  return {
+    source: await card.getAttribute("data-source"),
+    state: await card.getAttribute("data-command-state"),
+  };
+}
+
+/**
+ * Switch a mode toggle on or off. Knowing its state, one button toggles; not knowing it, or under another
+ * behaviour, it offers both sides, and the wanted side is pressed.
+ */
+async function switchBehaviour(page, title, wanted) {
+  const labels = {
+    "Assist to goals": { off: "Not assisting", on: "Assisting" },
+    "Speed up with intent": { off: "Plain speed", on: "Speeding up" },
+  }[title];
+  const choice = page.getByRole("button", { exact: false, name: new RegExp(`^${title}: ${labels[wanted]}`) });
+  const buttons = page.getByRole("button", { name: new RegExp(`^${title}:`) });
+  if ((await buttons.count()) > 1) {
+    await choice.click();
+    return;
+  }
+  const state = await toggleState(buttons.first());
+  if (state.state === wanted) {
+    return;
+  }
+  await buttons.first().click();
+}
+
+/** The base-frame direction the Translation pad's Forward drives, read off the wire from a short push. */
+async function forwardDirection(page) {
+  const since = Date.now();
+  const release = await pressJoystick(page, page.getByRole("application", { name: "Translation" }), { x: 0, y: 2 });
+  const wire = await ros.waitFor(TWIST, (data) => !isZeroTwist(data), { since });
+  await release();
+  await ros.waitFor(TWIST, (data) => isZeroTwist(data), { since: Date.now(), timeoutMs: 2000 });
+  const norm = Math.hypot(wire.linear.x, wire.linear.y, wire.linear.z) || 1;
+  return { x: wire.linear.x / norm, y: wire.linear.y / norm, z: wire.linear.z / norm };
 }
 
 async function benchSession() {
@@ -947,6 +1311,13 @@ node.create_subscription(Float64, "${MAX_LINEAR}", lambda m: emit("${MAX_LINEAR}
 node.create_subscription(String, "${MODE}", lambda m: emit("${MODE}", {"data": m.data}), 10)
 node.create_subscription(JointState, "${JOINT_TARGET}", lambda m: emit("${JOINT_TARGET}", {"name": list(m.name), "position": list(m.position)}, 0.1), 10)
 node.create_subscription(String, "${GESTURE}", lambda m: emit("${GESTURE}", {"data": m.data}), 10)
+# The manager's lasting behaviours report themselves only while active: the scale at 20 Hz, the confidences at 100 Hz.
+node.create_subscription(Float64, "${INTENT_SCALE}", lambda m: emit("${INTENT_SCALE}", {"data": m.data}), 10)
+def on_confidences(m):
+    label = m.layout.dim[0].label if m.layout.dim else ""
+    emit("${CONFIDENCES}", {"data": list(m.data), "ids": [i for i in label.split(",") if i]}, 0.05)
+node.create_subscription(Float64MultiArray, "${CONFIDENCES}", on_confidences, 10)
+node.create_subscription(PoseStamped, "${SOFT_GOAL}", lambda m: emit("${SOFT_GOAL}", {"frame_id": m.header.frame_id, "position": vector(m.pose.position)}, 0.1), 10)
 
 # A 1x1 PNG at 2 Hz, so a camera widget bound to the topic has a frame to show.
 frame = CompressedImage()

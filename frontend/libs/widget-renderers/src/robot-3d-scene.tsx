@@ -1,3 +1,4 @@
+import { SHARED_CONTROL_GOAL_FRAME } from "@bloom/widgets";
 import { useEffect, useRef, useState } from "react";
 import {
   AmbientLight,
@@ -18,6 +19,7 @@ import {
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import type { URDFRobot } from "urdf-loader";
 import { CommandIndicator, commandPose } from "./robot-3d-command";
+import { GoalMarkers, type PoseArraySample } from "./robot-3d-goals";
 import {
   asRecord,
   disposeObject,
@@ -43,6 +45,8 @@ type RobotSceneProps = {
   fitRequest: number;
   /** An axes triad on every link, the way rviz's TF display shows frames. */
   frameAxes: boolean;
+  /** A PoseArray drawn as small named triads: the shared-control goals. */
+  goals?: PoseArraySample;
   jointState?: JointStateSample;
   markers?: readonly MarkerSample[];
   onStatus: (status: SceneStatus) => void;
@@ -50,11 +54,16 @@ type RobotSceneProps = {
   pose?: PoseSample;
   robotModel: RobotModelSource;
   showAxes: boolean;
+  /** A PoseStamped drawn as the larger ringed marker: the manager's confidence-weighted soft goal. */
+  softGoal?: PoseSample;
   /** A JointState drawn as a translucent copy of the robot: where a target is sending it. */
   target?: JointStateSample;
 };
 
 export type SceneStatus = {
+  /** Shared-control goals drawn right now, and those left undrawn because their frame is not the manager's base. */
+  goals: number;
+  goalsIgnored: number;
   /** Joints the newest joint state drives, of those the URDF declares. */
   joints: { driven: number; total: number };
   links: number;
@@ -66,6 +75,8 @@ export type SceneStatus = {
   model: "loading" | "ready" | "unavailable";
   /** Whether a pose is drawn right now. */
   pose: boolean;
+  /** Whether the soft goal is drawn right now. */
+  softGoal: boolean;
   /** Whether a joint target is drawn right now. */
   target: boolean;
   /** Markers whose frame the robot does not know, drawn in the base frame instead. */
@@ -87,6 +98,7 @@ type Stage = {
   controls: OrbitControls;
   /** The translucent copy of the robot a joint target is drawn on. */
   ghost: () => URDFRobot | null;
+  goalMarkers: GoalMarkers;
   indicator: CommandIndicator;
   invalidate: () => void;
   poseAxes: AxesHelper;
@@ -94,7 +106,15 @@ type Stage = {
   report: () => void;
   robotRoot: Group;
   /** What the effects learned since the last report. */
-  shown: { joints: SceneStatus["joints"]; pose: boolean; target: boolean; updates: number };
+  shown: {
+    goals: number;
+    goalsIgnored: number;
+    joints: SceneStatus["joints"];
+    pose: boolean;
+    softGoal: boolean;
+    target: boolean;
+    updates: number;
+  };
   store: MarkerStore;
 };
 
@@ -104,12 +124,14 @@ export default function RobotScene({
   eeLink,
   fitRequest,
   frameAxes,
+  goals,
   jointState,
   markers,
   onStatus,
   pose,
   robotModel,
   showAxes,
+  softGoal,
   target,
 }: RobotSceneProps) {
   const mount = useRef<HTMLDivElement>(null);
@@ -156,6 +178,7 @@ export default function RobotScene({
     const poseAxes = new AxesHelper(0.1);
     poseAxes.visible = false;
     robotRoot.add(poseAxes);
+    const goalMarkers = new GoalMarkers(robotRoot, SHARED_CONTROL_GOAL_FRAME, palette);
 
     let disposed = false;
     let frame = 0;
@@ -169,6 +192,7 @@ export default function RobotScene({
 
     const render = () => {
       frame = 0;
+      goalMarkers.face(camera.quaternion);
       renderer.render(scene, camera);
     };
     // On demand, never a loop: a still robot costs nothing.
@@ -177,13 +201,23 @@ export default function RobotScene({
         frame = requestAnimationFrame(render);
       }
     };
-    const shown = { joints: { driven: 0, total: 0 }, pose: false, target: false, updates: 0 };
+    const shown = {
+      goals: 0,
+      goalsIgnored: 0,
+      joints: { driven: 0, total: 0 },
+      pose: false,
+      softGoal: false,
+      target: false,
+      updates: 0,
+    };
     const report = () => {
       if (disposed) {
         return;
       }
       const drawn = store.report();
       onStatusRef.current({
+        goals: shown.goals,
+        goalsIgnored: shown.goalsIgnored,
         joints: shown.joints,
         links: current ? Object.keys(current.links).length : 0,
         loading: drawn.loading,
@@ -192,6 +226,7 @@ export default function RobotScene({
         meshError: meshes.firstError,
         model,
         pose: shown.pose,
+        softGoal: shown.softGoal,
         target: shown.target,
         unplaced: drawn.unplaced,
         updates: shown.updates,
@@ -237,6 +272,7 @@ export default function RobotScene({
       camera,
       controls,
       ghost: () => ghost,
+      goalMarkers,
       indicator,
       invalidate,
       poseAxes,
@@ -350,6 +386,7 @@ export default function RobotScene({
       indicator.setColor(palette.command);
       recolor(current, palette.robot);
       recolor(ghost, palette.command);
+      goalMarkers.setColors(palette);
       invalidate();
     });
 
@@ -366,6 +403,7 @@ export default function RobotScene({
       controls.removeEventListener("change", invalidate);
       observer?.disconnect();
       store.clear();
+      goalMarkers.dispose();
       indicator.dispose();
       unmountRobot();
       cache.dispose();
@@ -528,6 +566,33 @@ export default function RobotScene({
     }
     live.invalidate();
   }, [robot, pose]);
+
+  // Shared control: the goals a PoseArray holds, and the soft goal, in the frames their headers name.
+  useEffect(() => {
+    const live = stage.current;
+    if (!robot || !live) {
+      return;
+    }
+    const { drawn, ignored } = live.goalMarkers.setGoals(goals);
+    if (live.shown.goals !== drawn || live.shown.goalsIgnored !== ignored) {
+      live.shown.goals = drawn;
+      live.shown.goalsIgnored = ignored;
+      live.report();
+    }
+    live.invalidate();
+  }, [robot, goals]);
+  useEffect(() => {
+    const live = stage.current;
+    if (!robot || !live) {
+      return;
+    }
+    const visible = live.goalMarkers.setSoftGoal(softGoal);
+    if (live.shown.softGoal !== visible) {
+      live.shown.softGoal = visible;
+      live.report();
+    }
+    live.invalidate();
+  }, [robot, softGoal]);
 
   // Frame the robot again on request.
   useEffect(() => {

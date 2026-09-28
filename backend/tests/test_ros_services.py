@@ -1,16 +1,13 @@
 """Trigger-style service calls: policed, audited, and gated by the stop latch."""
 
-from pathlib import Path
-
 from fastapi.testclient import TestClient
 
 from apps.bloom_api.main import create_app
 from apps.bloom_api.settings import Settings
-from libs.config import InMemoryConfigurationRepository, load_configuration_file
+from libs.config import InMemoryConfigurationRepository
 from libs.ros_adapters import RosServiceReceipt, RosServiceRequest
 from libs.sessions import InMemoryRuntimeAuditLog, RuntimeStoppedError
-
-KINOVA_FIXTURE_PATH = Path(__file__).parents[1] / "seed" / "applications" / "kinova-manager.json"
+from tests.conftest import FAULT_RESET_SERVICE, kinova_with_a_fault_reset_preset
 
 
 class RecordingServiceGateway:
@@ -48,8 +45,8 @@ class StopAtFinalGate:
 def create_service_client(gateway=None, audit_log=None) -> TestClient:
     return TestClient(
         create_app(
-            Settings(environment="test"),
-            InMemoryConfigurationRepository({"kinova-manager": load_configuration_file(KINOVA_FIXTURE_PATH)}),
+            Settings(environment="test", allowed_ros_service_calls=(FAULT_RESET_SERVICE,)),
+            InMemoryConfigurationRepository({"kinova-manager": kinova_with_a_fault_reset_preset()}),
             ros_service_gateway=gateway,
             runtime_audit_log=audit_log,
         )
@@ -204,7 +201,7 @@ def test_a_simulated_service_call_is_audited_as_simulated() -> None:
 
 def test_service_preset_needs_the_app_policy_to_allow_it() -> None:
     gateway = RecordingServiceGateway()
-    bundle = load_configuration_file(KINOVA_FIXTURE_PATH)
+    bundle = kinova_with_a_fault_reset_preset()
     stripped = bundle.model_copy(
         update={
             "applications": tuple(
@@ -217,7 +214,7 @@ def test_service_preset_needs_the_app_policy_to_allow_it() -> None:
     )
     client = TestClient(
         create_app(
-            Settings(environment="test"),
+            Settings(environment="test", allowed_ros_service_calls=(FAULT_RESET_SERVICE,)),
             InMemoryConfigurationRepository({"kinova-manager": stripped}),
             ros_service_gateway=gateway,
         )

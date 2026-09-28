@@ -48,16 +48,22 @@ def test_gripper_labels_name_the_press_and_the_commanded_state() -> None:
             assert (settings["onStateLabel"], settings["offStateLabel"]) == ("closed", "open"), toggle["id"]
 
 
-def test_kinova_requests_no_joint_target_defined_for_another_arm() -> None:
-    # cartesian_manager's Kinova params define `home` over six joints with
-    # Explorer's angles (joint 4 at 2.97 rad, beyond the gen3's 2.57 rad).
-    # Remove this guard once that target is corrected upstream.
-    requests = [
-        widget["id"]
+def test_kinova_requests_only_the_home_the_manager_gives_it() -> None:
+    # cartesian_manager#11 gives the Kinova a seven-joint home; pose targets are still the Explorer's.
+    requests = {
+        widget["settings"]["payload"]["data"]
         for widget in widgets("kinova-manager")
         if "behaviour/joint_target/" in json.dumps(widget["settings"].get("payload"))
-    ]
-    assert requests == []
+    }
+    assert requests == {"behaviour/joint_target/home"}
+    assert "behaviour/pose_target/" not in (SEEDS / "kinova-manager.json").read_text(encoding="utf-8")
+
+
+def test_kinova_no_longer_offers_a_fault_reset() -> None:
+    # The manager no longer spawns fault_controller: faults are cleared from the arm's web page or by a power cycle.
+    text = (SEEDS / "kinova-manager.json").read_text(encoding="utf-8")
+    assert "fault_controller" not in text
+    assert "Faults: reset from the arm's web page, or turn it off and on." in text
 
 
 # The Explorer profile the Explorer Manager app was validated with: swap X/Y, invert linear X.

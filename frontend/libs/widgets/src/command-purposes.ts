@@ -57,6 +57,28 @@ export const COMMAND_PURPOSES: readonly CommandPurpose[] = [
     }),
   },
   {
+    id: "intent-scaling",
+    label: "Speed up with intent (a push kept in one direction)",
+    title: "Speed up",
+    settings: mode("behaviour/intent_scaling", "Speed up", {
+      hint: "Assist or Cancel (passthrough) turns it off",
+    }),
+  },
+  {
+    id: "shared-control",
+    label: "Assist to goals (shared control)",
+    title: "Assist",
+    settings: mode("behaviour/shared_control", "Assist", {
+      hint: "Speed up or Cancel (passthrough) turns it off",
+    }),
+  },
+  {
+    id: "shared-control-reset",
+    label: "Reset assist, forgetting every goal's confidence",
+    title: "Reset assist",
+    settings: mode("behaviour/shared_control/reset", "Reset assist"),
+  },
+  {
     id: "release",
     label: "Cancel a pose in progress",
     title: "Release",
@@ -128,6 +150,9 @@ export function commandPurposeOf(settings: Record<string, unknown>): string | nu
     "geometric/jaco": "jaco",
     "geometric/snake": "snake-hold",
     "behaviour/joint_target/home": "go-home",
+    "behaviour/intent_scaling": "intent-scaling",
+    "behaviour/shared_control": "shared-control",
+    "behaviour/shared_control/reset": "shared-control-reset",
     "behaviour/passthrough": "release",
   };
   return byCommand[String(settings.command)] ?? null;

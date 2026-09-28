@@ -113,6 +113,12 @@ export const frRuntimeStrings: RuntimeStrings = {
     teleopTargetRefusedByServer: (topic) =>
       `Rien sur ce robot ne reçoit de joystick sur ${topic} : le manager du robot n'écoute pas ce topic.`,
     frameUnavailableOnRobot: "Indisponible sur ce robot.",
+    behaviourAssist: "Assistance active",
+    behaviourChipTitle:
+      "Comportement du gestionnaire actif, sur chaque écran ; STOP, Annuler ou quitter l'app y met fin",
+    behaviourMissing: (parameters) =>
+      `Le cartesian_manager en cours ne déclare pas ${parameters} : lancez un gestionnaire compilé avec ce comportement.`,
+    behaviourSpeedUp: "Accélération active",
     gamepad: "manette",
     help: "Aide",
     home: "Accueil",

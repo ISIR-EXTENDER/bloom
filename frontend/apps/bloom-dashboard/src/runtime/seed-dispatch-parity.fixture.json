@@ -123,6 +123,64 @@
     "status": "published",
     "type": "topic-publish"
   },
+  "explorer-manager.json:explorer-manager:manager_behaviours:behaviours-intent:on": {
+    "request": {
+      "topic": "/mode_request",
+      "message_type": "std_msgs/msg/String",
+      "payload_text": "{data: 'behaviour/intent_scaling'}"
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "explorer-manager.json:explorer-manager:manager_behaviours:behaviours-intent:off": {
+    "request": {
+      "topic": "/mode_request",
+      "message_type": "std_msgs/msg/String",
+      "payload_text": "{data: 'behaviour/passthrough'}"
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "explorer-manager.json:explorer-manager:manager_behaviours:behaviours-reset:press": {
+    "request": {
+      "topic": "/mode_request",
+      "message_type": "std_msgs/msg/String",
+      "payload": {
+        "data": "behaviour/shared_control/reset"
+      }
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "explorer-manager.json:explorer-manager:manager_behaviours:behaviours-release:press": {
+    "request": {
+      "topic": "/mode_request",
+      "message_type": "std_msgs/msg/String",
+      "payload": {
+        "data": "behaviour/passthrough"
+      }
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "explorer-manager.json:explorer-manager:manager_behaviours:behaviours-assist:on": {
+    "request": {
+      "topic": "/mode_request",
+      "message_type": "std_msgs/msg/String",
+      "payload_text": "{data: 'behaviour/shared_control'}"
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "explorer-manager.json:explorer-manager:manager_behaviours:behaviours-assist:off": {
+    "request": {
+      "topic": "/mode_request",
+      "message_type": "std_msgs/msg/String",
+      "payload_text": "{data: 'behaviour/passthrough'}"
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
   "explorer-manager.json:explorer-manager:manager_joystick_lab:lab-frame-base:press": {
     "request": null,
     "status": "unsupported",
@@ -240,17 +298,6 @@
     "status": "published",
     "type": "topic-publish"
   },
-  "kinova-manager.json:kinova-manager:manager_drive_bench:drive-fault-reset:press": {
-    "request": {
-      "type": "runtime_action",
-      "app_id": "kinova-manager",
-      "command": "kinova.reset_fault",
-      "config_id": "seed",
-      "preset_id": "fault-reset"
-    },
-    "status": "accepted",
-    "type": "command"
-  },
   "kinova-manager.json:kinova-manager:manager_drive_operator:drive-gripper:on": {
     "request": {
       "topic": "/gripper_controller/commands",
@@ -268,17 +315,6 @@
     },
     "status": "published",
     "type": "topic-publish"
-  },
-  "kinova-manager.json:kinova-manager:manager_drive_operator:drive-fault-reset:press": {
-    "request": {
-      "type": "runtime_action",
-      "app_id": "kinova-manager",
-      "command": "kinova.reset_fault",
-      "config_id": "seed",
-      "preset_id": "fault-reset"
-    },
-    "status": "accepted",
-    "type": "command"
   },
   "kinova-manager.json:kinova-manager:manager_drive_operator:drive-mode-both:press": {
     "request": {
@@ -313,6 +349,17 @@
     "status": "published",
     "type": "topic-publish"
   },
+  "kinova-manager.json:kinova-manager:manager_positions:positions-home:press": {
+    "request": {
+      "topic": "/mode_request",
+      "message_type": "std_msgs/msg/String",
+      "payload": {
+        "data": "behaviour/joint_target/home"
+      }
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
   "kinova-manager.json:kinova-manager:manager_positions:positions-release:press": {
     "request": {
       "topic": "/mode_request",
@@ -320,6 +367,64 @@
       "payload": {
         "data": "behaviour/passthrough"
       }
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "kinova-manager.json:kinova-manager:manager_behaviours:behaviours-intent:on": {
+    "request": {
+      "topic": "/mode_request",
+      "message_type": "std_msgs/msg/String",
+      "payload_text": "{data: 'behaviour/intent_scaling'}"
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "kinova-manager.json:kinova-manager:manager_behaviours:behaviours-intent:off": {
+    "request": {
+      "topic": "/mode_request",
+      "message_type": "std_msgs/msg/String",
+      "payload_text": "{data: 'behaviour/passthrough'}"
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "kinova-manager.json:kinova-manager:manager_behaviours:behaviours-reset:press": {
+    "request": {
+      "topic": "/mode_request",
+      "message_type": "std_msgs/msg/String",
+      "payload": {
+        "data": "behaviour/shared_control/reset"
+      }
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "kinova-manager.json:kinova-manager:manager_behaviours:behaviours-release:press": {
+    "request": {
+      "topic": "/mode_request",
+      "message_type": "std_msgs/msg/String",
+      "payload": {
+        "data": "behaviour/passthrough"
+      }
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "kinova-manager.json:kinova-manager:manager_behaviours:behaviours-assist:on": {
+    "request": {
+      "topic": "/mode_request",
+      "message_type": "std_msgs/msg/String",
+      "payload_text": "{data: 'behaviour/shared_control'}"
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "kinova-manager.json:kinova-manager:manager_behaviours:behaviours-assist:off": {
+    "request": {
+      "topic": "/mode_request",
+      "message_type": "std_msgs/msg/String",
+      "payload_text": "{data: 'behaviour/passthrough'}"
     },
     "status": "published",
     "type": "topic-publish"

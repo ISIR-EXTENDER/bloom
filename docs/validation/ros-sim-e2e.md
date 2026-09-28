@@ -25,7 +25,16 @@ For the chosen robot, with the API, dashboard, manager, qontrol and controllers 
 | `stop-latches-and-hold-resumes` | STOP latches in the backend (`GET /api/v1/runtime/stop` reads stopped and asserted), publishes a zero twist and `behaviour/passthrough`, Translation stays inert while stopped, and the one-second hold resumes. |
 | `maintenance-holds-zeros` | Opening maintenance while a keyboard drive is held zeroes the twist, and nothing non-zero reaches ROS while it is open. |
 | `joystick-lab-stamps-hybrid-frame` | After Hybrid is selected, the twist on ROS carries `header.frame_id: hybrid_frame`. |
-| `positions-go-home-and-release` | Explorer: the first Go home press only arms it, the second publishes `behaviour/joint_target/home` and the manager publishes `/joint_target_command`; Release publishes `behaviour/passthrough`. Kinova: no Go home is offered (cartesian_manager#10), Release still returns passthrough. |
+| `positions-go-home-and-release` | On both arms: the first Go home press only arms it, the second publishes `behaviour/joint_target/home` and the manager publishes `/joint_target_command` naming this arm's own joints (six on the Explorer, seven on the Kinova since cartesian_manager#11); Release publishes `behaviour/passthrough`. |
+| `behaviours-screen-offers-both` | The Behaviours screen opens with no widget unavailable on a manager that declares `behaviours.intent_scaling.*` and `behaviours.shared_control.*` (read back with `ros2 param get`), and the intent gauge and the confidence bars say they have no source while both behaviours are off. |
+| `intent-scaling-speeds-up-a-held-push` | Speed up with intent publishes `behaviour/intent_scaling`; `/cartesian_manager/intent_scale` starts at `min_scale` and, under a held Forward push, reaches 0.9 or more within 2.2 s over at least 20 samples; the gauge reads it, and the toggle lights **reported by the robot** from that feedback. |
+| `intent-scaling-off-stops-the-scale` | Switching it off publishes `behaviour/passthrough`, the scale topic goes silent, the gauge says *no source* and the toggle reads off. |
+| `behaviour-slider-sets-a-manager-parameter` | The Push start slider sets `behaviours.intent_scaling.min_scale` on the manager, read back with `ros2 param get`. |
+| `assist-follows-a-push-towards-a-goal` | The check publishes two goals on `/shared_control/goals` a quarter metre either side of the hand along the axis Forward drives; Assist publishes `behaviour/shared_control`, `/shared_control/confidences` names `agnostic,goal_0,goal_1` and the bars carry those ids, `/shared_control/soft_goal` publishes, and after a 1.5 s push the aimed goal's confidence is above 0.3 and above the other's, on the wire and on its bar. |
+| `reset-assist-forgets-the-confidences` | Reset assist publishes `behaviour/shared_control/reset`; the manager drops the dynamic goals and reports `agnostic` alone at 1.0, the bars show one row, and Assist stays on. |
+| `behaviours-replace-each-other` | Speed up on: the confidences stop and Assist reads off; Assist on: the intent scale stops and Speed up reads off. |
+| `stop-ends-a-behaviour` | STOP publishes `behaviour/passthrough`, the confidences stop, and after the resume hold Assist reads off. |
+| `leaving-the-app-ends-assist` | With Assist on, closing the operator's browser makes the server publish `behaviour/passthrough` and the confidences stop. |
 | `robot-feedback-plots` | Robot feedback plots live series and the value strip shows numbers. |
 | `builder-authors-a-ros-toggle-and-a-hold-button` | A new app is created through the Builder UI, a toggle and a command button are added from the palette and configured from the inspector alone (topic, message type, labels, ON/OFF and pressed/released payloads), and the screen is saved through the API. |
 | `authored-buttons-reach-the-manager` | The authored app opens in the runtime and its two controls put their payloads on `/mode_request`: `geometric/jaco` from the toggle, `geometric/snake` then `geometric/both` from the hold button. The Builder harness (`npm run e2e:builder`, no ROS) authors the same two controls and proves they render inert with the reason. |
@@ -48,7 +57,8 @@ target tablet, a gamepad or switch, or an operator. The Kinova gripper values in
 Robotiq 2F-85. Hardware acceptance stays in [extender-petanque-validation.md](../extender-petanque-validation.md) and
 the release checklist.
 
-The Kinova launch does not spawn `fault_controller`, so Reset fault is not exercised.
+The Kinova Manager app no longer carries a Reset fault button, since the manager no longer spawns `fault_controller`;
+a gen3 fault is cleared from the arm's web page or by a power cycle, which no simulation shows.
 
 ## Prerequisites
 
@@ -57,6 +67,9 @@ The Kinova launch does not spawn `fault_controller`, so Reset fault is not exerc
 - Chrome, or the Playwright Chromium.
 - Explorer: `ros-jazzy-ros-gz-bridge` and the Explorer Gazebo packages, and no other Gazebo simulation running. Gazebo
   transport ignores `ROS_DOMAIN_ID`, so the script refuses to start a second world.
+- Kinova Go home: cartesian_manager at #11 (main, `f8bf881`) or later, which ships the gen3's seven-joint home.
+- The nine behaviour checks: a manager built with `topic/intent_scaling` and `topic/shared_control` (the combined
+  overlay); on a manager without them they report SKIP with the reason and the rest of the run stands.
 - Kinova: `kortex_description` and `robotiq_description` built in the Extender workspace. They are in
   `kinova.repos` (`Kinovarobotics/ros2_kortex` on `jazzy`, `PickNikRobotics/ros2_robotiq_gripper` on `main`), imported
   with `WITH_KORTEX=1 ./setup_workspace.sh`; the workspace README explains which packages to ignore and why the versions must match. `kortex_description` 0.2.3, the
@@ -219,3 +232,20 @@ What is still unproven on an arm, and cannot be proven without one: that the dri
 for every joint the description declares. Simulation publishes all of them; a real arm may publish fewer, and a
 joint it does not report stays where the URDF puts it. The view says so, in the line under it, rather than
 drawing a pose it cannot support.
+
+### Amended 2026-09-28: the manager's lasting behaviours
+
+The manager overlay for this run was `topic/behaviours-combined` (intent scaling and shared control merged), sourced
+on top of the workspace with `BLOOM_E2E_EXTRA_PREFIX`. Nine checks were added, listed above, and the Go home check
+now asserts the joint count on both arms. Explorer 39/39 on qontrol `91309cc`: the held push took the scale from
+0.40 to 1.00 over 45 samples, the goal ahead of the hand reached confidence 1.00 after 1.5 s while the other stayed
+at 0, and the reset left `agnostic` alone. Kinova 39/39 on qontrol `a6382c1`: the same figures (0.40 to 1.00 over 46 samples, the aimed goal at 1.00), and Go home
+reached `/joint_target_command` with the gen3's seven joints.
+
+Both feedback topics stream at 100 Hz while Assist is on; the runtime socket forwards at most 30 samples a second
+per topic, and the bars and the 3D view redraw only when a value moved. What the simulation cannot show: whether the
+assistance feels right on an arm, and the confidence cone against real joystick noise.
+
+The seeds' presses are pinned by `frontend/apps/bloom-dashboard/src/runtime/seed-dispatch-parity.fixture.json`; a
+deliberate seed change is recorded with `BLOOM_WRITE_PARITY_FIXTURE=1 npx vitest run src/runtime/seed-dispatch-parity.test.ts`
+from the dashboard package and reviewed as a diff.

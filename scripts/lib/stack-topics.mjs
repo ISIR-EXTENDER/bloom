@@ -12,6 +12,7 @@ export const STACK = {
   hubAnalogInput: "/hub/analogic_input",
   hubDigitalInput: "/hub/digital_input",
   hubOutput: "/hub/digital_output",
+  intentScale: "/cartesian_manager/intent_scale",
   jointStates: "/joint_states",
   jointTarget: "/joint_target_command",
   maxAngularSpeed: "/explorer_user_interfaces/rqt_armcontrol/max_angular_speed",
@@ -25,6 +26,9 @@ export const STACK = {
   servoOn: "/ui/visual_servoing/on",
   servoSave: "/ui/visual_servoing/save",
   servoVelocity: "/visual_servoing/velocity_command",
+  sharedControlConfidences: "/shared_control/confidences",
+  sharedControlGoals: "/shared_control/goals",
+  sharedControlSoftGoal: "/shared_control/soft_goal",
   tagDetections: "/tag_detections",
   twist: "/joystick_cartesian_command",
 };

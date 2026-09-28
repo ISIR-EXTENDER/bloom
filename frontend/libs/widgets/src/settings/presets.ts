@@ -148,9 +148,34 @@ export const ROS_MESSAGE_COMMAND_PRESETS: readonly RosMessageCommandPreset[] = [
     topic: "/mode_request",
   },
   {
+    id: "manager-intent-scaling",
+    label: "Manager intent scaling",
+    description:
+      "Start a push slow and speed it up while it is kept in one direction (behaviour/intent_scaling). A release or a reversal starts slow again.",
+    buttonLabel: "Speed up",
+    category: "motion",
+    command: "behaviour/intent_scaling",
+    messageType: "std_msgs/msg/String",
+    payload: "{data: 'behaviour/intent_scaling'}",
+    topic: "/mode_request",
+  },
+  {
+    id: "manager-shared-control",
+    label: "Manager shared control",
+    description:
+      "Assist the operator towards the goal they seem to aim at (behaviour/shared_control). Goals arrive as a PoseArray on /shared_control/goals.",
+    buttonLabel: "Assist",
+    category: "motion",
+    command: "behaviour/shared_control",
+    messageType: "std_msgs/msg/String",
+    payload: "{data: 'behaviour/shared_control'}",
+    topic: "/mode_request",
+  },
+  {
     id: "manager-cancel-behaviour",
     label: "Cancel manager behaviour",
-    description: "Return the manager to passthrough, cancelling an in-progress joint target.",
+    description:
+      "Return the manager to passthrough, cancelling an in-progress joint target, shared control or intent scaling.",
     buttonLabel: "Cancel motion",
     category: "motion",
     command: "behaviour/passthrough",

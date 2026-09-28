@@ -196,8 +196,8 @@ export BLOOM_ROS_COMMAND_FRAME_ID='base_link'
 export BLOOM_ALLOWED_COMMAND_FRAME_IDS='base_link,effector_frame,hybrid_frame'
 # The node whose robot_description the 3D robot view draws, with its meshes served from the package share.
 export BLOOM_ROS_ROBOT_DESCRIPTION_NODE='/robot_state_publisher'
-export BLOOM_ALLOWED_ROS_SERVICE_CALLS='/fault_controller/reset_fault'
-export BLOOM_ALLOWED_ROS_SERVICE_TYPES='example_interfaces/srv/Trigger,std_srvs/srv/Trigger'
+# Services are off by default: the manager no longer spawns the Kinova's fault_controller. A lab that runs one
+# allows it with BLOOM_ALLOWED_ROS_SERVICE_CALLS='/fault_controller/reset_fault' and the Trigger types.
 export BLOOM_RUNTIME_COMMAND_RATE_LIMIT_PER_SECOND=60
 # The newest sample per topic, this many times a second at most, on each runtime socket; 0 forwards every one.
 export BLOOM_RUNTIME_TOPIC_MAX_RATE_HZ=30

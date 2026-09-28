@@ -23,7 +23,10 @@ import {
   SLIDER_PURPOSE_KEYS,
   SLIDER_PURPOSES,
   sliderPurposeOf,
+  TOGGLE_PURPOSE_KEYS,
+  TOGGLE_PURPOSES,
   TOPIC_SUGGESTIONS,
+  togglePurposeOf,
   type WidgetSettingField,
 } from "@bloom/widgets";
 import { useEffect, useId, useRef, useState } from "react";
@@ -435,6 +438,15 @@ export function BuilderWidgetSettingsEditor({
           onChoose={(purpose) => choosePurpose(purpose, JOYSTICK_PURPOSES, JOYSTICK_PURPOSE_KEYS, joystickPurposeOf)}
           purposes={JOYSTICK_PURPOSES}
           value={joystickPurposeOf(widget.settings)}
+        />
+      ) : null}
+      {/* Speed up and Assist are listed on every arm; the runtime marks them unavailable if the running manager lacks them. */}
+      {widget.kind === "toggle" ? (
+        <PurposeField
+          label="What this toggle switches"
+          onChoose={(purpose) => choosePurpose(purpose, TOGGLE_PURPOSES, TOGGLE_PURPOSE_KEYS, togglePurposeOf)}
+          purposes={TOGGLE_PURPOSES}
+          value={togglePurposeOf(widget.settings)}
         />
       ) : null}
       {widget.kind === "command-button" ? (

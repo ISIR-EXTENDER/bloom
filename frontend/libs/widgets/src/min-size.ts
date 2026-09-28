@@ -32,6 +32,8 @@ export const WIDGET_MIN_SIZE: Readonly<Record<string, { off: WidgetMinSize; on: 
   "value-strip": { off: [440, 140], on: [440, 140] },
   "joint-table": { off: [480, 280], on: [480, 280] },
   jacobian: { off: [480, 360], on: [480, 360] },
+  // One bar row per goal, the agnostic one first: three rows and the title.
+  "confidence-bars": { off: [280, 160], on: [320, 200] },
 };
 
 export type MinSizeSettings = {

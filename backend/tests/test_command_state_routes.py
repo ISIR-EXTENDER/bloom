@@ -74,7 +74,11 @@ class Clock:
 def make(control_required: bool = False, **gateways: Any) -> tuple[TestClient, CommandStateStore, RosGateway]:
     ros = RosGateway()
     app = create_app(
-        Settings(environment="test", runtime_control_required=control_required),
+        Settings(
+            environment="test",
+            runtime_control_required=control_required,
+            allowed_ros_service_calls=("/fault_controller/reset_fault",),
+        ),
         InMemoryConfigurationRepository({"explorer-manager": load_configuration_file(EXPLORER_FIXTURE_PATH)}),
         ros_publisher_gateway=ros,
         **gateways,

@@ -1,5 +1,6 @@
 import { CommandLikeWidget, LabelWidget, ToggleWidget } from "./action-renderers";
 import { CameraWidget } from "./camera-renderer";
+import { ConfidenceBarsWidget } from "./confidence-bars-renderer";
 import { TopicDebugWidget } from "./debug-renderers";
 import { JacobianWidget, JointTableWidget } from "./debug-table-renderers";
 import { EventLogWidget, GaugeWidget, PlotWidget } from "./display-renderers";
@@ -14,6 +15,7 @@ import type { WidgetRendererRegistration } from "./types";
 
 export const DEFAULT_WIDGET_RENDERERS: readonly WidgetRendererRegistration[] = [
   { kind: "command-button", render: CommandLikeWidget },
+  { kind: "confidence-bars", render: ConfidenceBarsWidget },
   { kind: "event-log", render: EventLogWidget },
   { kind: "label", render: LabelWidget },
   { kind: "toggle", render: ToggleWidget },

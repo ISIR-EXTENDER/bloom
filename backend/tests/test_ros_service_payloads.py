@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
@@ -11,13 +10,13 @@ from fastapi.testclient import TestClient
 
 from apps.bloom_api.main import create_app
 from apps.bloom_api.settings import Settings
-from libs.config import InMemoryConfigurationRepository, load_configuration_file
+from libs.config import InMemoryConfigurationRepository
 from libs.ros_adapters import RosServiceReceipt, RosServiceRequest, safety
 from libs.ros_adapters.safety import RuntimePayloadShapeError, validate_service_request_payload
 from libs.ros_adapters.services import MAX_RESPONSE_DETAIL_CHARS, RclpyRosServiceGateway, receipt_from_response
 from libs.sessions import InMemoryRuntimeAuditLog
+from tests.conftest import kinova_with_a_fault_reset_preset
 
-KINOVA_FIXTURE_PATH = Path(__file__).parents[1] / "seed" / "applications" / "kinova-manager.json"
 CALL = "/api/v1/ros/services/call"
 ACTIONS = "/api/v1/runtime/actions"
 SERVICE = "/fault_controller/reset_fault"
@@ -162,18 +161,8 @@ def test_without_rosidl_non_finite_text_is_still_refused(monkeypatch: pytest.Mon
 
 
 def with_service_preset(message_type: str, **preset_fields: Any) -> InMemoryConfigurationRepository:
-    bundle = load_configuration_file(KINOVA_FIXTURE_PATH)
-    applications = []
-    for app in bundle.applications:
-        presets = tuple(
-            preset.model_copy(update={"message_type": message_type, **preset_fields})
-            if preset.kind == "service-call"
-            else preset
-            for preset in app.action_presets
-        )
-        applications.append(app.model_copy(update={"action_presets": presets}))
     return InMemoryConfigurationRepository(
-        {"kinova-manager": bundle.model_copy(update={"applications": tuple(applications)})}
+        {"kinova-manager": kinova_with_a_fault_reset_preset(message_type, **preset_fields)}
     )
 
 

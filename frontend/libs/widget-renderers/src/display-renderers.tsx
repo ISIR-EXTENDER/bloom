@@ -9,6 +9,7 @@ import {
   readString,
 } from "@bloom/widgets";
 import { type CSSProperties, useState } from "react";
+import { useBehaviourReported } from "./behaviour-feedback";
 import { createPlotBars, createSparklinePath, formatPlotNumber, resolvePlotBounds } from "./plot-rendering";
 import { type RendererStrings, rendererStrings } from "./renderer-strings";
 import type { WidgetRendererProps } from "./types";
@@ -111,7 +112,10 @@ export function GaugeWidget({ data, descriptor, language }: WidgetRendererProps)
   const hasSample = data?.type === "gauge";
   // A sample that stopped arriving is not a reading either: the number is where the value was.
   const stale = isSampleStale(hasSample ? data.receivedAt : undefined, useNow(1000));
-  const live = hasSample && !stale;
+  // A manager feedback topic says at once when its behaviour is off: the store knows before the sample ages.
+  const reported = useBehaviourReported(getStringSetting(descriptor.widget.settings, "topic", ""));
+  const silent = reported === false;
+  const live = hasSample && !stale && !silent;
   // A stale sample is still the robot's last word; it is marked, not replaced by the placeholder.
   const value = hasSample ? data.value : getNumberSetting(descriptor.widget.settings, "value", min);
   const unit = getStringSetting(descriptor.widget.settings, "unit", "");
@@ -121,11 +125,17 @@ export function GaugeWidget({ data, descriptor, language }: WidgetRendererProps)
   const percent = Math.round(ratio * 100);
 
   return (
-    <div className="bloom-gauge-widget" data-live={live ? "true" : "false"}>
+    <div
+      className="bloom-gauge-widget"
+      data-live={live ? "true" : "false"}
+      data-silent={silent || (hasSample && stale) ? "true" : undefined}
+    >
       {hidesTitle(descriptor.widget.settings) ? null : (
         <header className="bloom-display-header">
           <strong>{descriptor.widget.title}</strong>
-          <span>{showDetails && hasSample ? data.topic : unit || text.gauge}</span>
+          <span>
+            {hasSample && !live ? text.notPublishing : showDetails && hasSample ? data.topic : unit || text.gauge}
+          </span>
         </header>
       )}
       <meter
@@ -154,7 +164,7 @@ export function GaugeWidget({ data, descriptor, language }: WidgetRendererProps)
           <small className="bloom-display-source">{text.updatedAt(formatShortTimestamp(data.receivedAt))}</small>
         ) : null
       ) : (
-        <small className="bloom-display-source">{text.noSource}</small>
+        <small className="bloom-display-source">{hasSample ? text.lastValueNotPublishing : text.noSource}</small>
       )}
     </div>
   );

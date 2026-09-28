@@ -24,8 +24,13 @@ describe("normalizeConfigurationBundle", () => {
     expect(normalizedBundle.applications[0]?.runtime_policy.allowed_service_calls).toEqual([]);
   });
 
-  it("keeps Kinova service-call guardrails when a stored app is loaded for editing", () => {
-    const normalizedBundle = normalizeConfigurationBundle(kinovaManagerConfiguration as unknown as ConfigurationBundle);
+  it("keeps service-call guardrails when a stored app is loaded for editing", () => {
+    // The shipped Kinova seed no longer allows a service; a lab that has the gen3's fault controller adds it.
+    const bundle = structuredClone(kinovaManagerConfiguration) as unknown as ConfigurationBundle;
+    const policy = bundle.applications[0]?.runtime_policy as unknown as Record<string, unknown>;
+    policy.allowed_service_calls = ["/fault_controller/reset_fault"];
+
+    const normalizedBundle = normalizeConfigurationBundle(bundle);
 
     expect(normalizedBundle.applications[0]?.runtime_policy.allowed_service_calls).toEqual([
       "/fault_controller/reset_fault",

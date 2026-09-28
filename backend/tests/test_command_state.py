@@ -11,8 +11,10 @@ from libs.sessions.command_state import (
     BY_OTHER,
     BY_ROBOT,
     BY_SERVER,
+    INTENT_SCALING_ACTIVE_KEY,
     PETANQUE_STATE_KEY,
     SERVOING_ACTIVE_KEY,
+    SHARED_CONTROL_ACTIVE_KEY,
     CommandStateStore,
     CommandStateTracker,
     EchoExpectingGateway,
@@ -198,6 +200,77 @@ def test_passthrough_clears_the_target(tracker: CommandStateTracker, store: Comm
 
     assert entry(store, BEHAVIOUR)[0] == "behaviour/passthrough"
     assert entry(store, TARGET)[0] is None
+
+
+def test_intent_scaling_and_shared_control_last_and_replace_each_other(
+    tracker: CommandStateTracker, store: CommandStateStore
+) -> None:
+    tracker.record_publish("/mode_request", STRING, mode("behaviour/joint_target/home"), "s1")
+    tracker.record_publish("/mode_request", STRING, mode("Behaviour/Intent-Scaling"), "s1")
+    assert entry(store, BEHAVIOUR) == ("behaviour/intent_scaling", "commanded", session_alias("s1"))
+    assert entry(store, TARGET)[0] is None
+
+    tracker.record_publish("/mode_request", STRING, mode("behaviour/shared_control"), "s1")
+    assert entry(store, BEHAVIOUR)[0] == "behaviour/shared_control"
+
+    # The reset enters shared control too, with the confidences cleared on the manager's side.
+    tracker.record_publish("/mode_request", STRING, mode("behaviour/passthrough"), "s1")
+    tracker.record_publish("/mode_request", STRING, mode("behaviour/shared_control/reset"), "s1")
+    assert entry(store, BEHAVIOUR)[0] == "behaviour/shared_control"
+    assert entry(store, "/mode_request")[0] == {"data": "behaviour/shared_control/reset"}
+
+    tracker.record_publish("/mode_request", STRING, mode("behaviour/passthrough"), "s1")
+    assert entry(store, BEHAVIOUR)[0] == "behaviour/passthrough"
+
+
+def test_a_behaviour_is_measured_while_its_feedback_streams(
+    tracker: CommandStateTracker, store: CommandStateStore, clock: Clock
+) -> None:
+    tracker.record_publish("/mode_request", STRING, mode("behaviour/intent_scaling"), "s1")
+    clock.now += 0.1
+    tracker.record_behaviour_active("behaviour/intent_scaling")
+    assert entry(store, INTENT_SCALING_ACTIVE_KEY) == (True, "measured", BY_ROBOT)
+    assert entry(store, BEHAVIOUR) == ("behaviour/intent_scaling", "measured", BY_ROBOT)
+
+    # A request just sent may not have reached the manager: its old feedback does not undo the request.
+    tracker.record_publish("/mode_request", STRING, mode("behaviour/shared_control"), "s1")
+    clock.now += 0.1
+    tracker.record_behaviour_active("behaviour/intent_scaling")
+    assert entry(store, BEHAVIOUR)[0] == "behaviour/shared_control"
+
+    # Past the settle window, feedback that disagrees is the manager's word: someone else switched it.
+    clock.now += 1.0
+    tracker.record_behaviour_active("behaviour/intent_scaling")
+    assert entry(store, BEHAVIOUR) == ("behaviour/intent_scaling", "measured", BY_ROBOT)
+
+    # Silence ends it: the manager left, and only a request nobody saw says for what.
+    clock.now += 0.6
+    tracker.tick()
+    assert entry(store, INTENT_SCALING_ACTIVE_KEY) == (False, "measured", BY_ROBOT)
+    assert entry(store, BEHAVIOUR)[1] == "unknown"
+    assert store.get(SHARED_CONTROL_ACTIVE_KEY) is None
+
+
+def test_behaviour_feedback_on_another_mode_topic_ends_that_topics_behaviour(
+    tracker: CommandStateTracker, store: CommandStateStore, clock: Clock
+) -> None:
+    tracker.record_publish("/arm2/mode_request", STRING, mode("behaviour/intent_scaling"), "s1")
+    clock.now += 1.0
+    tracker.record_behaviour_active("behaviour/intent_scaling", "/arm2/mode_request")
+    assert entry(store, "manager:behaviour@/arm2/mode_request")[1] == "measured"
+
+    clock.now += 0.6
+    tracker.tick()
+    assert entry(store, "manager:behaviour@/arm2/mode_request")[1] == "unknown"
+    assert store.get(BEHAVIOUR) is None
+
+
+def test_a_lost_manager_forgets_its_behaviour_feedback(tracker: CommandStateTracker, store: CommandStateStore) -> None:
+    tracker.record_behaviour_active("behaviour/shared_control")
+    assert entry(store, SHARED_CONTROL_ACTIVE_KEY)[0] is True
+
+    tracker.mark_manager_lost()
+    assert entry(store, SHARED_CONTROL_ACTIVE_KEY) == (None, "unknown", BY_SERVER)
 
 
 def test_another_mode_topic_keeps_its_own_manager_states(

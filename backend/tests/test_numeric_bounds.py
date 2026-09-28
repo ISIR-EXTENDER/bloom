@@ -183,6 +183,28 @@ def test_the_default_caps_cover_every_shipped_slider() -> None:
         walk(json.loads(path.read_text()))
 
 
+@pytest.mark.parametrize(
+    ("name", "refused", "accepted"),
+    [
+        ("behaviours.intent_scaling.min_scale", 0.0, 0.4),
+        ("behaviours.intent_scaling.min_scale", 1.5, 1.0),
+        ("behaviours.intent_scaling.consistency_threshold", 1.2, 0.5),
+        ("behaviours.intent_scaling.gain", -0.1, 0.0),
+        ("behaviours.shared_control.theta_l_deg", 120.0, 30.0),
+        ("behaviours.shared_control.gamma", 0.0, 2.0),
+        ("behaviours.shared_control.r2", 0.0, 0.02),
+        ("behaviours.shared_control.goal_match_distance", -0.05, 0.05),
+    ],
+)
+def test_the_lasting_behaviours_tuning_is_bounded_as_the_manager_validates_it(
+    name: str, refused: float, accepted: float
+) -> None:
+    test_client = client()
+    body = {"node": "/cartesian_manager", "name": name}
+    assert test_client.post(PARAMETER_SET, json=body | {"value": refused}).status_code == 422
+    assert test_client.post(PARAMETER_SET, json=body | {"value": accepted}).status_code == 200
+
+
 PETANQUE_PARAMETERS = ("total_duration", "alpha", "angle_between_start_and_finish")
 
 

@@ -16,9 +16,9 @@ from libs.ros_adapters import RosPublishReceipt, RosPublishRequest, RosServiceRe
 from libs.ros_adapters.parameters import RosParameterReceipt, RosParameterRequest
 from libs.sessions import PublishSupersededError, RuntimeSessionManager
 from libs.sessions.audit import InMemoryRuntimeAuditLog
+from tests.conftest import kinova_with_a_fault_reset_preset
 
 EXPLORER_FIXTURE_PATH = Path(__file__).parents[1] / "seed" / "applications" / "explorer-manager.json"
-KINOVA_FIXTURE_PATH = Path(__file__).parents[1] / "seed" / "applications" / "kinova-manager.json"
 PUBLISH = "/api/v1/ros/topics/publish"
 ACTIONS = "/api/v1/runtime/actions"
 
@@ -340,8 +340,8 @@ def test_a_service_preset_is_ordered_by_its_service_name() -> None:
     gateway = RecordingServiceGateway()
     client = TestClient(
         create_app(
-            Settings(environment="test"),
-            InMemoryConfigurationRepository({"kinova-manager": load_configuration_file(KINOVA_FIXTURE_PATH)}),
+            Settings(environment="test", allowed_ros_service_calls=("/fault_controller/reset_fault",)),
+            InMemoryConfigurationRepository({"kinova-manager": kinova_with_a_fault_reset_preset()}),
             ros_service_gateway=gateway,
         )
     )

@@ -71,6 +71,16 @@ function hold(ms: number) {
 describe("the kiosk bar", () => {
   afterEach(cleanup);
 
+  it("names the manager's lasting behaviour on every screen, and nothing when none is on", () => {
+    renderBar({ activeBehaviour: "shared_control", language: "fr" });
+    const chip = screen.getByRole("status", { name: /Assistance active$/ });
+    expect(chip.textContent).toBe("Assistance active");
+    expect(chip.getAttribute("data-behaviour")).toBe("shared_control");
+    cleanup();
+    renderBar();
+    expect(screen.queryByRole("status", { name: /Speed up on|Assist on/ })).toBeNull();
+  });
+
   it("carries only status, with no way out of the session on it", () => {
     renderBar();
 

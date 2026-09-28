@@ -1018,6 +1018,19 @@ button.runtime-kiosk-screen:focus-visible {
   color: var(--bloom-on-error);
 }
 
+/* The manager's lasting behaviour, reported by its own feedback: it outlives a screen change, so it sits in the bar. */
+.runtime-kiosk-behaviour {
+  flex: 0 0 auto;
+  padding: 2px 10px;
+  border: 1px solid color-mix(in srgb, var(--bloom-accent) 55%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bloom-accent) 22%, transparent);
+  color: var(--bloom-ink);
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
 .runtime-kiosk-frame {
   flex: 0 0 auto;
   padding: 2px 10px;

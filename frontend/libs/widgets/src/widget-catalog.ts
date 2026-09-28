@@ -1,5 +1,6 @@
 import type { WidgetKind } from "@bloom/api-client";
 import { gripperToggleSettings } from "./gripper";
+import { SHARED_CONTROL_CONFIDENCES_TOPIC } from "./manager-behaviours";
 import { PALETTE_WIRING } from "./palette-wiring";
 import { translationPadSettings } from "./robot-axes";
 import { getDefaultWidgetSettings } from "./settings";
@@ -53,6 +54,20 @@ export const DEFAULT_WIDGET_DEFINITIONS: readonly WidgetDefinition[] = [
     maturity: "ready",
     availability: { editor: true, runtime: true },
     editor: createDefaultEditorCapabilities(["backgroundColor", "borderColor", "textColor"]),
+  },
+  {
+    kind: "confidence-bars",
+    displayName: "Confidence bars",
+    category: "feedback",
+    description: "One bar per shared-control goal: how sure the manager is that the operator aims at it.",
+    defaultTitle: PALETTE_WIRING["confidence-bars"]?.title ?? "",
+    defaultSettings: wired("confidence-bars"),
+    defaultLayout: { width: 338, height: 160, minWidth: 280, minHeight: 160 },
+    runtimeRequirements: ["data-source"],
+    maturity: "ready",
+    maturityNote: `Reads ${SHARED_CONTROL_CONFIDENCES_TOPIC}, which the manager publishes only while Assist is on.`,
+    availability: { editor: true, runtime: true },
+    editor: createDefaultEditorCapabilities(["accentColor", "backgroundColor", "textColor"]),
   },
   {
     kind: "event-log",

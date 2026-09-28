@@ -118,14 +118,30 @@ class Settings(BaseModel):
         "/cartesian_manager:shapers.jaco.max_angular_velocity",
         "/cartesian_manager:rate_limiter.max_linear_acceleration",
         "/cartesian_manager:rate_limiter.max_angular_acceleration",
+        # The lasting behaviours' tuning. Read at start as well: a manager that declares them offers the
+        # behaviour, and Bloom shows the Speed up and Assist controls only then.
+        "/cartesian_manager:behaviours.intent_scaling.min_scale",
+        "/cartesian_manager:behaviours.intent_scaling.window_sec",
+        "/cartesian_manager:behaviours.intent_scaling.consistency_threshold",
+        "/cartesian_manager:behaviours.intent_scaling.gain",
+        "/cartesian_manager:behaviours.shared_control.alpha_conf",
+        "/cartesian_manager:behaviours.shared_control.theta_l_deg",
+        "/cartesian_manager:behaviours.shared_control.v_j_max",
+        "/cartesian_manager:behaviours.shared_control.gamma",
+        "/cartesian_manager:behaviours.shared_control.r1",
+        "/cartesian_manager:behaviours.shared_control.r2",
+        "/cartesian_manager:behaviours.shared_control.theta1_deg",
+        "/cartesian_manager:behaviours.shared_control.theta2_deg",
+        "/cartesian_manager:behaviours.shared_control.goal_match_distance",
         # apps-petanque's throw trajectory, the tuning the Petanque app lost when it left the old backend.
         "/petanque_throw:alpha",
         "/petanque_throw:total_duration",
         "/petanque_throw:angle_between_start_and_finish",
     )
     # Services the runtime may call, any type listed below; a request payload is checked against the
-    # type's Request fields. The fault reset is the Kinova gen3's recovery path.
-    allowed_ros_service_calls: tuple[str, ...] = ("/fault_controller/reset_fault",)
+    # type's Request fields. None by default: the manager no longer spawns the Kinova's fault_controller, and a
+    # gen3 fault is cleared from the arm's web page or by power-cycling it.
+    allowed_ros_service_calls: tuple[str, ...] = ()
     allowed_ros_service_types: tuple[str, ...] = (
         "example_interfaces/srv/Trigger",
         "std_srvs/srv/Trigger",
@@ -169,6 +185,8 @@ class Settings(BaseModel):
     runtime_topic_max_rate_hz: int = Field(default=30, ge=0)
     allowed_recording_topics: tuple[str, ...] = (
         "/cartesian_command",
+        # The manager's intent scale, only while behaviour/intent_scaling is active.
+        "/cartesian_manager/intent_scale",
         # qontrol's Jacobian, for the manipulability view in Bloom Debug.
         "/ee_jac",
         "/ee_pose",
@@ -187,6 +205,10 @@ class Settings(BaseModel):
         # qontrol's estimated tip-force overload flag (force norm >= force_threshold).
         "/qontrol_explorer/effort_overload",
         "/rosout",
+        # Shared control: the goals a detector sends, and the manager's confidences and soft goal while active.
+        "/shared_control/confidences",
+        "/shared_control/goals",
+        "/shared_control/soft_goal",
         "/tag_detections",
         "/visual_servoing_cartesian_command",
         "/visual_servoing/error_TAGtoTAGd",

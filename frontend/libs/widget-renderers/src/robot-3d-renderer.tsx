@@ -1,5 +1,6 @@
-import { getBooleanSetting, getStringSetting, hidesTitle } from "@bloom/widgets";
+import { getBooleanSetting, getStringSetting, hidesTitle, isRecord } from "@bloom/widgets";
 import { lazy, Suspense, useEffect, useState } from "react";
+import { useBehaviourReported, useOtherBehaviourKnown } from "./behaviour-feedback";
 import { type RendererStrings, rendererStrings } from "./renderer-strings";
 import { isMoving } from "./robot-3d-command";
 import type { SceneStatus } from "./robot-3d-scene";
@@ -15,9 +16,13 @@ export function Robot3dWidget({ data, descriptor, language, robotModel }: Widget
   const jointStateTopic = getStringSetting(settings, "jointStateTopic", "/joint_states");
   const markerTopic = getStringSetting(settings, "markerTopic", "");
   const eeLink = getStringSetting(settings, "eeLink", "");
+  const softGoalTopic = getStringSetting(settings, "softGoalTopic", "");
+  const goalsTopic = getStringSetting(settings, "goalsTopic", "");
   const showAxes = getBooleanSetting(settings, "showAxes", true);
   const frameAxes = getBooleanSetting(settings, "frameAxes", false);
   const [status, setStatus] = useState<SceneStatus>({
+    goals: 0,
+    goalsIgnored: 0,
     joints: { driven: 0, total: 0 },
     links: 0,
     loading: 0,
@@ -25,6 +30,7 @@ export function Robot3dWidget({ data, descriptor, language, robotModel }: Widget
     meshes: 0,
     model: "loading",
     pose: false,
+    softGoal: false,
     target: false,
     unplaced: 0,
     updates: 0,
@@ -38,6 +44,14 @@ export function Robot3dWidget({ data, descriptor, language, robotModel }: Widget
   };
   const snapshot = data?.type === "robot-3d" ? data : undefined;
   const staleSeconds = useStaleSeconds(localReceivedAt(snapshot?.receivedAt));
+  // Shared control ended, or its soft goal stopped: neither the goals nor the soft goal may stay drawn as live.
+  const assistReported = useBehaviourReported(softGoalTopic || goalsTopic);
+  const otherBehaviour = useOtherBehaviourKnown();
+  const assistOff = assistReported === false || otherBehaviour;
+  const softGoalStale = useStaleSeconds(localReceivedAt(snapshot?.softGoalReceivedAt)) !== null;
+  const gone = assistOff || softGoalStale;
+  const goals = gone ? undefined : asSample<{ header?: unknown; poses?: unknown }>(snapshot?.goals);
+  const softGoal = gone ? undefined : asSample<{ header?: unknown; pose?: unknown }>(snapshot?.softGoal);
   const command = snapshot?.command;
   const moving = isMoving(command);
   const desktop = descriptor.context.deviceClass !== "tablet";
@@ -72,6 +86,9 @@ export function Robot3dWidget({ data, descriptor, language, robotModel }: Widget
         data-joints={`${status.joints.driven}/${status.joints.total}`}
         data-joint-updates={status.updates}
         data-pose={status.pose ? "shown" : "none"}
+        data-goals={status.goals}
+        data-goals-ignored={status.goalsIgnored}
+        data-soft-goal={status.softGoal ? "shown" : "none"}
         data-target={status.target ? "shown" : "none"}
         data-mesh-error={status.meshError}
         data-meshes={status.meshes}
@@ -87,13 +104,15 @@ export function Robot3dWidget({ data, descriptor, language, robotModel }: Widget
               command={moving ? command : undefined}
               fitRequest={fitRequest}
               frameAxes={frameAxes}
-              jointState={asJointState(snapshot?.value)}
+              jointState={asSample<{ name?: unknown; position?: unknown }>(snapshot?.value)}
               markers={asMarkers(snapshot?.markers)}
               onStatus={setStatus}
-              pose={asPose(snapshot?.pose)}
+              goals={goals}
+              pose={asSample<{ header?: unknown; pose?: unknown }>(snapshot?.pose)}
               robotModel={robotModel}
               showAxes={showAxes}
-              target={asJointState(snapshot?.target)}
+              softGoal={softGoal}
+              target={asSample<{ name?: unknown; position?: unknown }>(snapshot?.target)}
             />
           </Suspense>
         ) : null}
@@ -150,10 +169,6 @@ function rememberGestureHintSeen() {
   }
 }
 
-function asJointState(value: unknown): { name?: unknown; position?: unknown } | undefined {
-  return typeof value === "object" && value !== null ? (value as { name?: unknown; position?: unknown }) : undefined;
-}
-
 /** How long since the joint state last arrived, once that is longer than a robot goes quiet for; null while fresh. */
 const STALE_AFTER_MS = 3000;
 
@@ -176,8 +191,9 @@ function useStaleSeconds(at: number | undefined): number | null {
   return stale;
 }
 
-function asPose(value: unknown): { header?: unknown; pose?: unknown } | undefined {
-  return typeof value === "object" && value !== null ? (value as { header?: unknown; pose?: unknown }) : undefined;
+/** A message as the socket hands it over, or undefined for anything that is not an object. */
+function asSample<T extends object>(value: unknown): T | undefined {
+  return isRecord(value) ? (value as T) : undefined;
 }
 
 function asMarkers(value: unknown): readonly Record<string, unknown>[] | undefined {
@@ -190,7 +206,7 @@ export function summarizeJointState(
   joints?: { driven: number; total: number },
   text: RendererStrings = rendererStrings(undefined),
 ): string {
-  const state = asJointState(value);
+  const state = asSample<{ name?: unknown; position?: unknown }>(value);
   const names = Array.isArray(state?.name) ? state.name : [];
   const positions = Array.isArray(state?.position) ? state.position : [];
   if (names.length === 0 && positions.length === 0) {

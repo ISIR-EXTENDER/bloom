@@ -157,7 +157,10 @@ def test_a_release_waits_for_an_in_flight_publish_and_then_sees_its_joint_target
     assert seen_by_release == ["/mode_request"]
 
 
-def test_the_owner_leaving_cancels_its_pose_target() -> None:
+@pytest.mark.parametrize(
+    "request_mode", ["behaviour/pose_target/ready", "behaviour/shared_control", "behaviour/intent_scaling"]
+)
+def test_the_owner_leaving_cancels_its_lasting_behaviour(request_mode: str) -> None:
     gateway = RecordingRosPublisherGateway()
     app = create_app(
         Settings(environment="test", runtime_control_required=True),
@@ -173,8 +176,9 @@ def test_the_owner_leaving_cancels_its_pose_target() -> None:
         response = client.post(
             "/api/v1/ros/topics/publish",
             headers={"X-Bloom-Runtime-Session": session_id},
-            json=mode("behaviour/pose_target/ready"),
+            json=mode(request_mode),
         )
         assert response.status_code == 200
+        assert gateway.cancels() == []
 
     assert eventually(lambda: len(gateway.cancels()) == 1)

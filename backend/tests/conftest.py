@@ -82,3 +82,37 @@ def configuration_repository(sample_configuration_bundle: ConfigurationBundle) -
 @pytest.fixture
 def client(test_settings: Settings, configuration_repository: InMemoryConfigurationRepository) -> TestClient:
     return TestClient(create_app(test_settings, configuration_repository))
+
+
+FAULT_RESET_SERVICE = "/fault_controller/reset_fault"
+
+
+def kinova_with_a_fault_reset_preset(service_type: str = "example_interfaces/srv/Trigger", **preset_fields):
+    """The Kinova Manager seed with a service preset: the shipped seed no longer carries the gen3's fault reset."""
+    from libs.config.models import RuntimeActionPreset
+
+    bundle = load_configuration_file(Path(__file__).parents[1] / "seed" / "applications" / "kinova-manager.json")
+    fields = {
+        "id": "fault-reset",
+        "name": "Reset fault",
+        "kind": "service-call",
+        "command": "kinova.reset_fault",
+        "topic": FAULT_RESET_SERVICE,
+        "message_type": service_type,
+        "payload": None,
+        **preset_fields,
+    }
+    # The seed's preset used model_copy, which skips validation, so a payload past the type's range still loads.
+    preset = RuntimeActionPreset.model_construct(**fields)
+    applications = tuple(
+        app.model_copy(
+            update={
+                "action_presets": (*app.action_presets, preset),
+                "runtime_policy": app.runtime_policy.model_copy(
+                    update={"allowed_service_calls": (FAULT_RESET_SERVICE,)}
+                ),
+            }
+        )
+        for app in bundle.applications
+    )
+    return bundle.model_copy(update={"applications": applications})

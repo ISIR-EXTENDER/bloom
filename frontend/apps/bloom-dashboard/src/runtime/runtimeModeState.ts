@@ -8,15 +8,18 @@ import type {
 import { modeCommandBinding, type WidgetControlState } from "@bloom/widget-renderers";
 import {
   allowlistAllows,
+  type BehaviourAvailability,
   createDefaultWidgetRegistry,
   createWidgetActionIntent,
   describeUnavailableWidgetRuntime,
   isModeRequestTopic,
+  type ManagerBehaviour,
   type RuntimeCapability,
   readValueMappingTopic,
   resolveTeleopFrameId,
   resolveWidgetReadiness,
   TELEOP_DEFAULT_TARGET,
+  widgetBehaviour,
 } from "@bloom/widgets";
 import { resolveCommandRoute } from "./dispatch-commands";
 
@@ -81,6 +84,10 @@ export function createRuntimeControlStateByWidgetId(
     actionPresets?: readonly RuntimeActionPreset[];
     activeCommandFrameId?: string | null;
     allowedCommandFrameIds?: readonly string[] | null;
+    /** Whether the running manager declares each lasting behaviour, from the command state (ADR 0142). */
+    behaviourAvailability?: (behaviour: ManagerBehaviour) => BehaviourAvailability;
+    /** Why a behaviour's control is unavailable, in the operator's language, given its parameter group. */
+    behaviourMissing?: (parameters: string) => string;
     commandFrameError?: string | null;
     frameReasons?: { releaseControls: string; unavailableOnRobot: string };
     runtimeCapabilities?: readonly RuntimeCapability[] | null;
@@ -138,6 +145,19 @@ export function createRuntimeControlStateByWidgetId(
       if (disabledReason) {
         controlState = { ...controlState, disabled: true, disabledReason, unavailable: true };
       }
+    }
+
+    // A behaviour the running manager does not declare would be requested and silently dropped; say so.
+    const behaviour = options.behaviourAvailability
+      ? resolveWidgetBehaviour(widget, options.actionPresets ?? [])
+      : null;
+    if (behaviour && options.behaviourAvailability?.(behaviour) === "unavailable") {
+      controlState = {
+        ...controlState,
+        disabled: true,
+        disabledReason: (options.behaviourMissing ?? describeMissingBehaviour)(`behaviours.${behaviour}.*`),
+        unavailable: true,
+      };
     }
 
     // A joystick pointed at a topic the server will refuse is dead before anyone touches it; say so now,
@@ -245,6 +265,30 @@ function resolveWidgetModeRequest(
 
   const normalized = normalizeModeRequest(raw);
   return isModeRequest(normalized) ? { mode: normalized, topic: press.topic } : null;
+}
+
+/** English fallback for a caller without runtime strings, such as a test. */
+function describeMissingBehaviour(parameters: string): string {
+  return `The running cartesian_manager does not declare ${parameters}: start a manager built with this behaviour.`;
+}
+
+/** The lasting behaviour a widget depends on; a button's mode request is read through the app's presets. */
+function resolveWidgetBehaviour(
+  widget: WidgetConfig,
+  presets: readonly RuntimeActionPreset[],
+): ManagerBehaviour | null {
+  if (widget.kind !== "command-button") {
+    return widgetBehaviour(widget);
+  }
+  const press = resolveCommandPress(widget, presets);
+  if (!press || !isModeRequestTopic(press.topic)) {
+    return null;
+  }
+  const payloadData = readPayloadData(press.payload);
+  return widgetBehaviour(
+    widget,
+    typeof payloadData === "string" && payloadData ? payloadData : (press.command ?? null),
+  );
 }
 
 /** The topic and payload a button's press publishes, resolved as the dispatcher resolves it. */

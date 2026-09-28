@@ -456,7 +456,7 @@ function pointColors(marker: MarkerSample, count: number): Float32Array | null {
   return values;
 }
 
-function textSprite(text: string, height: number, color: Color, opacity: number): Sprite {
+export function textSprite(text: string, height: number, color: Color, opacity: number): Sprite {
   const canvas = document.createElement("canvas");
   const context = canvas.getContext("2d");
   const font = "bold 48px sans-serif";

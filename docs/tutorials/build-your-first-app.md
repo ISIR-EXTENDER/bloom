@@ -40,8 +40,9 @@ Click any widget to place it. It lands clear of the others and of STOP, and it a
 | Event log | The mode requests |
 | Joint table, Jacobian, 3D robot view, positions | The robot's joint states, Jacobian and model |
 
-Change any of it in the Inspector. Its banner says **Publishes to** or **Reads from**. A slider, pad or command button
-first asks what it is for: **What this slider controls**, **What this pad does** or **What this button does**. Pick one
+Change any of it in the Inspector. Its banner says **Publishes to** or **Reads from**. A slider, pad, toggle or command button
+first asks what it is for: **What this slider controls**, **What this pad does**, **What this toggle switches** or
+**What this button does**. Pick one
 and Bloom fills in the topic, fields and payloads; they stay folded under **Advanced (ROS)**, which opens by itself
 when no purpose is chosen or a setting there is wrong. The gesture pad arrives on `/ui/gesture`.
 

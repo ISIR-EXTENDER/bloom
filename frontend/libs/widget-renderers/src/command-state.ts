@@ -8,6 +8,9 @@ import type { WidgetActionOutcome } from "./types";
 export const MODE_REQUEST_TOPIC = "/mode_request";
 export const VISUAL_SERVOING_SWITCH_TOPIC = "/ui/visual_servoing/on";
 export const SERVOING_ACTIVE_KEY = "servoing:active";
+/** Measured from the manager's own feedback: the intent scale and the confidences publish only while active. */
+export const INTENT_SCALING_ACTIVE_KEY = "intent_scaling:active";
+export const SHARED_CONTROL_ACTIVE_KEY = "shared_control:active";
 export const DIGITAL_OUTPUT_TOPIC = "/hub/digital_output";
 export const PRESS_SENDING_MS = 3000;
 
@@ -69,6 +72,15 @@ export function useCommandState(key: string | null): CommandStateEntry | null {
     subscribeCommandState,
     () => (key ? getCommandStateEntry(key) : null),
     () => null,
+  );
+}
+
+/** Whether a snapshot has arrived on this socket; false again after a clear. */
+export function useCommandStateConnected(): boolean {
+  return useSyncExternalStore(
+    subscribeCommandState,
+    () => state.connected,
+    () => false,
   );
 }
 
@@ -246,13 +258,28 @@ export function modeCommandBinding(topic: string, raw: string): CommandStateBind
     ];
     return { lit: writes, writes };
   }
+  // Intent scaling and shared control last, and each replaces the other. The reset enters shared control with
+  // every confidence cleared: it writes the behaviour but is a press, never lit.
+  if (mode === "behaviour/intent_scaling" || mode === "behaviour/shared_control") {
+    const writes = [{ key: managerKey("behaviour", topic), value: mode }];
+    return { lit: writes, writes };
+  }
+  if (mode === "behaviour/shared_control/reset") {
+    return { writes: [{ key: managerKey("behaviour", topic), value: "behaviour/shared_control" }] };
+  }
   // A joint target is dispatched once: the manager is back in passthrough on its next cycle.
   return { writes: [{ key: managerKey("target", topic), value: mode }] };
 }
 
 export type ToggleBinding = {
   /** Every key this toggle reads, each with its on and off value. */
-  keys: readonly { key: string; off: unknown; on: unknown }[];
+  keys: readonly {
+    key: string;
+    off: unknown;
+    on: unknown;
+    /** Any other value reads as off: a behaviour toggle is off under the other behaviour, not in "another mode". */
+    otherIsOff?: boolean;
+  }[];
 };
 
 /** What a topic toggle's payloads write, for a digital output per pin and for a mode request per family. */
@@ -290,7 +317,9 @@ export function topicToggleBinding(
     if (!onLit || !offLit || onLit.key !== offLit.key) {
       return null;
     }
-    return { keys: [{ key: onLit.key, off: offLit.value, on: onLit.value }] };
+    // Each lasting behaviour replaces the other: under the other one this toggle is off, and says so.
+    const otherIsOff = offLit.value === "behaviour/passthrough" && onLit.value !== "behaviour/passthrough";
+    return { keys: [{ key: onLit.key, off: offLit.value, on: onLit.value, ...(otherIsOff ? { otherIsOff } : {}) }] };
   }
   return { keys: [{ key: topic, off, on }] };
 }
@@ -336,7 +365,7 @@ export function readToggleState(
   if (binding.keys.every(({ key, off }) => sameValue(entryOf(key)?.value, off))) {
     return { source, state: "off" };
   }
-  return { source, state: "other" };
+  return { source, state: binding.keys.every(({ otherIsOff }) => otherIsOff) ? "off" : "other" };
 }
 
 export type SelectionView = {
@@ -369,8 +398,12 @@ function weakestSource(entries: readonly CommandStateEntry[]): CommandStateEntry
 export type PressOutcome = "accepted" | "lost" | "pending" | "refused";
 
 export type PressRecord = {
+  /** Latched once this screen's own write was seen on a written key: a later write by anyone cannot unanswer it. */
+  answered?: boolean;
   at: number;
   detail?: string;
+  /** Tells this record from a later press of the same control, whatever else about it changed. */
+  id: number;
   outcome: PressOutcome;
   /** The store's revision when the press went out; only a newer write can answer it. */
   revision: number;
@@ -403,12 +436,27 @@ export function pressPhase(
     const entry = entryOf(key);
     return entry && entry.revision > press.revision ? { entry, value } : null;
   });
-  const ownWrite = newer.some((item) => item !== null && self !== "" && item.entry.by === self);
+  const ownWrite = press.answered === true || ownWriteSince(press, entryOf, self);
   if (press.outcome === "lost") {
     return ownWrite ? "idle" : "not-confirmed";
   }
   const answered = ownWrite || newer.some((item) => item !== null && sameValue(item.entry.value, item.value));
   return !answered && now - press.at < PRESS_SENDING_MS ? "sending" : "idle";
+}
+
+/** Whether a written key currently holds this screen's own write from after the press. */
+export function ownWriteSince(
+  press: Pick<PressRecord, "revision" | "writes">,
+  entryOf: (key: string) => CommandStateEntry | null,
+  self: string,
+): boolean {
+  return (
+    self !== "" &&
+    press.writes.some(({ key }) => {
+      const entry = entryOf(key);
+      return entry !== null && entry.revision > press.revision && entry.by === self;
+    })
+  );
 }
 
 export function outcomeOf(outcome: WidgetActionOutcome | undefined): { detail?: string; outcome: PressOutcome } {
@@ -435,6 +483,8 @@ export type CommandPress = {
   asked: readonly CommandStateCondition[] | null;
 };
 
+let nextPressId = 1;
+
 /** A control's own press and how it shows: sending until the store answers or 3 s pass. */
 export function useCommandPress(): CommandPress {
   const store = useCommandStateStore();
@@ -448,6 +498,16 @@ export function useCommandPress(): CommandPress {
     },
     [],
   );
+  // The own write may be replaced within the sending window (a STOP reset right after Assist on); once seen it stays seen.
+  useEffect(() => {
+    const record = pressRef.current;
+    if (!record || record.answered || !ownWriteSince(record, (key) => store.snapshot[key] ?? null, store.self)) {
+      return;
+    }
+    const next = { ...record, answered: true };
+    pressRef.current = next;
+    setPress(next);
+  }, [store]);
   useEffect(() => {
     if (!press || press.outcome === "refused" || press.outcome === "lost") {
       return;
@@ -460,15 +520,22 @@ export function useCommandPress(): CommandPress {
     return () => clearTimeout(timer);
   }, [press]);
   const pressFn = useCallback<CommandPress["press"]>((writes, send) => {
-    const record: PressRecord = { at: Date.now(), outcome: "pending", revision: getCommandStateRevision(), writes };
+    const record: PressRecord = {
+      at: Date.now(),
+      id: nextPressId++,
+      outcome: "pending",
+      revision: getCommandStateRevision(),
+      writes,
+    };
     pressRef.current = record;
     setPress(record);
     setNow(record.at);
     const settle = (result: { detail?: string; outcome: PressOutcome }) => {
-      if (!mountedRef.current || pressRef.current !== record) {
+      const current = pressRef.current;
+      if (!mountedRef.current || current?.id !== record.id) {
         return;
       }
-      const next = { ...record, ...result, settledRevision: getCommandStateRevision() };
+      const next = { ...current, ...result, settledRevision: getCommandStateRevision() };
       pressRef.current = next;
       setPress(next);
       setNow(Date.now());

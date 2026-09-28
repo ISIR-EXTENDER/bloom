@@ -5,7 +5,20 @@ import {
   createBloomThemeStyle,
   normalizeBloomThemePresetId,
 } from "@bloom/ui";
-import type { WidgetActionIntentHandler } from "@bloom/widget-renderers";
+import {
+  INTENT_SCALING_ACTIVE_KEY,
+  knownValue,
+  SHARED_CONTROL_ACTIVE_KEY,
+  useCommandState,
+  useCommandStateConnected,
+  type WidgetActionIntentHandler,
+} from "@bloom/widget-renderers";
+import {
+  BEHAVIOUR_MARKER_PARAMETER,
+  behaviourAvailability as behaviourAvailabilityOf,
+  MANAGER_NODE,
+  type ManagerBehaviour,
+} from "@bloom/widgets";
 import type { CSSProperties } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -242,12 +255,34 @@ export function RuntimeWorkspace({
     };
   }, [runtimeActionClient, selection.appId, selection.configId]);
   const parameterReadings = useParameterReadings(screen, runtimeActionClient);
+  // Which lasting behaviours the running manager declares: each marker parameter is known in the store. Three
+  // selectors, so the snapshot moving at 20 Hz re-renders nothing here.
+  const commandStoreConnected = useCommandStateConnected();
+  const intentMarkerKey = `param:${MANAGER_NODE}:${BEHAVIOUR_MARKER_PARAMETER.intent_scaling}`;
+  const assistMarkerKey = `param:${MANAGER_NODE}:${BEHAVIOUR_MARKER_PARAMETER.shared_control}`;
+  const intentDeclared = knownValue(useCommandState(intentMarkerKey)) !== null;
+  const assistDeclared = knownValue(useCommandState(assistMarkerKey)) !== null;
+  const behaviourAvailability = useMemo(() => {
+    const known = new Set([...(intentDeclared ? [intentMarkerKey] : []), ...(assistDeclared ? [assistMarkerKey] : [])]);
+    return (behaviour: ManagerBehaviour) =>
+      behaviourAvailabilityOf(behaviour, commandStoreConnected, (key) => known.has(key));
+  }, [assistDeclared, assistMarkerKey, commandStoreConnected, intentDeclared, intentMarkerKey]);
+  // The behaviour the manager's own feedback reports on, shown on every screen: it outlives a screen change.
+  const intentActive = knownValue(useCommandState(INTENT_SCALING_ACTIVE_KEY))?.value === true;
+  const assistActive = knownValue(useCommandState(SHARED_CONTROL_ACTIVE_KEY))?.value === true;
+  const activeBehaviour: ManagerBehaviour | null = intentActive
+    ? "intent_scaling"
+    : assistActive
+      ? "shared_control"
+      : null;
   const baseControlStateByWidgetId = useMemo(
     () =>
       createRuntimeControlStateByWidgetId(screen, {
         actionPresets: application.action_presets,
         activeCommandFrameId: commandFrameId,
         allowedCommandFrameIds,
+        behaviourAvailability,
+        behaviourMissing: strings.kiosk.behaviourMissing,
         commandFrameError,
         frameReasons: {
           releaseControls: strings.kiosk.frameReleaseControls,
@@ -265,6 +300,7 @@ export function RuntimeWorkspace({
     [
       application.action_presets,
       application.runtime_policy.allowed_teleop_targets,
+      behaviourAvailability,
       commandFrameId,
       commandFrameError,
       effectiveTeleopTargets,
@@ -635,6 +671,7 @@ export function RuntimeWorkspace({
               ? { detail: commandFrameError, status: "blocked" }
               : null
         }
+        activeBehaviour={activeBehaviour}
         commandFrameId={commandFrameId}
         ownsRobotControl={runtimeControl.supported && ownsRuntimeControl}
         gamepadName={gamepad.connected ? gamepad.id : null}

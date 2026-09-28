@@ -37,7 +37,12 @@ class SlowServiceGateway:
 
 
 def settings() -> Settings:
-    return Settings(environment="test", http_rate_limit_per_minute=0, seed_shared_applications=False)
+    return Settings(
+        environment="test",
+        http_rate_limit_per_minute=0,
+        seed_shared_applications=False,
+        allowed_ros_service_calls=("/fault_controller/reset_fault",),
+    )
 
 
 def test_stop_answers_at_once_while_a_service_call_is_in_flight() -> None:

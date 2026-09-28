@@ -29,6 +29,11 @@ SNAKE_MODE = f"{GEOMETRIC_PREFIX}/snake"
 JACO_MODE = f"{GEOMETRIC_PREFIX}/jaco"
 PASSTHROUGH_MODE = f"{BEHAVIOUR_PREFIX}/passthrough"
 JOINT_TARGET_PREFIX = f"{BEHAVIOUR_PREFIX}/joint_target"
+SHARED_CONTROL_MODE = f"{BEHAVIOUR_PREFIX}/shared_control"
+SHARED_CONTROL_RESET_MODE = f"{SHARED_CONTROL_MODE}/reset"
+INTENT_SCALING_MODE = f"{BEHAVIOUR_PREFIX}/intent_scaling"
+#: Behaviours that last until passthrough or the other one replaces them.
+LASTING_BEHAVIOURS = (INTENT_SCALING_MODE, SHARED_CONTROL_MODE)
 
 MODE_REQUEST_TOPIC = "/mode_request"
 MODE_REQUEST_MESSAGE_TYPE = "std_msgs/msg/String"
@@ -43,6 +48,8 @@ class ModeRequest:
     normalized: str
     detail: str
     one_shot: bool
+    #: A behaviour that outlives its sender unless a ``behaviour/passthrough`` ends it.
+    cancel_on_leave: bool = False
 
 
 def normalize_mode_request(raw: str) -> str:
@@ -94,6 +101,7 @@ def parse_mode_request(raw: str) -> ModeRequest:
                 normalized=normalized,
                 detail=f"behaviour joint target {parts[2]}",
                 one_shot=True,
+                cancel_on_leave=True,
             )
 
         if parts[1] == "pose_target":
@@ -105,9 +113,33 @@ def parse_mode_request(raw: str) -> ModeRequest:
                 normalized=normalized,
                 detail=f"behaviour pose target {parts[2]}",
                 one_shot=True,
+                cancel_on_leave=True,
             )
 
-        raise ModeRequestError(f"unknown behaviour '{parts[1]}', expected passthrough, joint_target or pose_target")
+        if parts[1] == "shared_control":
+            if len(parts) > 3 or (len(parts) == 3 and parts[2] != "reset"):
+                raise ModeRequestError("behaviour/shared_control takes only an optional /reset")
+            # Lasting assistance: the next operator must not inherit it, so leaving ends it like a target.
+            # The reset enters shared control too, with every confidence cleared.
+            return ModeRequest(
+                normalized=normalized,
+                detail="behaviour shared control" + (" with confidences reset" if len(parts) == 3 else ""),
+                one_shot=False,
+                cancel_on_leave=True,
+            )
+
+        if parts[1] == "intent_scaling":
+            if len(parts) != 2:
+                raise ModeRequestError("behaviour/intent_scaling takes no extra segment")
+            # Lasting, like shared control: the next operator must not inherit it.
+            return ModeRequest(
+                normalized=normalized, detail="behaviour intent scaling", one_shot=False, cancel_on_leave=True
+            )
+
+        raise ModeRequestError(
+            f"unknown behaviour '{parts[1]}', expected passthrough, joint_target, pose_target, shared_control "
+            "or intent_scaling"
+        )
 
     raise ModeRequestError(f"unknown mode family '{parts[0]}', expected {GEOMETRIC_PREFIX} or {BEHAVIOUR_PREFIX}")
 
@@ -117,11 +149,15 @@ __all__ = [
     "DEFAULT_GEOMETRIC_MODE",
     "GEOMETRIC_MODES",
     "GEOMETRIC_PREFIX",
+    "INTENT_SCALING_MODE",
     "JACO_MODE",
     "JOINT_TARGET_PREFIX",
+    "LASTING_BEHAVIOURS",
     "MODE_REQUEST_MESSAGE_TYPE",
     "MODE_REQUEST_TOPIC",
     "PASSTHROUGH_MODE",
+    "SHARED_CONTROL_MODE",
+    "SHARED_CONTROL_RESET_MODE",
     "SNAKE_MODE",
     "ModeRequest",
     "ModeRequestError",

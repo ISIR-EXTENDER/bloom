@@ -2077,7 +2077,7 @@ describe("App", () => {
     expect(screen.getByText("No Jacobian received on /ee_jac.")).toBeVisible();
 
     // One subscription per topic: the table, matrix and raw echo, plus the plot series they do not already cover.
-    await waitFor(() => expect(runtimeActionClient.subscribeRuntimeTopic).toHaveBeenCalledTimes(8));
+    await waitFor(() => expect(runtimeActionClient.subscribeRuntimeTopic).toHaveBeenCalledTimes(7));
     const subscribe = runtimeActionClient.subscribeRuntimeTopic;
     if (!subscribe) throw new Error("Missing subscribe client.");
     expect(
@@ -2090,7 +2090,6 @@ describe("App", () => {
       "/ee_jac",
       "/ee_pose",
       "/ee_velocity",
-      "/fault_controller/internal_fault",
       "/joint_states",
       // The joint command the QP controller actually writes. Against /joint_states it is tracking
       // error, and a flat line while a twist is going out is the only visible sign of a QP that

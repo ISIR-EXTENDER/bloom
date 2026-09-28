@@ -3,6 +3,7 @@
 export const WIDGET_KINDS = [
   "camera",
   "command-button",
+  "confidence-bars",
   "event-log",
   "gauge",
   "gesture-pad",

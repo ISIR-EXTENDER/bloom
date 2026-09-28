@@ -113,6 +113,11 @@ export const enRuntimeStrings: RuntimeStrings = {
     teleopTargetRefusedByServer: (topic) =>
       `Nothing on this robot takes a joystick on ${topic}: the robot's manager does not listen there.`,
     frameUnavailableOnRobot: "Unavailable on this robot.",
+    behaviourAssist: "Assist on",
+    behaviourChipTitle: "Manager behaviour on, on every screen; STOP, Cancel or leaving the app ends it",
+    behaviourMissing: (parameters) =>
+      `The running cartesian_manager does not declare ${parameters}: start a manager built with this behaviour.`,
+    behaviourSpeedUp: "Speed up on",
     gamepad: "gamepad",
     help: "Help",
     home: "Home",

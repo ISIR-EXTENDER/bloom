@@ -40,7 +40,17 @@ export function parseModeRequest(raw: string): ModeRequestParse {
         ? { normalized, ok: true }
         : fail(`behaviour/${name} needs a target name, such as behaviour/${name}/home`);
     }
-    return fail(`unknown behaviour '${name}', expected passthrough, joint_target or pose_target`);
+    if (name === "shared_control") {
+      return parts.length === 2 || (parts.length === 3 && parts[2] === "reset")
+        ? { normalized, ok: true }
+        : fail("behaviour/shared_control takes only an optional /reset");
+    }
+    if (name === "intent_scaling") {
+      return parts.length === 2 ? { normalized, ok: true } : fail("behaviour/intent_scaling takes no extra segment");
+    }
+    return fail(
+      `unknown behaviour '${name}', expected passthrough, joint_target, pose_target, shared_control or intent_scaling`,
+    );
   }
   return fail(`unknown mode family '${family}', expected geometric or behaviour`);
 }

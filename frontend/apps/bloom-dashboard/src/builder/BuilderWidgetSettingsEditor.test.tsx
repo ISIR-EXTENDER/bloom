@@ -449,6 +449,40 @@ describe("the glass summary on a screen that is not a tablet", () => {
   });
 });
 
+describe("a toggle's purpose", () => {
+  afterEach(cleanup);
+
+  it("names what the toggle switches, and choosing Assist writes the shared-control pair", () => {
+    const onUpdateSettings = renderEditor(
+      {
+        topic: "/gripper_controller/commands",
+        messageType: "std_msgs/msg/Float64MultiArray",
+        onPayload: "{data: [1.1]}",
+        offPayload: "{data: [0.2]}",
+        onLabel: "Open gripper",
+        offLabel: "Close gripper",
+        onStateLabel: "closed",
+        offStateLabel: "open",
+      },
+      "toggle",
+    );
+    const purpose = screen.getByLabelText("What this toggle switches") as HTMLSelectElement;
+    expect(purpose.value).toBe("gripper");
+
+    fireEvent.change(purpose, { target: { value: "shared-control" } });
+
+    const sent = onUpdateSettings.mock.calls.at(-1)?.[0] as Record<string, unknown>;
+    expect(sent).toMatchObject({
+      topic: "/mode_request",
+      messageType: "std_msgs/msg/String",
+      onPayload: "{data: 'behaviour/shared_control'}",
+      offPayload: "{data: 'behaviour/passthrough'}",
+    });
+    // A gripper state label must not linger on a mode toggle.
+    expect(sent.onStateLabel).toBeUndefined();
+  });
+});
+
 describe("a toggle that changes message type", () => {
   afterEach(cleanup);
 

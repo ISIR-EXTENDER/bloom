@@ -3,9 +3,13 @@ import type { WidgetDataSnapshot } from "@bloom/widget-renderers";
 import {
   appendTopicEchoMessage,
   appendTopicPlotSample,
+  asRecord,
   getNumberSetting,
+  readConfidences,
+  readNumber,
   readOptionalString,
   resolveSubscriptionTopic,
+  sameConfidences,
 } from "@bloom/widgets";
 import { appendSeriesSample, createSeriesSubscriptionRequests, isSeriesWidget, seriesTopics } from "./plot-series-data";
 import type { RuntimeTopicSampleMessage, RuntimeTopicSubscriptionRequest } from "./runtime-action-dispatcher";
@@ -45,7 +49,28 @@ const ROBOT_VIEW_TOPICS = [
   { field: "markers", messageType: "visualization_msgs/msg/MarkerArray", setting: "markerTopic" },
   { field: "target", messageType: "sensor_msgs/msg/JointState", setting: "targetJointTopic" },
   { field: "pose", messageType: "geometry_msgs/msg/PoseStamped", setting: "poseTopic" },
+  { field: "goals", messageType: "geometry_msgs/msg/PoseArray", setting: "goalsTopic" },
+  { field: "softGoal", messageType: "geometry_msgs/msg/PoseStamped", setting: "softGoalTopic" },
 ] as const;
+
+/** The manager sends the soft goal at 100 Hz; a move under a millimetre and a hundredth of a quaternion is no move. */
+function samePoseSample(a: unknown, b: unknown): boolean {
+  const poseA = asRecord(asRecord(a).pose);
+  const poseB = asRecord(asRecord(b).pose);
+  if (!("position" in poseA) || !("position" in poseB)) {
+    return false;
+  }
+  const near = (part: string, axes: string[], tolerance: number) =>
+    axes.every(
+      (axis) =>
+        Math.abs(readNumber(asRecord(poseA[part])[axis], 0) - readNumber(asRecord(poseB[part])[axis], 0)) < tolerance,
+    );
+  return (
+    asRecord(asRecord(a).header).frame_id === asRecord(asRecord(b).header).frame_id &&
+    near("position", ["x", "y", "z"], 1e-3) &&
+    near("orientation", ["x", "y", "z", "w"], 1e-2)
+  );
+}
 
 type RobotViewTopic = { field: (typeof ROBOT_VIEW_TOPICS)[number]["field"]; messageType: string; topic: string };
 
@@ -153,6 +178,15 @@ export function appendRuntimeTopicSample(
         : undefined;
     if (viewTopic && resolveWidgetRuntimeTopic(widget) !== sample.payload.topic) {
       const current = currentData[widget.id];
+      const held = current?.type === "robot-3d" ? current[viewTopic.field] : undefined;
+      if (viewTopic.field === "softGoal" && samePoseSample(held, topicMessage.value)) {
+        continue;
+      }
+      // Each drawn extra keeps its own arrival time: a soft goal that stopped must not stay drawn as live.
+      const arrivedAt =
+        viewTopic.field === "goals" || viewTopic.field === "softGoal"
+          ? { [`${viewTopic.field}ReceivedAt`]: topicMessage.receivedAt }
+          : {};
       nextData = nextData ?? { ...currentData };
       nextData[widget.id] = {
         ...(current?.type === "robot-3d"
@@ -164,6 +198,7 @@ export function appendRuntimeTopicSample(
               value: undefined,
             }),
         [viewTopic.field]: topicMessage.value,
+        ...arrivedAt,
       };
       continue;
     }
@@ -188,6 +223,21 @@ export function appendRuntimeTopicSample(
     if (widget.kind === "joint-table" || widget.kind === "jacobian") {
       nextData = nextData ?? { ...currentData };
       nextData[widget.id] = { type: "topic-echo", messages: [topicMessage] };
+    }
+
+    // The manager sends confidences at 100 Hz; the bars redraw only when a goal moved by a hundredth, so the last
+    // sample always shows. A sample nothing can be read from never replaces a readable one.
+    if (widget.kind === "confidence-bars") {
+      const current = currentData[widget.id];
+      const held = current?.type === "topic-echo" ? current.messages.at(-1) : undefined;
+      const heldGoals = held ? readConfidences(held.value) : [];
+      const goals = readConfidences(topicMessage.value);
+      const unreadable = goals.length === 0 && heldGoals.length > 0;
+      const fresh = held !== undefined && Date.parse(topicMessage.receivedAt) - Date.parse(held.receivedAt) < 1000;
+      if (!unreadable && (!held || !fresh || !sameConfidences(heldGoals, goals))) {
+        nextData = nextData ?? { ...currentData };
+        nextData[widget.id] = { type: "topic-echo", messages: [topicMessage] };
+      }
     }
 
     if (widget.kind === "event-log") {

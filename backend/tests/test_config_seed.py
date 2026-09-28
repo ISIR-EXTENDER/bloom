@@ -707,7 +707,7 @@ def test_sharing_an_app_with_uploaded_theme_images_says_they_stay_here(tmp_path:
 
 
 #: explorer-manager as main stamped it on import (its fingerprint under the model before the palette catalog).
-EXPLORER_MANAGER_STAMP_FROM_MAIN = "4d746a010f834fb731feb7128697b92139e2774cedcbbe030b9e4c85098416f3"
+EXPLORER_MANAGER_STAMP_FROM_MAIN = "68f428fe87e1d2b0aa22543942f5983411e1c0a00149017a32f33efafb288d98"
 
 
 def test_a_copy_stamped_by_main_still_reads_as_an_unedited_seed() -> None:

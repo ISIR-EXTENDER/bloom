@@ -163,3 +163,14 @@ def test_cartesian_manager_default_frame_must_be_allowed() -> None:
 def test_command_frame_settings_reject_whitespace_inside_names() -> None:
     with pytest.raises(ValidationError, match="must not contain whitespace"):
         Settings(ros_command_frame_id="operator frame")
+
+
+def test_the_default_allowlists_carry_the_lasting_behaviours_and_no_fault_reset() -> None:
+    settings = Settings(environment="test")
+    parameters = set(settings.allowed_ros_parameters)
+    assert "/cartesian_manager:behaviours.intent_scaling.min_scale" in parameters
+    assert "/cartesian_manager:behaviours.shared_control.goal_match_distance" in parameters
+    assert "/cartesian_manager/intent_scale" in settings.allowed_recording_topics
+    assert "/shared_control/goals" in settings.allowed_recording_topics
+    # The manager no longer spawns the Kinova's fault_controller; a lab that has one allows it explicitly.
+    assert settings.allowed_ros_service_calls == ()

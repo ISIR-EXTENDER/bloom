@@ -95,6 +95,12 @@ const STRINGS = {
     reportedByRobot: "reported by the robot",
     servoRunning: "Servoing",
     inputNotDeclared: "The manager does not declare this input: switching it changes nothing.",
+    goalConfidence: "goal confidence",
+    noGoal: "no goal",
+    notPublishing: "not publishing",
+    unreadable: (topic: string) => `The last message on ${topic} could not be read.`,
+    assistOff: (topic: string) => `Nothing on ${topic}: the manager publishes it only while Assist is on.`,
+    lastValueNotPublishing: "last value \u00b7 not publishing",
   },
   fr: {
     gauge: "Jauge",
@@ -189,6 +195,12 @@ const STRINGS = {
     reportedByRobot: "rapporté par le robot",
     servoRunning: "Asservissement actif",
     inputNotDeclared: "Le gestionnaire ne déclare pas cette entrée : la basculer ne change rien.",
+    goalConfidence: "confiance par cible",
+    noGoal: "aucune cible",
+    notPublishing: "rien reçu",
+    unreadable: (topic: string) => `Le dernier message sur ${topic} est illisible.`,
+    assistOff: (topic: string) => `Rien sur ${topic} : le gestionnaire ne publie que pendant l'assistance.`,
+    lastValueNotPublishing: "dernière valeur \u00b7 rien reçu",
   },
   es: {
     gauge: "Indicador",
@@ -282,6 +294,12 @@ const STRINGS = {
     reportedByRobot: "informado por el robot",
     servoRunning: "Servo activo",
     inputNotDeclared: "El gestor no declara esta entrada: cambiarla no hace nada.",
+    goalConfidence: "confianza por objetivo",
+    noGoal: "sin objetivo",
+    notPublishing: "sin datos",
+    unreadable: (topic: string) => `El último mensaje en ${topic} no se pudo leer.`,
+    assistOff: (topic: string) => `Nada en ${topic}: el gestor solo publica mientras la asistencia está activa.`,
+    lastValueNotPublishing: "último valor \u00b7 sin datos",
   },
 } as const;
 

@@ -11,6 +11,7 @@ CURRENT_CONFIGURATION_SCHEMA_VERSION = 1
 class WidgetKind(str, Enum):
     CAMERA = "camera"
     COMMAND_BUTTON = "command-button"
+    CONFIDENCE_BARS = "confidence-bars"
     EVENT_LOG = "event-log"
     GAUGE = "gauge"
     GESTURE_PAD = "gesture-pad"

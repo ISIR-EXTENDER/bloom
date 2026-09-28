@@ -81,7 +81,7 @@ def message_class(message_type: str) -> type:
     return object
 
 
-def build(kinova: bool = True):
+def build(kinova: bool = True, parameter_names: tuple[str, ...] | None = None):
     store = CommandStateStore()
     gripper = (
         GripperFeedback(
@@ -101,7 +101,7 @@ def build(kinova: bool = True):
         tracker,
         parameters,
         echo_topics={"/mode_request": "std_msgs/msg/String", GRIPPER: "std_msgs/msg/Float64MultiArray"},
-        parameters=(f"{MANAGER}:shapers.snake.gain", "/petanque_throw:alpha", "/ui/*:x"),
+        parameters=parameter_names or (f"{MANAGER}:shapers.snake.gain", "/petanque_throw:alpha", "/ui/*:x"),
         read_only_parameters=(f"{MANAGER}:inputs.sources",),
         manager_node=MANAGER,
         gripper_topic=GRIPPER if kinova else None,
@@ -129,6 +129,8 @@ def test_it_subscribes_to_its_own_topics_and_skips_a_missing_interface() -> None
         "/joint_states",
         "/visual_servoing/velocity_command",
         "/ee_pose",
+        "/cartesian_manager/intent_scale",
+        "/shared_control/confidences",
     }
     feedback.stop()
     assert set(subscriptions.closed) == set(subscriptions.callbacks)
@@ -148,6 +150,32 @@ def test_echoes_reach_the_store_as_commanded() -> None:
 
     assert value(store, manager_key("shaping")) == ("geometric/snake", "commanded")
     assert value(store, GRIPPER) == ({"data": [0.8]}, "commanded")
+
+
+def test_the_managers_behaviour_feedback_marks_the_behaviour_active() -> None:
+    store, _tracker, _graph, subscriptions, _parameters, _feedback = build()
+
+    subscriptions.callbacks["/cartesian_manager/intent_scale"](SimpleNamespace(data=0.4))
+    assert value(store, "intent_scaling:active") == (True, "measured")
+    assert value(store, manager_key("behaviour")) == ("behaviour/intent_scaling", "measured")
+
+    subscriptions.callbacks["/shared_control/confidences"](SimpleNamespace(data=array("d", [1.0]), layout=None))
+    assert value(store, "shared_control:active") == (True, "measured")
+
+
+def test_an_undeclared_behaviour_parameter_stays_unknown() -> None:
+    # A manager without a behaviour answers None for its parameters, and Bloom offers the behaviour only when known.
+    store, _tracker, _graph, _subscriptions, parameters, feedback = build(
+        parameter_names=(f"{MANAGER}:shapers.snake.gain", f"{MANAGER}:behaviours.intent_scaling.min_scale")
+    )
+    feedback.poll_once()
+    assert value(store, f"param:{MANAGER}:shapers.snake.gain") == (0.5, "measured")
+    assert store.get(f"param:{MANAGER}:behaviours.intent_scaling.min_scale") is None
+
+    parameters.values[MANAGER]["behaviours.intent_scaling.min_scale"] = 0.4
+    feedback._nodes_present.clear()
+    feedback.poll_once()
+    assert value(store, f"param:{MANAGER}:behaviours.intent_scaling.min_scale") == (0.4, "measured")
 
 
 def test_parameter_events_update_only_exposed_parameters() -> None:

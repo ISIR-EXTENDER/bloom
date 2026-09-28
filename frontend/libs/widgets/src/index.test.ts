@@ -344,6 +344,7 @@ describe("widget settings contracts", () => {
     expect(Object.keys(WIDGET_SETTINGS_CONTRACTS).sort()).toEqual([
       "camera",
       "command-button",
+      "confidence-bars",
       "event-log",
       "gauge",
       "gesture-pad",
@@ -967,7 +968,14 @@ describe("widget settings contracts", () => {
       getRosMessageCommandPresetsByCategory()
         .get("motion")
         ?.map((preset) => preset.id),
-    ).toEqual(["manager-neutral", "manager-snake", "manager-joint-target-home", "manager-cancel-behaviour"]);
+    ).toEqual([
+      "manager-neutral",
+      "manager-snake",
+      "manager-joint-target-home",
+      "manager-intent-scaling",
+      "manager-shared-control",
+      "manager-cancel-behaviour",
+    ]);
     // Every example publishes somewhere a deployment can allow: /example/trigger could only ever be refused.
     expect(ROS_MESSAGE_COMMAND_PRESETS.every((preset) => !preset.topic.startsWith("/example/"))).toBe(true);
 

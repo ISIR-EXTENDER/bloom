@@ -42,6 +42,7 @@ from libs.ros_adapters.names import ros_name_error
 from libs.ros_adapters.parameters import NoopRosParameterGateway, RosParameterGateway
 from libs.ros_adapters.robot_model import NoopRobotModelGateway, RobotModelGateway
 from libs.ros_adapters.safety import (
+    BEHAVIOUR_PARAMETER_BOUNDS,
     MAX_ANGULAR_SPEED_TOPIC,
     MAX_LINEAR_SPEED_TOPIC,
     RuntimeCommandPolicy,
@@ -142,6 +143,7 @@ def create_app(
             app_settings.max_manager_angular_acceleration,
             app_settings.max_jaco_angular_velocity,
         )
+        + BEHAVIOUR_PARAMETER_BOUNDS
         + petanque_parameter_bounds(
             app_settings.min_petanque_total_duration,
             app_settings.max_petanque_total_duration,

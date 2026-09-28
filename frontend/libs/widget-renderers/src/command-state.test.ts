@@ -8,6 +8,7 @@ import {
   modeCommandBinding,
   normalizeCommandPayload,
   outcomeOf,
+  ownWriteSince,
   type PressRecord,
   parameterToggleBinding,
   pressPhase,
@@ -158,6 +159,7 @@ describe("a press's phase", () => {
   const writes = [{ key: "k", value: { data: true } }];
   const press = (outcome: PressRecord["outcome"], extra: Partial<PressRecord> = {}): PressRecord => ({
     at: 0,
+    id: 1,
     outcome,
     revision: 10,
     writes,
@@ -171,6 +173,18 @@ describe("a press's phase", () => {
     expect(pressPhase(press("pending"), 100, at(entry({ data: true }, 11, "other")), "me")).toBe("idle");
     expect(pressPhase(press("pending"), 100, at(entry({ data: true }, 10, "me")), "me")).toBe("sending");
     expect(pressPhase(press("pending"), 3000, at(null), "me")).toBe("idle");
+  });
+
+  it("stays answered once its own write was seen, whatever the server writes next", () => {
+    // Assist on, then STOP within 3 s: the server's reset replaces the own write, and the press must not read
+    // as sending again on the stopped screen.
+    const seen = press("accepted", { answered: true });
+    expect(pressPhase(seen, 100, () => entry({ data: false }, 12, "server", "reset"), "me")).toBe("idle");
+    expect(pressPhase(press("accepted"), 100, () => entry({ data: false }, 12, "server", "reset"), "me")).toBe(
+      "sending",
+    );
+    expect(ownWriteSince(press("accepted"), () => entry({ data: true }, 11, "me"), "me")).toBe(true);
+    expect(ownWriteSince(press("accepted"), () => entry({ data: true }, 11, "other"), "me")).toBe(false);
   });
 
   it("shows a refusal until someone writes the key again", () => {
@@ -193,5 +207,52 @@ describe("a press's phase", () => {
     expect(outcomeOf({ accepted: false, detail: "Stopped." })).toEqual({ detail: "Stopped.", outcome: "refused" });
     expect(outcomeOf({ accepted: false, status: "transient" }).outcome).toBe("refused");
     expect(outcomeOf({ accepted: false, status: "unknown" }).outcome).toBe("lost");
+  });
+});
+
+describe("the lasting behaviours in the store", () => {
+  it("light on the behaviour key, replace each other, and the reset writes without lighting", () => {
+    const intent = modeCommandBinding("/mode_request", "Behaviour/Intent-Scaling");
+    expect(intent).toEqual({
+      lit: [{ key: "manager:behaviour", value: "behaviour/intent_scaling" }],
+      writes: [{ key: "manager:behaviour", value: "behaviour/intent_scaling" }],
+    });
+    const assist = modeCommandBinding("/mode_request", "behaviour/shared_control");
+    expect(assist?.lit).toEqual([{ key: "manager:behaviour", value: "behaviour/shared_control" }]);
+    expect(modeCommandBinding("/mode_request", "behaviour/shared_control/reset")).toEqual({
+      writes: [{ key: "manager:behaviour", value: "behaviour/shared_control" }],
+    });
+
+    const entries = { "manager:behaviour": entry("behaviour/shared_control", 3, "robot", "measured") };
+    const entryOf = (key: string) => entries[key as keyof typeof entries] ?? null;
+    expect(readSelection(assist, entryOf)).toEqual({ source: "measured", state: "selected" });
+    expect(readSelection(intent, entryOf)).toEqual({ source: "measured", state: "unselected" });
+  });
+
+  it("gives a toggle between a behaviour and passthrough one key, off on the other behaviour", () => {
+    const binding = topicToggleBinding(
+      "/mode_request",
+      "std_msgs/msg/String",
+      "{data: 'behaviour/intent_scaling'}",
+      "{data: 'behaviour/passthrough'}",
+    );
+    expect(binding).toEqual({
+      keys: [
+        { key: "manager:behaviour", off: "behaviour/passthrough", on: "behaviour/intent_scaling", otherIsOff: true },
+      ],
+    });
+    const held = (value: string) => (key: string) => (key === "manager:behaviour" ? entry(value, 1) : null);
+    expect(readToggleState(binding, held("behaviour/intent_scaling")).state).toBe("on");
+    expect(readToggleState(binding, held("behaviour/passthrough")).state).toBe("off");
+    expect(readToggleState(binding, held("behaviour/shared_control")).state).toBe("off");
+    // A shaping toggle keeps saying "other" under a third mode.
+    const jaco = topicToggleBinding(
+      "/mode_request",
+      "std_msgs/msg/String",
+      "{data: 'geometric/jaco'}",
+      "{data: 'geometric/both'}",
+    );
+    const shaping = (key: string) => (key === "manager:shaping" ? entry("geometric/snake", 1) : null);
+    expect(readToggleState(jaco, shaping).state).toBe("other");
   });
 });

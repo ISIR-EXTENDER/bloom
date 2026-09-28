@@ -77,6 +77,10 @@ export type RuntimeStrings = {
     teleopTargetNotInApp: (topic: string) => string;
     teleopTargetRefusedByServer: (topic: string) => string;
     frameUnavailableOnRobot: string;
+    behaviourAssist: string;
+    behaviourChipTitle: string;
+    behaviourMissing: (parameters: string) => string;
+    behaviourSpeedUp: string;
     gamepad: string;
     help: string;
     home: string;

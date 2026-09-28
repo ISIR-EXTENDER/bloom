@@ -179,7 +179,8 @@ Work through these deliberately; none of them can be tested any other way.
 | Gripper values | Explorer publishes close `[1.1]` / open `[0.2]`; Kinova close `[0.8]` / open `[0.0]`. The Kinova values are unverified on the Robotiq 2F-85, and the jaws actually close this time. |
 | Neutral, Jaco, momentary Snake | Shaping modes against the real controller chain. |
 | Speed limits | The simulation check skips when nothing subscribes. On hardware qontrol should subscribe, so a skip here is a red flag. |
-| Reset fault (Kinova) | The simulation launch never spawns `fault_controller`, so this has never been exercised at all. It is the gen3's recovery path. |
+| Faults (Kinova) | Bloom has no Reset fault button any more: the manager no longer spawns `fault_controller`. Faults: reset from the arm's web page, or turn it off and on. |
+| Speed up and Assist | The two lasting behaviours against the real controller chain: the intent scale rising on a held push, the confidences following a push towards a published goal. Verified in simulation on both arms, never on hardware. |
 | Bloom Debug joint table | A real arm publishes a different joint set than the simulation did. |
 | The tablet, gamepad or switch | Together, on the device, with the profile the operator will actually use. |
 | The 3D view against the real arm | The description and meshes are identical to the simulated ones, checked offline, so the robot draws the same. What is unproven is `/joint_states`: simulation publishes every joint, gripper included, and a real arm may publish fewer. A joint the driver does not report stays where the URDF puts it, and the line under the view says how many of the model's joints are driven. Compare the drawn pose with the arm once before trusting it. |

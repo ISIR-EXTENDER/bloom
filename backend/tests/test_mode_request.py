@@ -2,8 +2,10 @@ import pytest
 
 from libs.ros_adapters.mode_request import (
     DEFAULT_GEOMETRIC_MODE,
+    INTENT_SCALING_MODE,
     JACO_MODE,
     PASSTHROUGH_MODE,
+    SHARED_CONTROL_MODE,
     SNAKE_MODE,
     ModeRequestError,
     normalize_mode_request,
@@ -78,3 +80,32 @@ def test_pose_targets_are_one_shot_like_joint_targets() -> None:
     assert request.one_shot is True
     with pytest.raises(ModeRequestError):
         parse_mode_request("behaviour/pose_target")
+
+
+def test_shared_control_is_a_lasting_behaviour_ended_on_leave() -> None:
+    request = parse_mode_request("Behaviour/Shared-Control")
+    assert request.normalized == SHARED_CONTROL_MODE
+    assert request.one_shot is False
+    assert request.cancel_on_leave is True
+    assert parse_mode_request("behaviour/shared_control/reset").cancel_on_leave is True
+    assert parse_mode_request("geometric/snake").cancel_on_leave is False
+    assert parse_mode_request("behaviour/passthrough").cancel_on_leave is False
+    for invalid in ("behaviour/shared_control/other", "behaviour/shared_control/reset/extra"):
+        with pytest.raises(ModeRequestError):
+            parse_mode_request(invalid)
+
+
+def test_intent_scaling_is_a_lasting_behaviour_ended_on_leave() -> None:
+    request = parse_mode_request("Behaviour/Intent-Scaling")
+    assert request.normalized == INTENT_SCALING_MODE
+    assert request.one_shot is False
+    assert request.cancel_on_leave is True
+    with pytest.raises(ModeRequestError):
+        parse_mode_request("behaviour/intent_scaling/extra")
+
+
+def test_the_shared_control_reset_enters_shared_control() -> None:
+    request = parse_mode_request("behaviour/shared_control/reset")
+    assert request.normalized == "behaviour/shared_control/reset"
+    assert request.cancel_on_leave is True
+    assert "reset" in request.detail

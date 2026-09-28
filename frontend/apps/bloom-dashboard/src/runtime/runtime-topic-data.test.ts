@@ -200,3 +200,89 @@ describe("the screen's topic index", () => {
     expect(untouched).toEqual({});
   });
 });
+
+describe("shared control on the wire", () => {
+  const assisted: ScreenConfig = {
+    ...screen,
+    widgets: [
+      {
+        ...screen.widgets[0]!,
+        settings: { ...screen.widgets[0]!.settings, goalsTopic: "/shared_control/goals", softGoalTopic: "/soft" },
+      },
+      {
+        id: "bars",
+        kind: "confidence-bars",
+        title: "Goal confidence",
+        layout: { x: 0, y: 0, width: 338, height: 160 },
+        settings: { topic: "/shared_control/confidences", messageType: "std_msgs/msg/Float64MultiArray" },
+      },
+    ],
+  };
+  const sample = (topic: string, value: unknown, at = "2026-09-28T10:00:00.000Z") =>
+    ({ type: "topic_sample", payload: { topic, value, received_at: at, widget_id: "view" } }) as never;
+  const confidences = (values: number[]) => ({
+    layout: { dim: [{ label: "agnostic,goal_0,goal_1", size: 3, stride: 3 }], data_offset: 0 },
+    data: values,
+  });
+
+  it("subscribes the view to the goals and the soft goal, and the bars to the confidences", () => {
+    const requests = createRuntimeTopicSubscriptionRequests(assisted).map((request) => request.topic);
+    expect(requests).toEqual(expect.arrayContaining(["/shared_control/goals", "/soft", "/shared_control/confidences"]));
+  });
+
+  it("keeps the goals and the soft goal on the view's snapshot, each with its own arrival time", () => {
+    const goals = { header: { frame_id: "base_link" }, poses: [{ position: { x: 0.5, y: 0, z: 0.3 } }] };
+    let data = appendRuntimeTopicSample({}, assisted, sample("/shared_control/goals", goals, "2026-09-28T10:00:00Z"));
+    const soft = { header: { frame_id: "base_link" }, pose: { position: { x: 0.4, y: 0, z: 0.3 } } };
+    data = appendRuntimeTopicSample(data, assisted, sample("/soft", soft, "2026-09-28T10:00:05Z"));
+    expect(data.view).toMatchObject({
+      type: "robot-3d",
+      goals,
+      goalsReceivedAt: "2026-09-28T10:00:00Z",
+      softGoal: soft,
+      softGoalReceivedAt: "2026-09-28T10:00:05Z",
+    });
+  });
+
+  it("never drops the last sample: a run of tiny steps still settles the bars at the true value", () => {
+    let data = appendRuntimeTopicSample({}, assisted, sample("/shared_control/confidences", confidences([1, 0, 0])));
+    const steps = Array.from({ length: 60 }, (_, index) => 0.003 * (index + 1));
+    steps.forEach((value, index) => {
+      const at = new Date(Date.UTC(2026, 8, 28, 10, 0, 0, 10 * (index + 1))).toISOString();
+      data = appendRuntimeTopicSample(
+        data,
+        assisted,
+        sample("/shared_control/confidences", confidences([1 - value, value, 0]), at),
+      );
+    });
+    const bars = data.bars;
+    const held = bars?.type === "topic-echo" ? (bars.messages.at(-1)?.value as { data: number[] }) : undefined;
+    expect(held?.data[1]).toBeCloseTo(0.18, 2);
+  });
+
+  it("keeps a readable reading when an unreadable sample follows", () => {
+    const first = appendRuntimeTopicSample({}, assisted, sample("/shared_control/confidences", confidences([1, 0, 0])));
+    const broken = sample("/shared_control/confidences", { data: "nope" }, "2026-09-28T10:00:00.020Z");
+    expect(appendRuntimeTopicSample(first, assisted, broken).bars).toBe(first.bars);
+  });
+
+  it("does not redraw a soft goal that moved under a millimetre", () => {
+    const soft = { header: { frame_id: "base_link" }, pose: { position: { x: 0.4, y: 0, z: 0.3 } } };
+    const first = appendRuntimeTopicSample({}, assisted, sample("/soft", soft));
+    const nudged = { ...soft, pose: { position: { x: 0.4004, y: 0, z: 0.3 } } };
+    expect(appendRuntimeTopicSample(first, assisted, sample("/soft", nudged)).view).toBe(first.view);
+    const moved = { ...soft, pose: { position: { x: 0.45, y: 0, z: 0.3 } } };
+    expect(appendRuntimeTopicSample(first, assisted, sample("/soft", moved)).view).not.toBe(first.view);
+  });
+
+  it("redraws the bars only when a confidence moved by a hundredth, or a second passed", () => {
+    const first = appendRuntimeTopicSample({}, assisted, sample("/shared_control/confidences", confidences([1, 0, 0])));
+    expect(first.bars).toMatchObject({ type: "topic-echo" });
+    const same = sample("/shared_control/confidences", confidences([0.999, 0.001, 0]), "2026-09-28T10:00:00.010Z");
+    expect(appendRuntimeTopicSample(first, assisted, same).bars).toBe(first.bars);
+    const later = sample("/shared_control/confidences", confidences([0.999, 0.001, 0]), "2026-09-28T10:00:01.200Z");
+    expect(appendRuntimeTopicSample(first, assisted, later).bars).not.toBe(first.bars);
+    const changed = sample("/shared_control/confidences", confidences([0.9, 0.1, 0]), "2026-09-28T10:00:00.020Z");
+    expect(appendRuntimeTopicSample(first, assisted, changed).bars).not.toBe(first.bars);
+  });
+});

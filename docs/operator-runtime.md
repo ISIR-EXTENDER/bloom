@@ -326,15 +326,44 @@ appear in Kinova's export, where the same numbers would mean different angles.
 
 The Positions screen supports confirmed named targets, explicit release/cancel, saving the current joint state, deleting
 a saved pose, and export of a `joint_targets` configuration block. Explorer offers **Go home**, which arms on the first
-press and publishes on the second. The Kinova Manager app ships none yet, but the Kinova has its own seven-joint home
-since cartesian_manager#11: the server publishes `behaviour/joint_target/home` on a Kinova and the Builder offers the
-Go home purpose there. Pose targets (`behaviour/pose_target/*`) stay refused when `BLOOM_ROBOT_NAME` names a Kinova or
-gen3, because its manager still loads the Explorer's Cartesian poses, unless `BLOOM_ALLOW_KINOVA_POSE_TARGETS=true`.
-Both offer **Release**. A saved pose cannot be replayed or renamed from Bloom:
+press and publishes on the second, on both arms: the Kinova has its own seven-joint home since cartesian_manager#11,
+and `npm run e2e:sim --robot kinova` checks that its press reaches `/joint_target_command` with seven joints. Pose
+targets (`behaviour/pose_target/*`) stay refused when `BLOOM_ROBOT_NAME` names a Kinova or gen3, because its manager
+still loads the Explorer's Cartesian poses, unless `BLOOM_ALLOW_KINOVA_POSE_TARGETS=true`. Both offer **Release**.
+The Kinova Manager app no longer carries a Reset fault button: the manager no longer spawns `fault_controller`.
+Faults: reset from the arm's web page, or turn it off and on. A saved pose cannot be replayed or renamed from Bloom:
 the manager moves only to targets it loaded at start, so a new pose reaches the robot through the export and a manager
 restart. Saved poses live in the API process and are lost when it restarts, so export them before stopping it. Robot
 Feedback and Command Sources expose measured state and the manager's summed inputs without placing debug detail on the
 Drive screen.
+
+## Manager Behaviours: Speed Up And Assist
+
+Both Manager apps ship a **Behaviours** screen for cartesian_manager's two lasting behaviours. Each is a toggle whose
+ON payload is the behaviour and whose OFF payload is `behaviour/passthrough`; the two replace each other on the
+manager, so switching one on shows the other off. STOP, **Cancel behaviour**, or the operator leaving the app returns
+the manager to passthrough (the server sends it, as it does for a joint target). The card lights from the command
+state (ADR 0142): the request as sent, then **reported by the robot** while the manager's feedback topic streams.
+
+| Control | Runtime behavior |
+| --- | --- |
+| Speed up with intent | Requests `behaviour/intent_scaling`: a push starts at `min_scale` of the linear command and speeds up while it is kept in one direction; a release or a reversal starts slow again. The **Intent scale** gauge reads `/cartesian_manager/intent_scale`, which the manager publishes only while it is on. The gauge is live only while the backend measures that topic as publishing (`intent_scaling:active`); the moment it stops, the gauge reads **not publishing**, keeps the last number greyed as *last value · not publishing*, and is never a live reading again until the topic speaks. |
+| Assist to goals | Requests `behaviour/shared_control`: the manager blends the push with assistance towards the goal it believes the operator aims at. Goals arrive as a `geometry_msgs/msg/PoseArray` on `/shared_control/goals` (each message replaces the set, an empty one clears it). The **Goal confidence** bars read `/shared_control/confidences`, one bar per goal id (`agnostic`, shown as *no goal*, first, then `goal_0`, `goal_1`, ...); a repeated id is numbered, an unreadable value left out, and they say **not publishing** as soon as the backend measures the topic silent (`shared_control:active`) or Assist is off. |
+| Reset assist | Requests `behaviour/shared_control/reset`: every confidence is forgotten and Assist stays on (the manager enters shared control on a reset, whatever ran before). |
+| Cancel behaviour | Requests `behaviour/passthrough`, ending either. |
+| Push start, Speed-up gain | Set `behaviours.intent_scaling.{min_scale, gain}` live, within the bounds the manager validates; the Builder's slider can be pointed at `window_sec` and `consistency_threshold` too. |
+| Assist gain, Goal match | Set `behaviours.shared_control.{gamma, goal_match_distance}` live. The server also allows and bounds `alpha_conf`, `theta_l_deg`, `v_j_max`, `r1`, `r2`, `theta1_deg` and `theta2_deg`; an app must add them to its own allowed parameters (both Manager seeds stop at `alpha_conf`, `gamma` and `goal_match_distance`). The manager refuses `r1 == r2` and `theta1_deg <= theta2_deg`, and a slider that asks for one shows the manager's reason. |
+
+A behaviour is offered only when the running manager declares it: Bloom reads `behaviours.intent_scaling.*` and
+`behaviours.shared_control.*` from the manager at start, and a control of a behaviour the manager lacks is shown
+unavailable with the dashed outline and the reason, in the profile's language. A behaviour on outlives a screen change:
+the kiosk bar shows **Speed up on** or **Assist on** on every screen, from the manager's own feedback, until STOP,
+Cancel or leaving the app ends it. The 3D robot view can name a goals topic and a soft goal topic: the goals draw as
+small named triads, the manager's confidence-weighted soft goal as the larger ringed marker. The manager reads goals in
+`base_link` only and ignores any other frame, so the view draws only messages whose header is empty or `base_link` and
+counts the rest as ignored. Both disappear when Assist ends or the soft goal stops arriving. The Widget Lab's Robot
+screen has both wired. Both feedback topics stream at 100 Hz while Assist is on; the socket forwards at most 30 samples
+a second per topic, and the bars and the view redraw only when a value moved, the last sample always included.
 
 ## Joystick Lab
 

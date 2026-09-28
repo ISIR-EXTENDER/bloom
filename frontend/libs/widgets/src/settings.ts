@@ -1,6 +1,7 @@
 import type { WidgetKind } from "@bloom/api-client";
 import { cameraContract, normalizeCameraCompatibility } from "./settings/camera";
 import { commandButtonContract } from "./settings/command-button";
+import { confidenceBarsContract } from "./settings/confidence-bars";
 import { eventLogContract } from "./settings/event-log";
 import { gaugeContract } from "./settings/gauge";
 import { gesturePadContract } from "./settings/gesture-pad";
@@ -23,6 +24,7 @@ import { valueStripContract } from "./settings/value-strip";
 
 export * from "./settings/camera";
 export * from "./settings/command-button";
+export * from "./settings/confidence-bars";
 export * from "./settings/event-log";
 export * from "./settings/gauge";
 export * from "./settings/gesture-pad";
@@ -57,6 +59,7 @@ export const WIDGET_SETTINGS_CONTRACTS: Readonly<Record<WidgetKind, WidgetSettin
   toggle: toggleContract,
   "topic-echo": topicEchoContract,
   "topic-plot": topicPlotContract,
+  "confidence-bars": confidenceBarsContract,
   "joint-table": jointTableContract,
   jacobian: jacobianContract,
   "plot-board": plotBoardContract,

@@ -2,6 +2,7 @@
   "widget_kinds": [
     "camera",
     "command-button",
+    "confidence-bars",
     "event-log",
     "gauge",
     "gesture-pad",

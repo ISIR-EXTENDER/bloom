@@ -314,9 +314,11 @@ class RuntimeSessionManager:
         with self._lock:
             if not self._may_record(session_id, require_owner):
                 return
-            # A joint target fires once and is not a lasting mode, but it runs on after its sender leaves.
-            if request.one_shot:
+            # A joint target fires once and is not a lasting mode, but it runs on after its sender leaves; shared
+            # control lasts. Both are ended with passthrough when the session leaves.
+            if request.cancel_on_leave:
                 self._joint_target_topics[session_id] = topic
+            if request.one_shot:
                 return
             if request.normalized.startswith(f"{GEOMETRIC_PREFIX}/"):
                 self._mode_requests[session_id] = request.normalized

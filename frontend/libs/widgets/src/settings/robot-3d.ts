@@ -13,6 +13,8 @@ export type Robot3dSettings = {
   description: string;
   eeLink: string;
   frameAxes?: boolean;
+  /** A PoseArray drawn as small triads: the shared-control goals, in the frame the header names. */
+  goalsTopic?: string;
   jointStateTopic: string;
   markerTopic: string;
   /** Accepted from older screens and ignored: the view draws the API's robot, not a file. */
@@ -21,6 +23,8 @@ export type Robot3dSettings = {
   poseTopic?: string;
   robotModelUrl?: string;
   showAxes: boolean;
+  /** A PoseStamped drawn as the larger, distinct marker: the manager's confidence-weighted soft goal. */
+  softGoalTopic?: string;
   /** A JointState drawn as a translucent copy of the robot: where a joint target is sending it. */
   targetJointTopic?: string;
 };
@@ -47,6 +51,8 @@ export const robot3dContract = createContract(
       required: false,
     },
     { key: "poseTopic", label: "Pose topic (geometry_msgs/msg/PoseStamped)", type: "text", required: false },
+    { key: "goalsTopic", label: "Goals topic (geometry_msgs/msg/PoseArray)", type: "text", required: false },
+    { key: "softGoalTopic", label: "Soft goal topic (geometry_msgs/msg/PoseStamped)", type: "text", required: false },
     { key: "eeLink", label: "Tool link for the axes", type: "text", required: false },
     { key: "showAxes", label: "Show the tool axes", type: "boolean", required: true },
     { key: "frameAxes", label: "Show every link frame", type: "boolean", required: false },
@@ -67,6 +73,8 @@ function validateRobot3dSettings(settings: Record<string, unknown>): WidgetSetti
       ? []
       : validateString(settings, "targetJointTopic", { allowEmpty: true })),
     ...(settings.poseTopic === undefined ? [] : validateString(settings, "poseTopic", { allowEmpty: true })),
+    ...(settings.goalsTopic === undefined ? [] : validateString(settings, "goalsTopic", { allowEmpty: true })),
+    ...(settings.softGoalTopic === undefined ? [] : validateString(settings, "softGoalTopic", { allowEmpty: true })),
     ...validateString(settings, "eeLink", { allowEmpty: true }),
     ...validateBoolean(settings, "showAxes"),
     ...(settings.frameAxes === undefined ? [] : validateBoolean(settings, "frameAxes")),

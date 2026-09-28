@@ -62,6 +62,12 @@ export type WidgetDataSnapshot =
       target?: unknown;
       /** The newest PoseStamped on the widget's pose topic. */
       pose?: unknown;
+      /** The newest PoseArray on the widget's goals topic: the shared-control goals, and when it arrived. */
+      goals?: unknown;
+      goalsReceivedAt?: string;
+      /** The newest PoseStamped on the widget's soft goal topic: where shared control is pulling, and when it arrived. */
+      softGoal?: unknown;
+      softGoalReceivedAt?: string;
       /** The twist the runtime is sending right now, absent when it is not driving. */
       command?: CommandedTwist;
     }

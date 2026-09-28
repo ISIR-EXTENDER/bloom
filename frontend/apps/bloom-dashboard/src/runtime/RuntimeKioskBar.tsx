@@ -53,6 +53,8 @@ export type RuntimeKioskBarProps = {
   profile: RuntimeProfileSummary;
   /** Every profile the app offers; a role switch picks one. */
   profiles?: readonly RuntimeProfileSummary[];
+  /** The manager's lasting behaviour reported on, or null: it lasts across screens, so every screen says so. */
+  activeBehaviour?: "intent_scaling" | "shared_control" | null;
   /** The frame operator commands are stamped with, or null while unknown. */
   commandFrameId: string | null;
   gamepadName?: string | null;
@@ -103,6 +105,7 @@ export function RuntimeKioskBar(props: RuntimeKioskBarProps) {
     commandFeedback,
     screen,
     profile,
+    activeBehaviour = null,
     commandFrameId,
     publishRateHz = 30,
     publishing = false,
@@ -192,6 +195,17 @@ export function RuntimeKioskBar(props: RuntimeKioskBarProps) {
         {commandFrameId ? (
           <span className="runtime-kiosk-frame" title={strings.kiosk.referenceFrameTitle}>
             {commandFrameId}
+          </span>
+        ) : null}
+        {activeBehaviour ? (
+          <span
+            aria-label={`${strings.kiosk.behaviourChipTitle}: ${behaviourWord(activeBehaviour, strings)}`}
+            className="runtime-kiosk-behaviour"
+            data-behaviour={activeBehaviour}
+            role="status"
+            title={strings.kiosk.behaviourChipTitle}
+          >
+            {behaviourWord(activeBehaviour, strings)}
           </span>
         ) : null}
         <span className="runtime-kiosk-rate" data-held={held ? "true" : undefined}>
@@ -305,6 +319,13 @@ export function RuntimeKioskBar(props: RuntimeKioskBarProps) {
       ) : null}
     </>
   );
+}
+
+function behaviourWord(
+  behaviour: "intent_scaling" | "shared_control",
+  strings: ReturnType<typeof useRuntimeStrings>,
+): string {
+  return behaviour === "intent_scaling" ? strings.kiosk.behaviourSpeedUp : strings.kiosk.behaviourAssist;
 }
 
 function feedbackLabel(status: string, strings: ReturnType<typeof useRuntimeStrings>): string {

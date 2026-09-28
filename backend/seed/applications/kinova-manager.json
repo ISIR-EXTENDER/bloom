@@ -8,7 +8,7 @@
     {
       "id": "kinova-manager",
       "name": "Kinova Manager",
-      "description": "Operator app for the Kinova gen3 behind cartesian_manager: velocity drive, named positions, robot feedback, command-source visibility, and fault state.",
+      "description": "Operator app for the Kinova gen3 behind cartesian_manager: velocity drive, named positions, robot feedback, and command-source visibility. Faults: reset from the arm's web page, or turn it off and on.",
       "lifecycle": "active",
       "action_presets": [
         {
@@ -44,21 +44,6 @@
             "kinova",
             "mode"
           ]
-        },
-        {
-          "id": "fault-reset",
-          "name": "Reset fault",
-          "kind": "service-call",
-          "description": "Clear the gen3 fault state through the fault controller.",
-          "command": "kinova.reset_fault",
-          "topic": "/fault_controller/reset_fault",
-          "message_type": "example_interfaces/srv/Trigger",
-          "payload": null,
-          "payload_text": "",
-          "tags": [
-            "kinova",
-            "safety"
-          ]
         }
       ],
       "runtime_policy": {
@@ -79,21 +64,30 @@
         ],
         "allowed_recording_topics": [
           "/cartesian_command",
+          "/cartesian_manager/intent_scale",
           "/ee_jac",
           "/ee_pose",
           "/ee_velocity",
           "/joint_states",
           "/joint_target_command",
           "/joystick_cartesian_command",
-          "/mode_request"
+          "/mode_request",
+          "/shared_control/confidences",
+          "/shared_control/goals",
+          "/shared_control/soft_goal"
         ],
         "allowed_teleop_targets": [
           "/joystick_cartesian_command"
         ],
-        "allowed_service_calls": [
-          "/fault_controller/reset_fault"
-        ],
+        "allowed_service_calls": [],
         "allowed_parameters": [
+          "/cartesian_manager:behaviours.intent_scaling.consistency_threshold",
+          "/cartesian_manager:behaviours.intent_scaling.gain",
+          "/cartesian_manager:behaviours.intent_scaling.min_scale",
+          "/cartesian_manager:behaviours.intent_scaling.window_sec",
+          "/cartesian_manager:behaviours.shared_control.alpha_conf",
+          "/cartesian_manager:behaviours.shared_control.gamma",
+          "/cartesian_manager:behaviours.shared_control.goal_match_distance",
           "/cartesian_manager:shapers.snake.gain"
         ]
       },
@@ -512,30 +506,13 @@
               }
             },
             {
-              "id": "drive-fault-reset",
-              "kind": "command-button",
-              "title": "Reset fault",
-              "layout": {
-                "x": 14,
-                "y": 498,
-                "width": 180,
-                "height": 176
-              },
-              "settings": {
-                "action_label": "Reset the fault controller",
-                "button_label": "Reset fault",
-                "command": "kinova.reset_fault",
-                "show_details": false
-              }
-            },
-            {
               "id": "bench-snake-gain",
               "kind": "slider",
               "title": "Snake gain",
               "layout": {
-                "x": 206,
+                "x": 14,
                 "y": 498,
-                "width": 314,
+                "width": 506,
                 "height": 176
               },
               "settings": {
@@ -570,9 +547,9 @@
               "id": "stop",
               "owner": "runtime-chrome",
               "x": 1064,
-              "y": 310,
+              "y": 194,
               "width": 202,
-              "height": 352
+              "height": 468
             }
           ],
           "widgets": [
@@ -816,23 +793,6 @@
               }
             },
             {
-              "id": "drive-fault-reset",
-              "kind": "command-button",
-              "title": "Reset fault",
-              "layout": {
-                "x": 1064,
-                "y": 194,
-                "width": 202,
-                "height": 104
-              },
-              "settings": {
-                "action_label": "Reset the fault controller",
-                "button_label": "Reset fault",
-                "command": "kinova.reset_fault",
-                "show_details": false
-              }
-            },
-            {
               "id": "op-mode-label",
               "kind": "label",
               "title": "SHAPING MODE",
@@ -1059,6 +1019,35 @@
               }
             },
             {
+              "id": "positions-home",
+              "kind": "command-button",
+              "title": "Go home",
+              "layout": {
+                "x": 14,
+                "y": 482,
+                "width": 445,
+                "height": 180
+              },
+              "settings": {
+                "action_feedback": "none",
+                "action_id": "positions-home",
+                "action_label": "Request behaviour/joint_target/home",
+                "button_label": "Send Home",
+                "cancellable": false,
+                "command": "behaviour/joint_target/home",
+                "topic": "/mode_request",
+                "messageType": "std_msgs/msg/String",
+                "payload": {
+                  "data": "behaviour/joint_target/home"
+                },
+                "show_details": true,
+                "confirm_press": true,
+                "confirm_label": "Press again to move",
+                "confirm_timeout_seconds": 5,
+                "hint": "dispatched once — the manager's seven-joint home"
+              }
+            },
+            {
               "id": "positions-release",
               "kind": "command-button",
               "title": "Release",
@@ -1094,6 +1083,397 @@
               "y": 410,
               "width": 338,
               "height": 252
+            }
+          ]
+        },
+        {
+          "id": "manager_behaviours",
+          "title": "Behaviours",
+          "canvas": {
+            "preset_id": "native-1280x720",
+            "runtime_mode": "fit"
+          },
+          "reserved_regions": [
+            {
+              "id": "stop",
+              "owner": "runtime-chrome",
+              "x": 928,
+              "y": 410,
+              "width": 338,
+              "height": 252
+            }
+          ],
+          "widgets": [
+            {
+              "id": "behaviours-intent-label",
+              "kind": "label",
+              "title": "SPEED UP WITH INTENT",
+              "layout": {
+                "x": 14,
+                "y": 14,
+                "width": 300,
+                "height": 24
+              },
+              "settings": {
+                "text": "SPEED UP WITH INTENT",
+                "fontSize": 12,
+                "align": "left",
+                "show_details": false
+              }
+            },
+            {
+              "id": "behaviours-push-label",
+              "kind": "label",
+              "title": "PUSH TO TRY IT",
+              "layout": {
+                "x": 326,
+                "y": 14,
+                "width": 314,
+                "height": 24
+              },
+              "settings": {
+                "text": "PUSH TO TRY IT",
+                "fontSize": 12,
+                "align": "left",
+                "show_details": false
+              }
+            },
+            {
+              "id": "behaviours-assist-label",
+              "kind": "label",
+              "title": "ASSIST TO GOALS",
+              "layout": {
+                "x": 652,
+                "y": 14,
+                "width": 264,
+                "height": 24
+              },
+              "settings": {
+                "text": "ASSIST TO GOALS",
+                "fontSize": 12,
+                "align": "left",
+                "show_details": false
+              }
+            },
+            {
+              "id": "behaviours-live-label",
+              "kind": "label",
+              "title": "LIVE FROM THE MANAGER",
+              "layout": {
+                "x": 928,
+                "y": 14,
+                "width": 338,
+                "height": 24
+              },
+              "settings": {
+                "text": "LIVE FROM THE MANAGER",
+                "fontSize": 12,
+                "align": "left",
+                "show_details": false
+              }
+            },
+            {
+              "id": "behaviours-intent",
+              "kind": "toggle",
+              "title": "Speed up with intent",
+              "layout": {
+                "x": 14,
+                "y": 46,
+                "width": 300,
+                "height": 120
+              },
+              "settings": {
+                "topic": "/mode_request",
+                "messageType": "std_msgs/msg/String",
+                "initialValue": false,
+                "onLabel": "Speeding up",
+                "offLabel": "Plain speed",
+                "onPayload": "{data: 'behaviour/intent_scaling'}",
+                "offPayload": "{data: 'behaviour/passthrough'}",
+                "show_details": false
+              }
+            },
+            {
+              "id": "behaviours-min-scale",
+              "kind": "slider",
+              "title": "Push start",
+              "layout": {
+                "x": 14,
+                "y": 178,
+                "width": 300,
+                "height": 150
+              },
+              "settings": {
+                "direction": "horizontal",
+                "min": 0.1,
+                "max": 1,
+                "step": 0.05,
+                "value": 0.4,
+                "unit": "",
+                "show_details": false,
+                "runtime_binding": {
+                  "adapter": "parameter",
+                  "target": "parameter",
+                  "value_mapping": {
+                    "node": "/cartesian_manager",
+                    "parameter": "behaviours.intent_scaling.min_scale"
+                  }
+                }
+              }
+            },
+            {
+              "id": "behaviours-gain",
+              "kind": "slider",
+              "title": "Speed-up gain",
+              "layout": {
+                "x": 14,
+                "y": 340,
+                "width": 300,
+                "height": 150
+              },
+              "settings": {
+                "direction": "horizontal",
+                "min": 0,
+                "max": 5,
+                "step": 0.1,
+                "value": 1,
+                "unit": "/s",
+                "show_details": false,
+                "runtime_binding": {
+                  "adapter": "parameter",
+                  "target": "parameter",
+                  "value_mapping": {
+                    "node": "/cartesian_manager",
+                    "parameter": "behaviours.intent_scaling.gain"
+                  }
+                }
+              }
+            },
+            {
+              "id": "behaviours-note",
+              "kind": "label",
+              "title": "Speed up and Assist replace each other; other screens keep it. STOP, Cancel or leaving the app returns to passthrough.",
+              "layout": {
+                "x": 14,
+                "y": 502,
+                "width": 300,
+                "height": 96
+              },
+              "settings": {
+                "text": "Speed up and Assist replace each other; other screens keep it. STOP, Cancel or leaving the app returns to passthrough.",
+                "fontSize": 12,
+                "align": "left",
+                "show_details": false
+              }
+            },
+            {
+              "id": "drive-translation",
+              "kind": "joystick",
+              "title": "Translation",
+              "layout": {
+                "x": 326,
+                "y": 46,
+                "width": 314,
+                "height": 346
+              },
+              "settings": {
+                "deadzone": 0,
+                "labels": {
+                  "top": "▲ Forward",
+                  "bottom": "▼ Back",
+                  "left": "◀ Left",
+                  "right": "Right ▶"
+                },
+                "mode_id": "both",
+                "publish_rate_hz": 30,
+                "show_details": false,
+                "zero_on_release": true,
+                "runtime_binding": {
+                  "adapter": "teleop",
+                  "target": "translation",
+                  "value_mapping": {
+                    "mode": 0,
+                    "target_topic": "/joystick_cartesian_command"
+                  },
+                  "axis_mapping": {
+                    "x": {
+                      "component": "linear_x"
+                    },
+                    "y": {
+                      "component": "linear_y"
+                    }
+                  },
+                  "axis_deadzone": 0.2
+                }
+              }
+            },
+            {
+              "id": "behaviours-reset",
+              "kind": "command-button",
+              "title": "Reset assist",
+              "layout": {
+                "x": 326,
+                "y": 404,
+                "width": 151,
+                "height": 104
+              },
+              "settings": {
+                "action_feedback": "none",
+                "action_id": "behaviours-reset",
+                "action_label": "Request behaviour/shared_control/reset",
+                "button_label": "Reset assist",
+                "cancellable": false,
+                "command": "behaviour/shared_control/reset",
+                "topic": "/mode_request",
+                "messageType": "std_msgs/msg/String",
+                "payload": {
+                  "data": "behaviour/shared_control/reset"
+                },
+                "show_details": false,
+                "hide_title": true,
+                "hint": "forgets every goal's confidence"
+              }
+            },
+            {
+              "id": "behaviours-release",
+              "kind": "command-button",
+              "title": "Cancel",
+              "layout": {
+                "x": 489,
+                "y": 404,
+                "width": 151,
+                "height": 104
+              },
+              "settings": {
+                "action_feedback": "none",
+                "action_id": "behaviours-release",
+                "action_label": "Request behaviour/passthrough",
+                "button_label": "Cancel behaviour",
+                "cancellable": false,
+                "command": "behaviour/passthrough",
+                "topic": "/mode_request",
+                "messageType": "std_msgs/msg/String",
+                "payload": {
+                  "data": "behaviour/passthrough"
+                },
+                "show_details": false,
+                "hide_title": true,
+                "variant": "danger"
+              }
+            },
+            {
+              "id": "behaviours-assist",
+              "kind": "toggle",
+              "title": "Assist to goals",
+              "layout": {
+                "x": 652,
+                "y": 46,
+                "width": 264,
+                "height": 120
+              },
+              "settings": {
+                "topic": "/mode_request",
+                "messageType": "std_msgs/msg/String",
+                "initialValue": false,
+                "onLabel": "Assisting",
+                "offLabel": "Not assisting",
+                "onPayload": "{data: 'behaviour/shared_control'}",
+                "offPayload": "{data: 'behaviour/passthrough'}",
+                "show_details": false
+              }
+            },
+            {
+              "id": "behaviours-gamma",
+              "kind": "slider",
+              "title": "Assist gain",
+              "layout": {
+                "x": 652,
+                "y": 178,
+                "width": 264,
+                "height": 150
+              },
+              "settings": {
+                "direction": "horizontal",
+                "min": 0.1,
+                "max": 5,
+                "step": 0.1,
+                "value": 2,
+                "unit": "",
+                "show_details": false,
+                "runtime_binding": {
+                  "adapter": "parameter",
+                  "target": "parameter",
+                  "value_mapping": {
+                    "node": "/cartesian_manager",
+                    "parameter": "behaviours.shared_control.gamma"
+                  }
+                }
+              }
+            },
+            {
+              "id": "behaviours-match",
+              "kind": "slider",
+              "title": "Goal match",
+              "layout": {
+                "x": 652,
+                "y": 340,
+                "width": 264,
+                "height": 150
+              },
+              "settings": {
+                "direction": "horizontal",
+                "min": 0,
+                "max": 0.3,
+                "step": 0.01,
+                "value": 0.05,
+                "unit": "m",
+                "show_details": false,
+                "runtime_binding": {
+                  "adapter": "parameter",
+                  "target": "parameter",
+                  "value_mapping": {
+                    "node": "/cartesian_manager",
+                    "parameter": "behaviours.shared_control.goal_match_distance"
+                  }
+                }
+              }
+            },
+            {
+              "id": "behaviours-intent-scale",
+              "kind": "gauge",
+              "title": "Intent scale",
+              "layout": {
+                "x": 928,
+                "y": 46,
+                "width": 338,
+                "height": 180
+              },
+              "settings": {
+                "min": 0,
+                "max": 1,
+                "value": 0,
+                "topic": "/cartesian_manager/intent_scale",
+                "messageType": "std_msgs/msg/Float64",
+                "fieldPath": "data",
+                "show_details": false,
+                "unit": ""
+              }
+            },
+            {
+              "id": "behaviours-confidences",
+              "kind": "confidence-bars",
+              "title": "Goal confidence",
+              "layout": {
+                "x": 928,
+                "y": 238,
+                "width": 338,
+                "height": 160
+              },
+              "settings": {
+                "topic": "/shared_control/confidences",
+                "messageType": "std_msgs/msg/Float64MultiArray",
+                "show_details": false
+              }
             }
           ]
         },
@@ -1268,7 +1648,7 @@
                   },
                   {
                     "label": "Fault",
-                    "note": "moved to Bloom Debug — /fault_controller/internal_fault"
+                    "note": "Faults: reset from the arm's web page, or turn it off and on."
                   }
                 ]
               }

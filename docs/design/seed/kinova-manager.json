@@ -8,7 +8,7 @@
     {
       "id": "kinova-manager",
       "name": "Kinova Manager",
-      "description": "Operator app for the Kinova gen3 behind cartesian_manager: velocity drive, named positions, robot feedback, command-source visibility, and fault state.",
+      "description": "Operator app for the Kinova gen3 behind cartesian_manager: velocity drive, named positions, robot feedback, and command-source visibility. Faults: reset from the arm's web page, or turn it off and on.",
       "lifecycle": "active",
       "action_presets": [
         {
@@ -24,7 +24,7 @@
           },
           "payload_text": "",
           "tags": [
-            "explorer",
+            "kinova",
             "safety"
           ]
         },
@@ -41,23 +41,8 @@
           },
           "payload_text": "",
           "tags": [
-            "explorer",
-            "mode"
-          ]
-        },
-        {
-          "id": "fault-reset",
-          "name": "Reset fault",
-          "kind": "service-call",
-          "description": "Clear the gen3 fault state through the fault controller.",
-          "command": "kinova.reset_fault",
-          "topic": "/fault_controller/reset_fault",
-          "message_type": "example_interfaces/srv/Trigger",
-          "payload": null,
-          "payload_text": "",
-          "tags": [
             "kinova",
-            "safety"
+            "mode"
           ]
         }
       ],
@@ -79,6 +64,7 @@
         ],
         "allowed_recording_topics": [
           "/cartesian_command",
+          "/cartesian_manager/intent_scale",
           "/ee_jac",
           "/ee_pose",
           "/ee_velocity",
@@ -86,13 +72,23 @@
           "/joint_target_command",
           "/joystick_cartesian_command",
           "/mode_request",
-          "/visual_servoing_cartesian_command"
+          "/shared_control/confidences",
+          "/shared_control/goals",
+          "/shared_control/soft_goal"
         ],
         "allowed_teleop_targets": [
           "/joystick_cartesian_command"
         ],
-        "allowed_service_calls": [
-          "/fault_controller/reset_fault"
+        "allowed_service_calls": [],
+        "allowed_parameters": [
+          "/cartesian_manager:behaviours.intent_scaling.consistency_threshold",
+          "/cartesian_manager:behaviours.intent_scaling.gain",
+          "/cartesian_manager:behaviours.intent_scaling.min_scale",
+          "/cartesian_manager:behaviours.intent_scaling.window_sec",
+          "/cartesian_manager:behaviours.shared_control.alpha_conf",
+          "/cartesian_manager:behaviours.shared_control.gamma",
+          "/cartesian_manager:behaviours.shared_control.goal_match_distance",
+          "/cartesian_manager:shapers.snake.gain"
         ]
       },
       "theme": {
@@ -124,6 +120,7 @@
         },
         {
           "id": "bench",
+          "menu_on_tap": true,
           "name": "Bench",
           "display_preset": "default",
           "font_scale": 1,
@@ -204,8 +201,10 @@
                 "show_details": false,
                 "topic": "/gripper_controller/commands",
                 "messageType": "std_msgs/msg/Float64MultiArray",
-                "onPayload": "{data: [1.1]}",
-                "offPayload": "{data: [0.2]}"
+                "onPayload": "{data: [0.8]}",
+                "offPayload": "{data: [0.0]}",
+                "onStateLabel": "closed",
+                "offStateLabel": "open"
               }
             },
             {
@@ -317,7 +316,7 @@
                 "x": 14,
                 "y": 146,
                 "width": 110,
-                "height": 384
+                "height": 340
               },
               "settings": {
                 "max": 1,
@@ -350,29 +349,15 @@
                 "x": 136,
                 "y": 146,
                 "width": 384,
-                "height": 384
+                "height": 340
               },
               "settings": {
-                "axes": {
-                  "x": {
-                    "color": "#7e967e",
-                    "negative_label": "X-",
-                    "positive_label": "X+",
-                    "semantic": "translation"
-                  },
-                  "y": {
-                    "color": "#7e967e",
-                    "negative_label": "Y-",
-                    "positive_label": "Y+",
-                    "semantic": "translation"
-                  }
-                },
                 "deadzone": 0,
                 "labels": {
                   "top": "▲ Forward",
                   "bottom": "▼ Back",
                   "left": "◀ Left",
-                  "right": "▶ Right"
+                  "right": "Right ▶"
                 },
                 "mode_id": "both",
                 "publish_rate_hz": 30,
@@ -405,29 +390,15 @@
                 "x": 532,
                 "y": 146,
                 "width": 384,
-                "height": 384
+                "height": 340
               },
               "settings": {
-                "axes": {
-                  "x": {
-                    "color": "#c98a7e",
-                    "negative_label": "RX-",
-                    "positive_label": "RX+",
-                    "semantic": "rotation"
-                  },
-                  "y": {
-                    "color": "#c98a7e",
-                    "negative_label": "RY-",
-                    "positive_label": "RY+",
-                    "semantic": "rotation"
-                  }
-                },
                 "deadzone": 0,
                 "labels": {
                   "top": "▲ Tilt up",
                   "bottom": "▼ Tilt down",
                   "left": "◀ Roll left",
-                  "right": "▶ Roll right"
+                  "right": "Roll right ▶"
                 },
                 "mode_id": "both",
                 "publish_rate_hz": 30,
@@ -458,9 +429,9 @@
               "title": "Max linear speed",
               "layout": {
                 "x": 928,
-                "y": 146,
+                "y": 134,
                 "width": 338,
-                "height": 120
+                "height": 132
               },
               "settings": {
                 "max": 0.1,
@@ -482,7 +453,7 @@
                 "x": 928,
                 "y": 278,
                 "width": 338,
-                "height": 120
+                "height": 132
               },
               "settings": {
                 "max": 0.8,
@@ -519,32 +490,47 @@
                   "target": "angular_z",
                   "axis_mapping": {
                     "value": {
-                      "component": "angular_z"
+                      "component": "angular_z",
+                      "scale": -1
                     }
                   },
                   "value_mapping": {
                     "target_topic": "/joystick_cartesian_command"
                   },
                   "axis_deadzone": 0.2
+                },
+                "labels": {
+                  "negative": "↶ Turn left",
+                  "positive": "Turn right ↷"
                 }
               }
             },
             {
-              "id": "drive-fault-reset",
-              "kind": "command-button",
-              "title": "Reset fault",
+              "id": "bench-snake-gain",
+              "kind": "slider",
+              "title": "Snake gain",
               "layout": {
-                "x": 590,
-                "y": 548,
-                "width": 326,
-                "height": 114
+                "x": 14,
+                "y": 498,
+                "width": 506,
+                "height": 176
               },
               "settings": {
-                "action_label": "Reset the fault controller",
-                "button_label": "Reset fault",
-                "command": "kinova.reset_fault",
+                "direction": "horizontal",
+                "min": 0,
+                "max": 10,
+                "step": 0.1,
+                "value": 3,
+                "unit": "",
                 "show_details": false,
-                "hide_title": true
+                "runtime_binding": {
+                  "adapter": "parameter",
+                  "target": "parameter",
+                  "value_mapping": {
+                    "node": "/cartesian_manager",
+                    "parameter": "shapers.snake.gain"
+                  }
+                }
               }
             }
           ]
@@ -561,9 +547,9 @@
               "id": "stop",
               "owner": "runtime-chrome",
               "x": 1064,
-              "y": 310,
+              "y": 194,
               "width": 202,
-              "height": 352
+              "height": 468
             }
           ],
           "widgets": [
@@ -594,9 +580,9 @@
                   "Fast"
                 ],
                 "segment_values": [
-                  0.08,
-                  0.15,
-                  0.3
+                  0.025,
+                  0.05,
+                  0.1
                 ]
               }
             },
@@ -651,8 +637,10 @@
                 "show_details": false,
                 "topic": "/gripper_controller/commands",
                 "messageType": "std_msgs/msg/Float64MultiArray",
-                "onPayload": "{data: [1.1]}",
-                "offPayload": "{data: [0.2]}"
+                "onPayload": "{data: [0.8]}",
+                "offPayload": "{data: [0.0]}",
+                "onStateLabel": "closed",
+                "offStateLabel": "open"
               }
             },
             {
@@ -685,7 +673,8 @@
                     "target_topic": "/joystick_cartesian_command"
                   },
                   "axis_deadzone": 0.2
-                }
+                },
+                "title_placement": "above"
               }
             },
             {
@@ -699,26 +688,12 @@
                 "height": 346
               },
               "settings": {
-                "axes": {
-                  "x": {
-                    "color": "#7e967e",
-                    "negative_label": "X-",
-                    "positive_label": "X+",
-                    "semantic": "translation"
-                  },
-                  "y": {
-                    "color": "#7e967e",
-                    "negative_label": "Y-",
-                    "positive_label": "Y+",
-                    "semantic": "translation"
-                  }
-                },
                 "deadzone": 0,
                 "labels": {
                   "top": "▲ Forward",
                   "bottom": "▼ Back",
                   "left": "◀ Left",
-                  "right": "▶ Right"
+                  "right": "Right ▶"
                 },
                 "mode_id": "both",
                 "publish_rate_hz": 30,
@@ -754,26 +729,12 @@
                 "height": 346
               },
               "settings": {
-                "axes": {
-                  "x": {
-                    "color": "#c98a7e",
-                    "negative_label": "RX-",
-                    "positive_label": "RX+",
-                    "semantic": "rotation"
-                  },
-                  "y": {
-                    "color": "#c98a7e",
-                    "negative_label": "RY-",
-                    "positive_label": "RY+",
-                    "semantic": "rotation"
-                  }
-                },
                 "deadzone": 0,
                 "labels": {
                   "top": "▲ Tilt up",
                   "bottom": "▼ Tilt down",
                   "left": "◀ Roll left",
-                  "right": "▶ Roll right"
+                  "right": "Roll right ▶"
                 },
                 "mode_id": "both",
                 "publish_rate_hz": 30,
@@ -829,23 +790,6 @@
                   0.4,
                   0.8
                 ]
-              }
-            },
-            {
-              "id": "drive-fault-reset",
-              "kind": "command-button",
-              "title": "Reset fault",
-              "layout": {
-                "x": 1064,
-                "y": 194,
-                "width": 202,
-                "height": 104
-              },
-              "settings": {
-                "action_label": "Reset the fault controller",
-                "button_label": "Reset fault",
-                "command": "kinova.reset_fault",
-                "show_details": false
               }
             },
             {
@@ -914,13 +858,18 @@
                   "target": "angular_z",
                   "axis_mapping": {
                     "value": {
-                      "component": "angular_z"
+                      "component": "angular_z",
+                      "scale": -1
                     }
                   },
                   "value_mapping": {
                     "target_topic": "/joystick_cartesian_command"
                   },
                   "axis_deadzone": 0.2
+                },
+                "labels": {
+                  "negative": "↶ Turn left",
+                  "positive": "Turn right ↷"
                 }
               }
             },
@@ -1065,14 +1014,14 @@
                 "maxMessages": 20,
                 "messageType": "sensor_msgs/msg/JointState",
                 "prettyPrint": true,
-                "show_details": true,
+                "show_details": false,
                 "topic": "/joint_target_command"
               }
             },
             {
               "id": "positions-home",
               "kind": "command-button",
-              "title": "Home",
+              "title": "Go home",
               "layout": {
                 "x": 14,
                 "y": 482,
@@ -1083,7 +1032,7 @@
                 "action_feedback": "none",
                 "action_id": "positions-home",
                 "action_label": "Request behaviour/joint_target/home",
-                "button_label": "Go home",
+                "button_label": "Send Home",
                 "cancellable": false,
                 "command": "behaviour/joint_target/home",
                 "topic": "/mode_request",
@@ -1094,7 +1043,8 @@
                 "show_details": true,
                 "confirm_press": true,
                 "confirm_label": "Press again to move",
-                "confirm_timeout_seconds": 5
+                "confirm_timeout_seconds": 5,
+                "hint": "dispatched once — the manager's seven-joint home"
               }
             },
             {
@@ -1111,7 +1061,7 @@
                 "action_feedback": "none",
                 "action_id": "positions-release",
                 "action_label": "Cancel the joint target",
-                "button_label": "Release",
+                "button_label": "Cancel the pose",
                 "cancellable": false,
                 "command": "behaviour/passthrough",
                 "topic": "/mode_request",
@@ -1120,7 +1070,8 @@
                   "data": "behaviour/passthrough"
                 },
                 "show_details": true,
-                "variant": "danger"
+                "variant": "danger",
+                "hint": "returns the manager to passthrough"
               }
             }
           ],
@@ -1132,6 +1083,397 @@
               "y": 410,
               "width": 338,
               "height": 252
+            }
+          ]
+        },
+        {
+          "id": "manager_behaviours",
+          "title": "Behaviours",
+          "canvas": {
+            "preset_id": "native-1280x720",
+            "runtime_mode": "fit"
+          },
+          "reserved_regions": [
+            {
+              "id": "stop",
+              "owner": "runtime-chrome",
+              "x": 928,
+              "y": 410,
+              "width": 338,
+              "height": 252
+            }
+          ],
+          "widgets": [
+            {
+              "id": "behaviours-intent-label",
+              "kind": "label",
+              "title": "SPEED UP WITH INTENT",
+              "layout": {
+                "x": 14,
+                "y": 14,
+                "width": 300,
+                "height": 24
+              },
+              "settings": {
+                "text": "SPEED UP WITH INTENT",
+                "fontSize": 12,
+                "align": "left",
+                "show_details": false
+              }
+            },
+            {
+              "id": "behaviours-push-label",
+              "kind": "label",
+              "title": "PUSH TO TRY IT",
+              "layout": {
+                "x": 326,
+                "y": 14,
+                "width": 314,
+                "height": 24
+              },
+              "settings": {
+                "text": "PUSH TO TRY IT",
+                "fontSize": 12,
+                "align": "left",
+                "show_details": false
+              }
+            },
+            {
+              "id": "behaviours-assist-label",
+              "kind": "label",
+              "title": "ASSIST TO GOALS",
+              "layout": {
+                "x": 652,
+                "y": 14,
+                "width": 264,
+                "height": 24
+              },
+              "settings": {
+                "text": "ASSIST TO GOALS",
+                "fontSize": 12,
+                "align": "left",
+                "show_details": false
+              }
+            },
+            {
+              "id": "behaviours-live-label",
+              "kind": "label",
+              "title": "LIVE FROM THE MANAGER",
+              "layout": {
+                "x": 928,
+                "y": 14,
+                "width": 338,
+                "height": 24
+              },
+              "settings": {
+                "text": "LIVE FROM THE MANAGER",
+                "fontSize": 12,
+                "align": "left",
+                "show_details": false
+              }
+            },
+            {
+              "id": "behaviours-intent",
+              "kind": "toggle",
+              "title": "Speed up with intent",
+              "layout": {
+                "x": 14,
+                "y": 46,
+                "width": 300,
+                "height": 120
+              },
+              "settings": {
+                "topic": "/mode_request",
+                "messageType": "std_msgs/msg/String",
+                "initialValue": false,
+                "onLabel": "Speeding up",
+                "offLabel": "Plain speed",
+                "onPayload": "{data: 'behaviour/intent_scaling'}",
+                "offPayload": "{data: 'behaviour/passthrough'}",
+                "show_details": false
+              }
+            },
+            {
+              "id": "behaviours-min-scale",
+              "kind": "slider",
+              "title": "Push start",
+              "layout": {
+                "x": 14,
+                "y": 178,
+                "width": 300,
+                "height": 150
+              },
+              "settings": {
+                "direction": "horizontal",
+                "min": 0.1,
+                "max": 1,
+                "step": 0.05,
+                "value": 0.4,
+                "unit": "",
+                "show_details": false,
+                "runtime_binding": {
+                  "adapter": "parameter",
+                  "target": "parameter",
+                  "value_mapping": {
+                    "node": "/cartesian_manager",
+                    "parameter": "behaviours.intent_scaling.min_scale"
+                  }
+                }
+              }
+            },
+            {
+              "id": "behaviours-gain",
+              "kind": "slider",
+              "title": "Speed-up gain",
+              "layout": {
+                "x": 14,
+                "y": 340,
+                "width": 300,
+                "height": 150
+              },
+              "settings": {
+                "direction": "horizontal",
+                "min": 0,
+                "max": 5,
+                "step": 0.1,
+                "value": 1,
+                "unit": "/s",
+                "show_details": false,
+                "runtime_binding": {
+                  "adapter": "parameter",
+                  "target": "parameter",
+                  "value_mapping": {
+                    "node": "/cartesian_manager",
+                    "parameter": "behaviours.intent_scaling.gain"
+                  }
+                }
+              }
+            },
+            {
+              "id": "behaviours-note",
+              "kind": "label",
+              "title": "Speed up and Assist replace each other; other screens keep it. STOP, Cancel or leaving the app returns to passthrough.",
+              "layout": {
+                "x": 14,
+                "y": 502,
+                "width": 300,
+                "height": 96
+              },
+              "settings": {
+                "text": "Speed up and Assist replace each other; other screens keep it. STOP, Cancel or leaving the app returns to passthrough.",
+                "fontSize": 12,
+                "align": "left",
+                "show_details": false
+              }
+            },
+            {
+              "id": "drive-translation",
+              "kind": "joystick",
+              "title": "Translation",
+              "layout": {
+                "x": 326,
+                "y": 46,
+                "width": 314,
+                "height": 346
+              },
+              "settings": {
+                "deadzone": 0,
+                "labels": {
+                  "top": "▲ Forward",
+                  "bottom": "▼ Back",
+                  "left": "◀ Left",
+                  "right": "Right ▶"
+                },
+                "mode_id": "both",
+                "publish_rate_hz": 30,
+                "show_details": false,
+                "zero_on_release": true,
+                "runtime_binding": {
+                  "adapter": "teleop",
+                  "target": "translation",
+                  "value_mapping": {
+                    "mode": 0,
+                    "target_topic": "/joystick_cartesian_command"
+                  },
+                  "axis_mapping": {
+                    "x": {
+                      "component": "linear_x"
+                    },
+                    "y": {
+                      "component": "linear_y"
+                    }
+                  },
+                  "axis_deadzone": 0.2
+                }
+              }
+            },
+            {
+              "id": "behaviours-reset",
+              "kind": "command-button",
+              "title": "Reset assist",
+              "layout": {
+                "x": 326,
+                "y": 404,
+                "width": 151,
+                "height": 104
+              },
+              "settings": {
+                "action_feedback": "none",
+                "action_id": "behaviours-reset",
+                "action_label": "Request behaviour/shared_control/reset",
+                "button_label": "Reset assist",
+                "cancellable": false,
+                "command": "behaviour/shared_control/reset",
+                "topic": "/mode_request",
+                "messageType": "std_msgs/msg/String",
+                "payload": {
+                  "data": "behaviour/shared_control/reset"
+                },
+                "show_details": false,
+                "hide_title": true,
+                "hint": "forgets every goal's confidence"
+              }
+            },
+            {
+              "id": "behaviours-release",
+              "kind": "command-button",
+              "title": "Cancel",
+              "layout": {
+                "x": 489,
+                "y": 404,
+                "width": 151,
+                "height": 104
+              },
+              "settings": {
+                "action_feedback": "none",
+                "action_id": "behaviours-release",
+                "action_label": "Request behaviour/passthrough",
+                "button_label": "Cancel behaviour",
+                "cancellable": false,
+                "command": "behaviour/passthrough",
+                "topic": "/mode_request",
+                "messageType": "std_msgs/msg/String",
+                "payload": {
+                  "data": "behaviour/passthrough"
+                },
+                "show_details": false,
+                "hide_title": true,
+                "variant": "danger"
+              }
+            },
+            {
+              "id": "behaviours-assist",
+              "kind": "toggle",
+              "title": "Assist to goals",
+              "layout": {
+                "x": 652,
+                "y": 46,
+                "width": 264,
+                "height": 120
+              },
+              "settings": {
+                "topic": "/mode_request",
+                "messageType": "std_msgs/msg/String",
+                "initialValue": false,
+                "onLabel": "Assisting",
+                "offLabel": "Not assisting",
+                "onPayload": "{data: 'behaviour/shared_control'}",
+                "offPayload": "{data: 'behaviour/passthrough'}",
+                "show_details": false
+              }
+            },
+            {
+              "id": "behaviours-gamma",
+              "kind": "slider",
+              "title": "Assist gain",
+              "layout": {
+                "x": 652,
+                "y": 178,
+                "width": 264,
+                "height": 150
+              },
+              "settings": {
+                "direction": "horizontal",
+                "min": 0.1,
+                "max": 5,
+                "step": 0.1,
+                "value": 2,
+                "unit": "",
+                "show_details": false,
+                "runtime_binding": {
+                  "adapter": "parameter",
+                  "target": "parameter",
+                  "value_mapping": {
+                    "node": "/cartesian_manager",
+                    "parameter": "behaviours.shared_control.gamma"
+                  }
+                }
+              }
+            },
+            {
+              "id": "behaviours-match",
+              "kind": "slider",
+              "title": "Goal match",
+              "layout": {
+                "x": 652,
+                "y": 340,
+                "width": 264,
+                "height": 150
+              },
+              "settings": {
+                "direction": "horizontal",
+                "min": 0,
+                "max": 0.3,
+                "step": 0.01,
+                "value": 0.05,
+                "unit": "m",
+                "show_details": false,
+                "runtime_binding": {
+                  "adapter": "parameter",
+                  "target": "parameter",
+                  "value_mapping": {
+                    "node": "/cartesian_manager",
+                    "parameter": "behaviours.shared_control.goal_match_distance"
+                  }
+                }
+              }
+            },
+            {
+              "id": "behaviours-intent-scale",
+              "kind": "gauge",
+              "title": "Intent scale",
+              "layout": {
+                "x": 928,
+                "y": 46,
+                "width": 338,
+                "height": 180
+              },
+              "settings": {
+                "min": 0,
+                "max": 1,
+                "value": 0,
+                "topic": "/cartesian_manager/intent_scale",
+                "messageType": "std_msgs/msg/Float64",
+                "fieldPath": "data",
+                "show_details": false,
+                "unit": ""
+              }
+            },
+            {
+              "id": "behaviours-confidences",
+              "kind": "confidence-bars",
+              "title": "Goal confidence",
+              "layout": {
+                "x": 928,
+                "y": 238,
+                "width": 338,
+                "height": 160
+              },
+              "settings": {
+                "topic": "/shared_control/confidences",
+                "messageType": "std_msgs/msg/Float64MultiArray",
+                "show_details": false
+              }
             }
           ]
         },
@@ -1294,7 +1636,21 @@
               "settings": {
                 "plot_id": "feedback-plot",
                 "show_unavailable": true,
-                "show_details": false
+                "show_details": false,
+                "unavailable": [
+                  {
+                    "label": "Joint states",
+                    "note": "moved to Bloom Debug"
+                  },
+                  {
+                    "label": "Manipulability",
+                    "note": "moved to Bloom Debug — /ee_jac"
+                  },
+                  {
+                    "label": "Fault",
+                    "note": "Faults: reset from the arm's web page, or turn it off and on."
+                  }
+                ]
               }
             }
           ],
@@ -1350,18 +1706,8 @@
                     "topic": "/joystick_cartesian_command",
                     "message_type": "geometry_msgs/msg/TwistStamped",
                     "field_path": "twist.linear.x",
-                    "label": "This tablet",
+                    "label": "Command topic",
                     "color": "#7e967e",
-                    "unit": "norm",
-                    "enabled": true,
-                    "emphasis": false
-                  },
-                  {
-                    "topic": "/visual_servoing_cartesian_command",
-                    "message_type": "geometry_msgs/msg/TwistStamped",
-                    "field_path": "twist.linear.x",
-                    "label": "Visual servoing",
-                    "color": "#c98a7e",
                     "unit": "norm",
                     "enabled": true,
                     "emphasis": false
@@ -1404,7 +1750,14 @@
                 "fieldPath": "data",
                 "maxEntries": 50,
                 "newest_first": true,
-                "show_details": false
+                "show_details": false,
+                "notes": {
+                  "geometric/both": "neutral shaping",
+                  "geometric/jaco": "jaco shaping",
+                  "geometric/snake": "held, then released",
+                  "behaviour/passthrough": "pose released",
+                  "behaviour/joint_target/home": "pose dispatched"
+                }
               }
             },
             {
@@ -1437,7 +1790,13 @@
               "settings": {
                 "plot_id": "sources-plot",
                 "show_value": true,
-                "show_details": false
+                "show_details": false,
+                "unavailable": [
+                  {
+                    "label": "Visual servoing",
+                    "note": "not read by the manager yet: its config declares only the joystick source, and the servoing node publishes /visual_servoing/velocity_command"
+                  }
+                ]
               }
             }
           ],
@@ -1467,7 +1826,7 @@
               "layout": {
                 "x": 14,
                 "y": 14,
-                "width": 596,
+                "width": 444,
                 "height": 24
               },
               "settings": {
@@ -1560,30 +1919,6 @@
                 "runtime_binding": {
                   "adapter": "teleop-frame",
                   "frame_id": "hybrid_frame"
-                },
-                "hide_title": true
-              }
-            },
-            {
-              "id": "lab-frame-ft",
-              "kind": "command-button",
-              "title": "Force sensor",
-              "layout": {
-                "x": 470,
-                "y": 46,
-                "width": 140,
-                "height": 88
-              },
-              "settings": {
-                "action_feedback": "none",
-                "action_id": "lab-frame-ft",
-                "action_label": "Stamp commands in ft_frame",
-                "button_label": "Force sensor",
-                "cancellable": false,
-                "show_details": false,
-                "runtime_binding": {
-                  "adapter": "teleop-frame",
-                  "frame_id": "ft_frame"
                 },
                 "hide_title": true
               }
@@ -1688,7 +2023,7 @@
                 "step": 0.01,
                 "value": 0,
                 "direction": "vertical",
-                "show_details": true,
+                "show_details": false,
                 "returnToCenter": true,
                 "runtime_binding": {
                   "adapter": "teleop",
@@ -1739,7 +2074,7 @@
                 },
                 "mode_id": "both",
                 "publish_rate_hz": 30,
-                "show_details": true,
+                "show_details": false,
                 "zero_on_release": true,
                 "runtime_binding": {
                   "adapter": "teleop",
@@ -1794,7 +2129,7 @@
                 },
                 "mode_id": "both",
                 "publish_rate_hz": 30,
-                "show_details": true,
+                "show_details": false,
                 "zero_on_release": true,
                 "runtime_binding": {
                   "adapter": "teleop",
@@ -1818,7 +2153,7 @@
             {
               "id": "lab-sent-label",
               "kind": "label",
-              "title": "SENT TO MANAGER — /joystick_cartesian_command",
+              "title": "SENT — /joystick_cartesian_command",
               "layout": {
                 "x": 928,
                 "y": 146,
@@ -1826,7 +2161,7 @@
                 "height": 24
               },
               "settings": {
-                "text": "SENT TO MANAGER — /joystick_cartesian_command",
+                "text": "SENT — /joystick_cartesian_command",
                 "fontSize": 12,
                 "align": "left",
                 "show_details": false
@@ -1835,7 +2170,7 @@
             {
               "id": "lab-sent",
               "kind": "topic-echo",
-              "title": "Sent to manager",
+              "title": "Twist",
               "layout": {
                 "x": 928,
                 "y": 182,
@@ -1843,11 +2178,11 @@
                 "height": 216
               },
               "settings": {
-                "fieldPath": "twist",
+                "fieldPath": "",
                 "maxMessages": 1,
                 "messageType": "geometry_msgs/msg/TwistStamped",
                 "prettyPrint": true,
-                "show_details": true,
+                "show_details": false,
                 "topic": "/joystick_cartesian_command"
               }
             },
@@ -1868,8 +2203,11 @@
                 "show_details": false,
                 "topic": "/gripper_controller/commands",
                 "messageType": "std_msgs/msg/Float64MultiArray",
-                "onPayload": "{data: [1.1]}",
-                "offPayload": "{data: [0.2]}"
+                "onPayload": "{data: [0.8]}",
+                "offPayload": "{data: [0.0]}",
+                "onStateLabel": "closed",
+                "offStateLabel": "open",
+                "layout": "inline"
               }
             },
             {
@@ -1888,20 +2226,25 @@
                 "step": 0.01,
                 "value": 0,
                 "direction": "horizontal",
-                "show_details": true,
+                "show_details": false,
                 "returnToCenter": true,
                 "runtime_binding": {
                   "adapter": "teleop",
                   "target": "angular_z",
                   "axis_mapping": {
                     "value": {
-                      "component": "angular_z"
+                      "component": "angular_z",
+                      "scale": -1
                     }
                   },
                   "value_mapping": {
                     "target_topic": "/joystick_cartesian_command"
                   },
                   "axis_deadzone": 0.2
+                },
+                "labels": {
+                  "negative": "↶ Turn left",
+                  "positive": "Turn right ↷"
                 }
               }
             }

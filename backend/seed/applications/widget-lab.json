@@ -30,6 +30,7 @@
         ],
         "allowed_recording_topics": [
           "/cartesian_command",
+          "/cartesian_manager/intent_scale",
           "/ee_jac",
           "/ee_pose",
           "/ee_velocity",
@@ -37,7 +38,10 @@
           "/joint_target_command",
           "/joystick_cartesian_command",
           "/mode_request",
-          "/qontrol_explorer/effort_overload"
+          "/qontrol_explorer/effort_overload",
+          "/shared_control/confidences",
+          "/shared_control/goals",
+          "/shared_control/soft_goal"
         ],
         "allowed_teleop_targets": [
           "/joystick_cartesian_command"
@@ -552,6 +556,22 @@
                 ],
                 "show_details": false
               }
+            },
+            {
+              "id": "lab-confidences",
+              "kind": "confidence-bars",
+              "title": "Goal confidence",
+              "layout": {
+                "x": 698,
+                "y": 402,
+                "width": 354,
+                "height": 160
+              },
+              "settings": {
+                "topic": "/shared_control/confidences",
+                "messageType": "std_msgs/msg/Float64MultiArray",
+                "show_details": false
+              }
             }
           ]
         },
@@ -633,7 +653,9 @@
                 "poseTopic": "/ee_pose",
                 "eeLink": "",
                 "showAxes": true,
-                "description": ""
+                "description": "",
+                "goalsTopic": "/shared_control/goals",
+                "softGoalTopic": "/shared_control/soft_goal"
               }
             },
             {

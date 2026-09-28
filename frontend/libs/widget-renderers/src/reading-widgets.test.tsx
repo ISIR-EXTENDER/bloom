@@ -1,9 +1,12 @@
 /**
  * @vitest-environment jsdom
  */
+
+import type { CommandStateEntry } from "@bloom/api-client";
 import { act, cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { CameraWidget } from "./camera-renderer";
+import { applyCommandStateMessage, resetCommandStateForTests } from "./command-state";
 import { JacobianWidget } from "./debug-table-renderers";
 import { EventLogWidget, GaugeWidget, PlotWidget } from "./display-renderers";
 import { ValueStripWidget } from "./plot-board-renderer";
@@ -18,6 +21,7 @@ function descriptor(kind: string, title: string, settings: Record<string, unknow
 
 afterEach(() => {
   cleanup();
+  resetCommandStateForTests();
   vi.useRealTimers();
 });
 
@@ -33,6 +37,30 @@ describe("the gauge", () => {
     expect(meter.textContent).toContain("2.3");
     expect(meter.style.getPropertyValue("--bloom-gauge-percent")).toBe("100%");
     expect(screen.getByRole("meter").getAttribute("aria-label")).toBe("Joint 1: 2.3 rad");
+  });
+
+  it("reads not publishing at once when the store says the manager's behaviour is off, greying the last value", () => {
+    const entry: CommandStateEntry = { value: false, source: "measured", by: "robot", revision: 1, updated_at: "" };
+    act(() =>
+      applyCommandStateMessage({ type: "command_state", revision: 1, snapshot: { "intent_scaling:active": entry } }),
+    );
+    const { container } = render(
+      <GaugeWidget
+        data={{
+          type: "gauge",
+          receivedAt: new Date().toISOString(),
+          topic: "/cartesian_manager/intent_scale",
+          value: 0.7,
+        }}
+        descriptor={descriptor("gauge", "Intent scale", { topic: "/cartesian_manager/intent_scale" })}
+      />,
+    );
+    const root = container.firstElementChild as HTMLElement;
+    expect(root.getAttribute("data-live")).toBe("false");
+    expect(root.getAttribute("data-silent")).toBe("true");
+    expect(screen.getByText("not publishing")).toBeTruthy();
+    expect(screen.getByText(/last value/)).toBeTruthy();
+    expect((container.querySelector(".bloom-gauge-meter") as HTMLElement).textContent).toContain("0.7");
   });
 
   it("speaks the profile's language", () => {

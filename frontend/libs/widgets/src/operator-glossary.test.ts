@@ -94,6 +94,12 @@ describe("the operator glossary", () => {
     for (const bundle of [explorerManager, kinovaManager] as unknown as { applications: ApplicationConfig[] }[]) {
       for (const application of bundle.applications) {
         for (const screen of application.screens) {
+          if (
+            localizeOperatorText(screen.title, "es") === screen.title &&
+            localizeOperatorText(screen.title, "fr") === screen.title
+          ) {
+            untranslated.push(`${screen.id}.title: ${screen.title}`);
+          }
           for (const widget of screen.widgets) {
             for (const [key, value] of Object.entries({ title: widget.title, ...widget.settings })) {
               if (typeof value !== "string" || !TEXT_KEYS.has(key)) continue;

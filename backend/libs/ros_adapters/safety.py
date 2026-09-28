@@ -42,9 +42,31 @@ def petanque_parameter_bounds(
     )
 
 
+#: cartesian_manager's lasting behaviours (topic/intent_scaling, topic/shared_control), each within what the
+#: manager validates: a scale in (0, 1], a threshold in [0, 1], degrees up to 90, gates and distances above zero.
+BEHAVIOUR_PARAMETER_BOUNDS: tuple[tuple[str, float, float], ...] = (
+    (f"{MANAGER_NODE}:behaviours.intent_scaling.min_scale", 0.05, 1.0),
+    (f"{MANAGER_NODE}:behaviours.intent_scaling.window_sec", 0.05, 5.0),
+    (f"{MANAGER_NODE}:behaviours.intent_scaling.consistency_threshold", 0.0, 1.0),
+    (f"{MANAGER_NODE}:behaviours.intent_scaling.gain", 0.0, 10.0),
+    (f"{MANAGER_NODE}:behaviours.shared_control.alpha_conf", 0.0, 10.0),
+    (f"{MANAGER_NODE}:behaviours.shared_control.theta_l_deg", 1.0, 90.0),
+    (f"{MANAGER_NODE}:behaviours.shared_control.v_j_max", 0.001, 1.0),
+    (f"{MANAGER_NODE}:behaviours.shared_control.gamma", 0.1, 10.0),
+    (f"{MANAGER_NODE}:behaviours.shared_control.r1", 0.001, 1.0),
+    (f"{MANAGER_NODE}:behaviours.shared_control.r2", 0.001, 1.0),
+    (f"{MANAGER_NODE}:behaviours.shared_control.theta1_deg", 0.0, 90.0),
+    (f"{MANAGER_NODE}:behaviours.shared_control.theta2_deg", 0.0, 90.0),
+    (f"{MANAGER_NODE}:behaviours.shared_control.goal_match_distance", 0.0, 1.0),
+)
+
 #: About 3x what cartesian_manager ships: 2.0 for both accelerations, 0.4 rad/s for jaco.
 #: Petanque: the Petanque admin sliders' ranges, with duration room up to 10 s.
-DEFAULT_PARAMETER_BOUNDS = manager_parameter_bounds(6.0, 6.0, 1.2) + petanque_parameter_bounds(0.5, 10.0, 0.5, 0.5)
+DEFAULT_PARAMETER_BOUNDS = (
+    manager_parameter_bounds(6.0, 6.0, 1.2)
+    + BEHAVIOUR_PARAMETER_BOUNDS
+    + petanque_parameter_bounds(0.5, 10.0, 0.5, 0.5)
+)
 _FLOAT32_MAX = 3.4028234663852886e38
 _INTEGER_RANGES: dict[str, tuple[int, int]] = {
     "std_msgs/msg/Int32": (-(2**31), 2**31 - 1),

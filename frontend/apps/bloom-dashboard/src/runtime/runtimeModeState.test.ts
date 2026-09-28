@@ -175,6 +175,68 @@ describe("cartesian_manager mode requests", () => {
     ]);
   });
 
+  it("binds the lasting behaviours and marks their controls unavailable when the manager lacks them", () => {
+    const screen = {
+      id: "behaviours",
+      title: "Behaviours",
+      widgets: [
+        modeButton("speed-up", "behaviour/intent_scaling"),
+        modeButton("reset", "behaviour/shared_control/reset"),
+        {
+          id: "assist",
+          kind: "toggle",
+          title: "Assist",
+          layout: { x: 0, y: 0, width: 10, height: 10 },
+          settings: {
+            topic: "/mode_request",
+            messageType: "std_msgs/msg/String",
+            onPayload: "{data: 'behaviour/shared_control'}",
+            offPayload: "{data: 'behaviour/passthrough'}",
+          },
+        },
+        {
+          id: "gain",
+          kind: "slider",
+          title: "Speed-up gain",
+          layout: { x: 0, y: 0, width: 10, height: 10 },
+          settings: {
+            runtime_binding: {
+              adapter: "parameter",
+              value_mapping: { node: "/cartesian_manager", parameter: "behaviours.intent_scaling.gain" },
+            },
+          },
+        },
+        {
+          id: "bars",
+          kind: "confidence-bars",
+          title: "Goal confidence",
+          layout: { x: 0, y: 0, width: 10, height: 10 },
+          settings: { topic: "/shared_control/confidences" },
+        },
+        modeButton("neutral", "geometric/both"),
+      ],
+    } as never;
+    const states = createRuntimeControlStateByWidgetId(screen, {
+      behaviourAvailability: (behaviour) => (behaviour === "intent_scaling" ? "unavailable" : "available"),
+    });
+    expect(states["speed-up"]?.commandBinding?.lit).toEqual([
+      { key: "manager:behaviour", value: "behaviour/intent_scaling" },
+    ]);
+    expect(states.reset?.commandBinding).toEqual({
+      writes: [{ key: "manager:behaviour", value: "behaviour/shared_control" }],
+    });
+    expect(states["speed-up"]?.unavailable).toBe(true);
+    expect(states["speed-up"]?.disabledReason).toMatch(/behaviours.intent_scaling/);
+    expect(states.gain?.unavailable).toBe(true);
+    expect(states.assist?.unavailable).toBeUndefined();
+    expect(states.bars).toBeUndefined();
+    expect(states.neutral?.unavailable).toBeUndefined();
+
+    // Before the store has answered nothing is unavailable: unknown is not missing.
+    const unknown = createRuntimeControlStateByWidgetId(screen, { behaviourAvailability: () => "unknown" });
+    expect(unknown["speed-up"]?.unavailable).toBeUndefined();
+  });
+
   it("leaves the momentary button out, since it shows the operator's hold", () => {
     expect(createRuntimeControlStateByWidgetId(driveScreen())["drive-snake-hold"]).toBeUndefined();
   });

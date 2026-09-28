@@ -8,6 +8,7 @@ from collections.abc import Callable, Mapping, Sequence
 from typing import Any
 
 from libs.ros_adapters.messages import resolve_message_class
+from libs.ros_adapters.mode_request import INTENT_SCALING_MODE, SHARED_CONTROL_MODE
 from libs.ros_adapters.qos import AdaptiveSubscription
 from libs.sessions.command_state import PETANQUE_STATE_KEY, CommandStateTracker, PoseTargetSpec
 
@@ -18,6 +19,15 @@ JOINT_STATES_TOPIC = "/joint_states"
 FSM_VIEWER_TOPIC = "/fsm_viewer"
 SERVOING_VELOCITY_TOPIC = "/visual_servoing/velocity_command"
 EE_POSE_TOPIC = "/ee_pose"
+#: The manager's own feedback for its lasting behaviours: each publishes only while its behaviour is active.
+INTENT_SCALE_TOPIC = "/cartesian_manager/intent_scale"
+SHARED_CONTROL_CONFIDENCES_TOPIC = "/shared_control/confidences"
+SHARED_CONTROL_GOALS_TOPIC = "/shared_control/goals"
+SHARED_CONTROL_SOFT_GOAL_TOPIC = "/shared_control/soft_goal"
+BEHAVIOUR_FEEDBACK_TOPICS: dict[str, tuple[str, str]] = {
+    INTENT_SCALING_MODE: (INTENT_SCALE_TOPIC, "std_msgs/msg/Float64"),
+    SHARED_CONTROL_MODE: (SHARED_CONTROL_CONFIDENCES_TOPIC, "std_msgs/msg/Float64MultiArray"),
+}
 POSE_TARGET_PREFIX = "behaviours.pose_targets."
 POSE_TARGET_PARAMETERS = tuple(
     f"{POSE_TARGET_PREFIX}{name}"
@@ -89,6 +99,8 @@ class RclpyCommandStateFeedback:
         if self._subscribe(SERVOING_VELOCITY_TOPIC, "geometry_msgs/msg/TwistStamped", self._on_servoing_velocity):
             self._tracker.start_servoing_liveness()
         self._subscribe(EE_POSE_TOPIC, "geometry_msgs/msg/PoseStamped", self._on_ee_pose)
+        for behaviour, (topic, message_type) in BEHAVIOUR_FEEDBACK_TOPICS.items():
+            self._subscribe(topic, message_type, self._behaviour_handler(behaviour))
         if poll_in_background and self._thread is None:
             self._thread = threading.Thread(target=self._run, name="command-state-feedback", daemon=True)
             self._thread.start()
@@ -220,6 +232,12 @@ class RclpyCommandStateFeedback:
 
     def _on_servoing_velocity(self, _message: Any) -> None:
         self._tracker.record_servoing_velocity()
+
+    def _behaviour_handler(self, behaviour: str) -> Callable[[Any], None]:
+        def on_message(_message: Any) -> None:
+            self._tracker.record_behaviour_active(behaviour, self._mode_request_topic)
+
+        return on_message
 
     def _on_ee_pose(self, message: Any) -> None:
         pose = message.pose

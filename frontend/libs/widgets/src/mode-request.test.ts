@@ -10,6 +10,9 @@ describe("the mode-request grammar, as the backend parses it", () => {
     ["behaviour/passthrough", "behaviour/passthrough"],
     ["behaviour/joint-target/home", "behaviour/joint_target/home"],
     ["behaviour/pose_target/ready", "behaviour/pose_target/ready"],
+    ["Behaviour/Intent-Scaling", "behaviour/intent_scaling"],
+    ["behaviour/shared_control", "behaviour/shared_control"],
+    ["behaviour/shared_control/reset", "behaviour/shared_control/reset"],
   ])("takes %s", (raw, normalized) => {
     expect(parseModeRequest(raw)).toEqual({ normalized, ok: true });
   });
@@ -24,6 +27,8 @@ describe("the mode-request grammar, as the backend parses it", () => {
     ["behaviour/joint_target", /needs a target name/],
     ["behaviour/pose_target/a/b", /needs a target name/],
     ["behaviour/dance", /unknown behaviour/],
+    ["behaviour/intent_scaling/fast", /no extra segment/],
+    ["behaviour/shared_control/clear", /optional \/reset/],
     ["navigate_screen", /two segments/],
     ["mode/both", /unknown mode family/],
   ])("refuses %s", (raw, pattern) => {

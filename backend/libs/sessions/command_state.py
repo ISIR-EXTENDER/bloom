@@ -14,8 +14,10 @@ from typing import Any, Literal
 
 from libs.ros_adapters.mode_request import (
     GEOMETRIC_PREFIX,
+    INTENT_SCALING_MODE,
     MODE_REQUEST_TOPIC,
     PASSTHROUGH_MODE,
+    SHARED_CONTROL_MODE,
     ModeRequestError,
     normalize_mode_request,
     parse_mode_request,
@@ -31,6 +33,13 @@ BY_API = "api"
 
 POSE_TARGET_BEHAVIOUR = "behaviour/pose_target"
 SERVOING_ACTIVE_KEY = "servoing:active"
+#: Measured from the manager's own feedback: the intent scale and the confidences publish only while active.
+INTENT_SCALING_ACTIVE_KEY = "intent_scaling:active"
+SHARED_CONTROL_ACTIVE_KEY = "shared_control:active"
+BEHAVIOUR_ACTIVE_KEYS: dict[str, str] = {
+    INTENT_SCALING_MODE: INTENT_SCALING_ACTIVE_KEY,
+    SHARED_CONTROL_MODE: SHARED_CONTROL_ACTIVE_KEY,
+}
 PETANQUE_STATE_KEY = "petanque:state"
 DIGITAL_OUTPUT_TOPIC = "/hub/digital_output"
 
@@ -38,6 +47,10 @@ DIGITAL_OUTPUT_TOPIC = "/hub/digital_output"
 OWN_ECHO_WINDOW_SEC = 2.0
 DEFAULT_POSE_TARGET_TIMEOUT_SEC = 30.0
 DEFAULT_SERVOING_WINDOW_SEC = 0.5
+#: The intent scale arrives at about 20 Hz and the confidences at 100 Hz; either quiet this long has ended.
+DEFAULT_BEHAVIOUR_WINDOW_SEC = 0.5
+#: A behaviour the manager still reports right after a request is the manager not having switched yet.
+DEFAULT_BEHAVIOUR_SETTLE_SEC = 0.5
 #: A measurement that disagrees with a fresh command is the actuator still travelling.
 DEFAULT_GRIPPER_SETTLE_SEC = 2.0
 
@@ -250,6 +263,8 @@ class CommandStateTracker:
         servoing_window_sec: float = DEFAULT_SERVOING_WINDOW_SEC,
         gripper_settle_sec: float = DEFAULT_GRIPPER_SETTLE_SEC,
         own_echo_window_sec: float = OWN_ECHO_WINDOW_SEC,
+        behaviour_window_sec: float = DEFAULT_BEHAVIOUR_WINDOW_SEC,
+        behaviour_settle_sec: float = DEFAULT_BEHAVIOUR_SETTLE_SEC,
         clock: Callable[[], float] = monotonic,
     ) -> None:
         self.store = store
@@ -257,6 +272,8 @@ class CommandStateTracker:
         self._pose_target_timeout_sec = pose_target_timeout_sec
         self._servoing_window_sec = servoing_window_sec
         self._gripper_settle_sec = gripper_settle_sec
+        self._behaviour_window_sec = behaviour_window_sec
+        self._behaviour_settle_sec = behaviour_settle_sec
         self._own_echo_window_sec = own_echo_window_sec
         self._clock = clock
         self._lock = threading.RLock()
@@ -266,6 +283,8 @@ class CommandStateTracker:
         self._commanded_at: dict[str, float] = {}
         self._servoing_since: float | None = None
         self._servoing_last: float | None = None
+        #: When each lasting behaviour's feedback last spoke, and on which mode topic it was requested.
+        self._behaviour_last: dict[str, tuple[str, float]] = {}
 
     # Writers: publishes
 
@@ -373,6 +392,23 @@ class CommandStateTracker:
                 self._servoing_since = now
         self.store.write(SERVOING_ACTIVE_KEY, True, "measured", BY_ROBOT, keep_if_equal=("measured",))
 
+    def record_behaviour_active(self, behaviour: str, topic: str = MODE_REQUEST_TOPIC) -> None:
+        """The manager's feedback for a lasting behaviour arrived: it is measured as active."""
+        active_key = BEHAVIOUR_ACTIVE_KEYS.get(behaviour)
+        if active_key is None:
+            return
+        with self._lock:
+            now = self._clock()
+            self._behaviour_last[behaviour] = (topic, now)
+            self.store.write(active_key, True, "measured", BY_ROBOT, keep_if_equal=("measured",))
+            key = manager_key("behaviour", topic)
+            current = self.store.get(key)
+            # A request just sent may not have reached the manager: its feedback still says the old behaviour.
+            settling = now - self._commanded_at.get(topic, float("-inf")) < self._behaviour_settle_sec
+            if current is not None and current.value != behaviour and settling:
+                return
+            self.store.write(key, behaviour, "measured", BY_ROBOT, keep_if_equal=("measured",))
+
     def set_pose_targets(self, topic: str, targets: Mapping[str, PoseTargetSpec] | None) -> None:
         with self._lock:
             if targets is None:
@@ -408,6 +444,18 @@ class CommandStateTracker:
                 if now - max(active.started_at, active.last_determined_at) > self._pose_target_timeout_sec:
                     del self._active_pose_targets[topic]
                     self.store.mark_unknown((manager_key("behaviour", topic),), BY_SERVER)
+            for behaviour, (topic, last) in list(self._behaviour_last.items()):
+                if now - last <= self._behaviour_window_sec:
+                    continue
+                del self._behaviour_last[behaviour]
+                self.store.write(
+                    BEHAVIOUR_ACTIVE_KEYS[behaviour], False, "measured", BY_ROBOT, keep_if_equal=("measured",)
+                )
+                # Its feedback stopped: the manager left it, and only a request nobody saw says for what.
+                key = manager_key("behaviour", topic)
+                current = self.store.get(key)
+                if current is not None and current.value == behaviour and current.source == "measured":
+                    self.store.mark_unknown((key,), BY_ROBOT)
             self._prune_own_publishes(now)
 
     # Writers: loss
@@ -418,8 +466,15 @@ class CommandStateTracker:
     def mark_manager_lost(self, topic: str = MODE_REQUEST_TOPIC) -> None:
         with self._lock:
             self._active_pose_targets.pop(topic, None)
+            self._behaviour_last.clear()
             self.store.mark_unknown(
-                (manager_key("shaping", topic), manager_key("behaviour", topic), manager_key("target", topic), topic),
+                (
+                    manager_key("shaping", topic),
+                    manager_key("behaviour", topic),
+                    manager_key("target", topic),
+                    topic,
+                    *BEHAVIOUR_ACTIVE_KEYS.values(),
+                ),
                 BY_SERVER,
             )
 
@@ -489,6 +544,12 @@ class CommandStateTracker:
             self.store.write_many(
                 ((behaviour, POSE_TARGET_BEHAVIOUR), (target, mode)), source, by, keep_if_equal=keep_if_equal
             )
+            return
+        # Intent scaling and shared control last, and each replaces the other; the reset enters shared control.
+        lasting = next((name for name in BEHAVIOUR_ACTIVE_KEYS if mode == name or mode.startswith(f"{name}/")), None)
+        if lasting is not None:
+            self._active_pose_targets.pop(topic, None)
+            self.store.write_many(((behaviour, lasting), (target, None)), source, by, keep_if_equal=keep_if_equal)
             return
         # A joint target is dispatched once; the manager is back in passthrough on its next cycle.
         self._active_pose_targets.pop(topic, None)

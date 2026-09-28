@@ -56,6 +56,20 @@ async function collectRequests(): Promise<Record<string, unknown>> {
 describe("the shipped seeds", () => {
   it("dispatch exactly the request per button and toggle they did before", async () => {
     const requests = await collectRequests();
+    // A deliberate seed change is recorded with BLOOM_WRITE_PARITY_FIXTURE=1, and reviewed as a diff.
+    const env = (globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env;
+    if (env?.BLOOM_WRITE_PARITY_FIXTURE) {
+      // Named through a variable: the dashboard's tsconfig has no node types, and vitest resolves it anyway.
+      const fsModule = "node:fs";
+      const fs = (await import(/* @vite-ignore */ fsModule)) as {
+        writeFileSync: (path: string, data: string) => void;
+      };
+      const here = import.meta.url.replace(/^file:\/\//, "").replace(/\?.*$/, "");
+      fs.writeFileSync(
+        here.replace(/[^/]+$/, "seed-dispatch-parity.fixture.json"),
+        `${JSON.stringify(requests, null, 2)}\n`,
+      );
+    }
     expect(Object.keys(requests).length).toBeGreaterThan(50);
     expect(requests).toEqual(before);
   });

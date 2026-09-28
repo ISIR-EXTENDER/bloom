@@ -40,9 +40,7 @@
         "allowed_teleop_targets": [
           "/joystick_cartesian_command"
         ],
-        "allowed_service_calls": [
-          "/fault_controller/reset_fault"
-        ]
+        "allowed_service_calls": []
       },
       "theme": {
         "inspiration": {

@@ -20,6 +20,7 @@ export {
   type CommandStateMessage,
   clearCommandState,
   getCommandStateEntry,
+  INTENT_SCALING_ACTIVE_KEY,
   knownValue,
   MODE_REQUEST_TOPIC,
   managerKey,
@@ -27,7 +28,9 @@ export {
   normalizeCommandPayload,
   parameterKey,
   resetCommandStateForTests,
+  SHARED_CONTROL_ACTIVE_KEY,
   useCommandState,
+  useCommandStateConnected,
   VISUAL_SERVOING_SWITCH_TOPIC,
 } from "./command-state";
 export type {
