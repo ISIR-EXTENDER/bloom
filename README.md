@@ -670,7 +670,9 @@ with branches; each writes lcov under `coverage/`, and a package that drops belo
 and `fail_under` in `backend/pyproject.toml`) fails the run. `npm run coverage -- --files 25` lists the least-covered files.
 
 CI runs the backend on Python 3.10 and 3.12, the supported floor and the deployed version. Dependabot opens weekly pull
-requests for npm, uv and GitHub Actions, grouping minor and patch updates; majors arrive one at a time.
+requests for npm, uv and GitHub Actions, grouping minor and patch updates; majors arrive one at a time. The jobs, the
+CodeQL, release and nightly-simulation workflows, and the branch-protection settings they expect are in
+[docs/ci.md](docs/ci.md).
 
 ## Tooling
 

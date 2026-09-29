@@ -26,3 +26,15 @@ def require_ros_name(name: str, kind: str = "topic") -> str:
     if error:
         raise ValueError(error)
     return normalized
+
+
+_PARAMETER_NAME = re.compile(rf"{_TOKEN}(?:[./]{_TOKEN})*")
+
+
+def require_parameter_name(name: str) -> str:
+    """A ROS 2 parameter name: tokens joined by '.', or '/', as in shapers.snake.gain."""
+    if not _PARAMETER_NAME.fullmatch(name):
+        raise ValueError(
+            f"ROS parameter '{name}' is not a valid name: use letters, digits and '_' between single '.' or '/'"
+        )
+    return name

@@ -11,6 +11,19 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ## [Unreleased]
 
+### Security
+
+- **Production spells out every allowlist and keeps its rate limits.** A `*` in `BLOOM_ALLOWED_ROS_PUBLISH_TOPICS` or
+  any other deployment allowlist, or a rate limit of `0`, is refused at start under `BLOOM_ENVIRONMENT=production`,
+  as `*` in the CORS origins already was. Local and test settings are unchanged.
+- **A misspelt boolean env var refuses to start.** `BLOOM_AUTH_ENABLED=enabled` used to read as false and start an
+  open API; every boolean now takes `true/false`, `1/0`, `yes/no` or `on/off` and nothing else.
+- **Parameter routes validate the node and the parameter name** before the allowlist looks at them, the robot-model
+  route refuses a package name that is not one path segment, and `publish`/`take-shipped` refuse a configuration id
+  that is a path (`../x`, `.hidden`) before touching the seed directory.
+- **The STOP latch file and a new SQLite store are written owner-only** (`0600`); an existing store keeps the mode it
+  was given.
+
 ### Added
 
 - **Coverage with a floor.** `npm run coverage` measures each frontend package on its own (v8) and
@@ -111,6 +124,12 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Changed
 
+- **CI to a pinned, least-privilege pipeline** ([docs/ci.md](docs/ci.md)): every action pinned to a commit, `permissions`
+  per job, timeouts, cached Playwright, failure captures kept five days, the visual job split so no job exceeds 8 min,
+  a coverage job wired to `npm run coverage` and `make -C backend coverage`, and one **Gate** check for branch
+  protection. New workflows: CodeQL (JS/TS and Python, weekly too), a tag-triggered release draft with the dashboard
+  build, its checksum, a CycloneDX SBOM and the CHANGELOG section, and a nightly ROS simulation gate for a self-hosted
+  lab runner, skipped until one is registered. gitleaks, Bandit and dependency review join the security job.
 - **No Reset fault on the Kinova.** The manager no longer spawns `fault_controller`, so the Kinova Manager seed drops
   its Reset fault buttons and preset (Drive · Bench's Snake gain widens into the space, Drive · Operator's STOP region
   is full height again), the Kinova camera app and Bloom Debug drop the fault service and series, and

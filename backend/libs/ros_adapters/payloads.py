@@ -22,7 +22,8 @@ def parse_ros_payload_text(payload_text: str) -> dict[str, Any]:
         raise ValueError("ROS payload text is empty")
 
     try:
-        parsed_payload = yaml.load(trimmed_payload, Loader=_NoAliasSafeLoader)
+        # A SafeLoader subclass; Bandit only recognises yaml.safe_load by name.
+        parsed_payload = yaml.load(trimmed_payload, Loader=_NoAliasSafeLoader)  # nosec B506
     except yaml.YAMLError as exc:
         raise ValueError(f"Invalid ROS payload text: {exc}") from exc
     except RecursionError as exc:

@@ -300,7 +300,10 @@ class RuntimeStopController:
         temporary = self._state_path.with_name(f".{self._state_path.name}.tmp")
         try:
             self._state_path.parent.mkdir(parents=True, exist_ok=True)
-            temporary.write_text(json.dumps(saved), encoding="utf-8")
+            # Owner-only: another account on the lab machine must not be able to unlatch the robot.
+            descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+            with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+                handle.write(json.dumps(saved))
             os.replace(temporary, self._state_path)
         except OSError as exc:
             self._persisted = False

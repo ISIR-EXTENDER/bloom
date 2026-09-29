@@ -65,7 +65,9 @@ The first things to protect are:
 - CSRF protection or same-site cookie strategy if browser-authenticated sessions are used.
 - Define persistent audit retention/export if in-memory runtime audit is not sufficient for the deployment.
 - SROS2 deployment notes for secure ROS graph communication.
-- Security CI checks: scheduled dependency audits, secret scanning, and a ZAP baseline scan.
+- A ZAP baseline scan once the dashboard and backend start together from one script. Dependency audits, gitleaks,
+  Bandit, CodeQL and dependency review run in CI today ([ci.md](ci.md)); GitHub's secret scanning and push
+  protection are repository settings, applied with the commands there.
 
 ## API Perimeter Configuration
 
@@ -82,8 +84,11 @@ export BLOOM_RUNTIME_CONTROL_REQUIRED=true
 ```
 
 In production Bloom refuses to start unless every key is at least 32 characters and differs from the other roles' keys,
-since a key shared by two roles grants the stronger one, and unless the origins are explicit rather than `*`. Generate
-keys with `python3 -c "import secrets; print(secrets.token_urlsafe(32))"`.
+since a key shared by two roles grants the stronger one, and unless the origins are explicit rather than `*`. It
+refuses a `*` in any deployment allowlist (publish topics, message types, teleop targets, parameters, services,
+recording topics and folders) and a rate limit of `0` for the same reason: one env var would open the robot silently.
+A boolean env var spelt any way but `true/false`, `1/0`, `yes/no` or `on/off` stops the start rather than reading as
+false. Generate keys with `python3 -c "import secrets; print(secrets.token_urlsafe(32))"`.
 
 `BLOOM_CORS_ALLOWED_ORIGINS` also governs the runtime WebSocket. CORS never applies to a WebSocket handshake, so Bloom checks the `Origin` itself and refuses a browser page from any origin not on the list. A client that sends no `Origin` is not a browser page and is not refused on those grounds; it still needs a key when auth is on.
 

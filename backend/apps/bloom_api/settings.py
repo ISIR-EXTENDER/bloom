@@ -10,6 +10,19 @@ from libs.config.seed import DEFAULT_SEED_DIR
 
 T = TypeVar("T", bound=str)
 MIN_PRODUCTION_API_KEY_LENGTH = 32
+#: Deployment allowlists that production must spell out; "*" in any of them opens the robot to every name.
+PRODUCTION_EXPLICIT_ALLOWLISTS = (
+    "allowed_ros_message_types",
+    "allowed_ros_publish_topics",
+    "allowed_teleop_targets",
+    "allowed_ros_parameters",
+    "allowed_ros_service_calls",
+    "allowed_ros_service_types",
+    "allowed_recording_topics",
+    "allowed_recording_output_folders",
+)
+_TRUE_WORDS = {"1", "true", "yes", "on"}
+_FALSE_WORDS = {"0", "false", "no", "off", ""}
 #: A server launched from another directory still finds the STOP latch it saved.
 DEFAULT_RUNTIME_STOP_STATE_PATH = Path(__file__).resolve().parents[2] / "data" / "runtime_stop.json"
 
@@ -289,6 +302,12 @@ class Settings(BaseModel):
             raise ValueError("production Bloom API keys must differ between roles")
         if "*" in self.cors_allowed_origins:
             raise ValueError("production Bloom API requires explicit cors_allowed_origins, not *")
+        # A "*" in a deployment allowlist grants everything, which one env var typo would do silently.
+        for name in PRODUCTION_EXPLICIT_ALLOWLISTS:
+            if "*" in getattr(self, name):
+                raise ValueError(f"production Bloom API requires an explicit {name}, not *")
+        if self.http_rate_limit_per_minute <= 0 or self.runtime_command_rate_limit_per_second <= 0:
+            raise ValueError("production Bloom API requires both rate limits above zero")
 
     @classmethod
     def from_environment(cls) -> "Settings":
@@ -460,10 +479,16 @@ def get_settings() -> Settings:
 
 
 def _read_bool_env(name: str, default: bool) -> bool:
+    """A misspelt value fails the start: BLOOM_AUTH_ENABLED=enabled used to mean off."""
     value = os.getenv(name)
     if value is None:
         return default
-    return value.strip().lower() in {"1", "true", "yes", "on"}
+    word = value.strip().lower()
+    if word in _TRUE_WORDS:
+        return True
+    if word in _FALSE_WORDS:
+        return False
+    raise ValueError(f"{name} must be true or false, not {value!r}")
 
 
 def _read_int_env(name: str, default: int) -> int:

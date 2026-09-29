@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import os
+import re
 from collections.abc import Callable
 from pathlib import Path
 from typing import Protocol
 
 from libs.ros_adapters.parameters import RosParameterGateway
+
+_PACKAGE_NAME = re.compile(r"[A-Za-z0-9_]+")
 
 ASSET_CONTENT_TYPES: dict[str, str] = {
     ".dae": "model/vnd.collada+xml",
@@ -65,6 +68,9 @@ def resolve_package_asset(
     package: str, relative_path: str, share_directory: Callable[[str], Path | None]
 ) -> Path | None:
     """The file a package:// URI names, or None: outside the share directory, or not a mesh, is not served."""
+    # A package name is one path segment; the ament index is never asked about "../".
+    if not _PACKAGE_NAME.fullmatch(package):
+        return None
     if Path(relative_path).suffix.lower() not in ASSET_CONTENT_TYPES:
         return None
     share = share_directory(package)

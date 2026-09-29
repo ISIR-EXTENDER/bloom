@@ -64,7 +64,7 @@ test suites.
 | `BLOOM_SEED_DIR` | `backend/seed/applications` | Where the shared applications live; the Builder's **Share** writes here. |
 | `BLOOM_THEME_ASSET_DIR` | `data/theme-assets` | Where uploaded theme images are stored. |
 | `BLOOM_CONFIGURATION_STORAGE` | `sqlite` | Where apps are stored: `sqlite` (`BLOOM_CONFIGURATION_DATABASE_PATH`, `data/bloom.db`) or `file` (`BLOOM_CONFIGURATION_DIR`, `data/configurations`). |
-| `BLOOM_ENVIRONMENT` | `local` | `local`, `test`, `staging` or `production`; production refuses to start without auth, an admin key and runtime ownership. |
+| `BLOOM_ENVIRONMENT` | `local` | `local`, `test`, `staging` or `production`; production refuses to start without auth, an admin key and runtime ownership, with a `*` in the CORS origins or any allowlist, or with a rate limit of `0`. |
 | `BLOOM_HTTP_RATE_LIMIT_PER_MINUTE` | `600` | HTTP requests per minute per client address, STOP exempt; `0` turns the limit off. |
 | `BLOOM_ALLOWED_ROS_PARAMETERS` | the manager's live tuning and `/petanque_throw`'s throw | `<node>:<parameter>` pairs the runtime may set. |
 | `BLOOM_API_PREFIX` | `/api/v1` | API route prefix. The dashboard calls `/api/v1`, so change it only behind a proxy that maps it back. |

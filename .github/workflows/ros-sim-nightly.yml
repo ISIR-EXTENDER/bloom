@@ -1,0 +1,59 @@
+name: ROS simulation (nightly)
+
+# Gazebo and the Extender workspace do not fit a GitHub-hosted runner, so this runs on a lab machine registered as
+# a self-hosted runner with the label in the BLOOM_ROS_SIM_RUNNER_LABEL repository variable (ros-jazzy). With the
+# variable unset the job is skipped rather than queued for a runner that does not exist. Set-up is in docs/ci.md.
+
+on:
+  schedule:
+    # Weeknights 02:30 UTC, after the day's merges.
+    - cron: "30 2 * * 2-6"
+  workflow_dispatch:
+    inputs:
+      robot:
+        description: Which simulated arm to drive
+        type: choice
+        default: both
+        options: [both, explorer, kinova]
+
+permissions: {}
+
+concurrency:
+  # One simulation at a time: Gazebo transport ignores ROS_DOMAIN_ID.
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  simulate:
+    name: Drive the simulated arms
+    if: vars.BLOOM_ROS_SIM_RUNNER_LABEL != ''
+    runs-on: [self-hosted, "${{ vars.BLOOM_ROS_SIM_RUNNER_LABEL }}"]
+    timeout-minutes: 90
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          uv sync --project backend --all-groups
+
+      - name: Run the simulation gate
+        env:
+          BLOOM_E2E_ROBOTS: ${{ inputs.robot || 'both' }}
+          BLOOM_E2E_OUT: ${{ runner.temp }}/bloom-ros-sim
+          # The runner's workspace, when it is not the sibling directory the script assumes.
+          EXTENDER_WORKSPACE: ${{ vars.EXTENDER_WORKSPACE }}
+        run: bash scripts/ros-sim-nightly.sh
+
+      - name: Upload captures and logs
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ros-sim-${{ github.run_number }}
+          path: ${{ runner.temp }}/bloom-ros-sim
+          if-no-files-found: ignore
+          retention-days: 7

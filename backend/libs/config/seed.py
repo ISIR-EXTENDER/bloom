@@ -36,7 +36,15 @@ from typing import Literal
 
 from libs.config.json_io import configuration_to_dict, load_configuration_file, save_configuration_file
 from libs.config.models import ConfigurationBundle
-from libs.config.repository import ConfigurationRepository
+from libs.config.repository import ConfigurationRepository, InvalidConfigurationIdError
+
+
+def require_plain_configuration_id(config_id: str) -> str:
+    """An id is a file stem under the seed directory, never a path into or out of it."""
+    if config_id in {"", ".", ".."} or "/" in config_id or "\\" in config_id or config_id.startswith("."):
+        raise InvalidConfigurationIdError("config_id must be a plain file stem")
+    return config_id
+
 
 DEFAULT_SEED_DIR = Path(__file__).resolve().parents[2] / "seed" / "applications"
 # Fingerprints of every shipped version from before seeded copies were stamped.
@@ -251,6 +259,7 @@ def restore_shipped_configuration(
     repository: ConfigurationRepository, config_id: str, seed_dir: Path | str = DEFAULT_SEED_DIR
 ) -> ConfigurationBundle:
     """Replace the stored copy with the shipped one, discarding local edits. Raises FileNotFoundError."""
+    require_plain_configuration_id(config_id)
     source = Path(seed_dir) / f"{config_id}.json"
     if not source.is_file():
         raise FileNotFoundError(source)
@@ -273,6 +282,7 @@ def publish_configuration(
     repository: ConfigurationRepository, config_id: str, seed_dir: Path | str = DEFAULT_SEED_DIR
 ) -> PublishOutcome:
     """Write a stored app out as a shared one, for someone to commit. Raises ConfigurationNotFoundError."""
+    require_plain_configuration_id(config_id)
     bundle = repository.get(config_id)
     if configuration_share_status(repository, seed_dir).get(config_id) == "outdated":
         raise NewerSharedVersionError(f"{config_id} has a newer shared version; update to it before sharing.")

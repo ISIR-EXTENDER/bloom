@@ -1,4 +1,5 @@
 import json
+import os
 import sqlite3
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
@@ -20,7 +21,12 @@ class SQLiteMigrationError(RuntimeError):
 def connect_sqlite_database(path: str | Path) -> sqlite3.Connection:
     database_path = Path(path)
     database_path.parent.mkdir(parents=True, exist_ok=True)
+    created = not database_path.exists()
     connection = sqlite3.connect(database_path)
+    if created and database_path.is_file():
+        # The store is the app library and the saved poses; owner-only, like the STOP latch beside it.
+        # SQLite gives the -wal and -shm files the database's mode, so this covers them too.
+        os.chmod(database_path, 0o600)
     connection.row_factory = sqlite3.Row
     connection.execute("PRAGMA foreign_keys = ON")
     # WAL lets a reader read the last committed version while a writer holds the

@@ -201,6 +201,10 @@ It fails when any of them disagree, so this is a gate rather than a reading. Bum
 `npm version <x.y.z> --workspaces --include-workspace-root --no-git-tag-version`, then edit `pyproject.toml` and
 `settings.py` and run `uv lock` in `backend`. A deployment that sets `BLOOM_APP_VERSION` reports that value instead.
 
+Pushing the `vX.Y.Z` tag runs the release workflow ([ci.md](ci.md)): it checks the tag against every carrier, runs
+the full gate again, and leaves a **draft** release with the dashboard build, its checksum, the SBOM and this
+version's CHANGELOG section. It stops if `CHANGELOG.md` has no `## [X.Y.Z]` heading. Read the draft, then publish it.
+
 ## 8. Honest release notes
 
 State what is validated and what is not. Bloom is the active Extender IHM, while

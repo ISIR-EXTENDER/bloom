@@ -37,7 +37,7 @@ from libs.ros_adapters import (
     SafeRosPublishError,
     publish_with_runtime_policy,
 )
-from libs.ros_adapters.names import require_ros_name
+from libs.ros_adapters.names import require_parameter_name, require_ros_name
 from libs.ros_adapters.parameters import RosParameterGateway, RosParameterReceipt, RosParameterRequest
 from libs.ros_adapters.payloads import parse_ros_payload_text
 from libs.ros_adapters.safety import (
@@ -124,16 +124,12 @@ class RosParameterSetRequest(AppScopedRequest):
     @field_validator("node")
     @classmethod
     def _validate_node(cls, node: str) -> str:
-        if not node.startswith("/"):
-            raise ValueError("node must be a fully qualified ROS node name")
-        return node
+        return require_ros_name(node, "node")
 
     @field_validator("name")
     @classmethod
     def _validate_name(cls, name: str) -> str:
-        if name.strip() != name or any(character.isspace() for character in name):
-            raise ValueError("parameter name must not contain spaces")
-        return name
+        return require_parameter_name(name)
 
     @model_validator(mode="after")
     def _validate_value(self) -> RosParameterSetRequest:
@@ -358,7 +354,11 @@ async def read_ros_parameters(
 ) -> RosParameterListResponse:
     """Current values of allowlisted parameters, so a tuning control opens on what the node holds."""
     policy = get_runtime_command_policy(request)
-    wanted = tuple(name for name in names.split(",") if name)
+    try:
+        node = require_ros_name(node, "node")
+        wanted = tuple(require_parameter_name(name) for name in names.split(",") if name)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     for name in wanted:
         try:
             policy.ensure_parameter_allowed(node, name)
