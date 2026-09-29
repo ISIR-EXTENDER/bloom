@@ -5,12 +5,9 @@ qontrol's /ee_pose is the pose it commands, which is not where an arm in contact
 
 from __future__ import annotations
 
-import logging
 from typing import Any
 
 from libs.sessions.positions import CartesianPose, PositionLibraryError
-
-logger = logging.getLogger(__name__)
 
 
 class RclpyTipPoseSource:

@@ -543,8 +543,11 @@ def test_the_pose_being_gone_to_cannot_be_deleted_or_renamed() -> None:
     save(client)
     go(client)
 
-    assert client.delete(f"{URL}/pose_1", params=EXPLORER).status_code == 409
-    assert client.put(f"{URL}/pose_1/name", json={"name": "other"}, params=EXPLORER).status_code == 409
+    deleted = client.delete(f"{URL}/pose_1", params=EXPLORER)
+    renamed = client.put(f"{URL}/pose_1/name", json={"name": "other"}, params=EXPLORER)
+
+    assert deleted.status_code == 409
+    assert renamed.status_code == 409
 
 
 def test_the_export_carries_the_pose_targets_block_for_saved_hand_poses() -> None:
