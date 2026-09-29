@@ -29,6 +29,16 @@ describe("the widget minimum-size contract", () => {
     expect(documented).toEqual(WIDGET_MIN_SIZE);
   });
 
+  // Robin, 2026-09-29: renaming a slider's topic seemed to move its minimum. The floor reads the shape, never the text.
+  it("gives a slider the same minimum whatever its topic or title", () => {
+    for (const direction of ["horizontal", "vertical"]) {
+      const short = { direction, topic: "/z" };
+      const long = { direction, topic: "/cartesian_manager/some/very/long/topic_name", title: "x".repeat(80) };
+      expect(minSizeFor("slider", long)).toEqual(minSizeFor("slider", short));
+      expect(findSizeShortfall({ kind: "slider", layout: { width: 340, height: 346 }, settings: long })).toBeNull();
+    }
+  });
+
   it("picks the derivation the renderer will actually draw", () => {
     expect(minSizeFor("toggle", {})).toEqual([200, 120]);
     expect(minSizeFor("toggle", { show_details: true })).toEqual([250, 144]);

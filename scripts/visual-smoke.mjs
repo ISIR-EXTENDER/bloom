@@ -20,6 +20,8 @@ const configurationFixturePaths = {
 };
 const outputDir = process.env.BLOOM_VISUAL_OUTPUT_DIR ?? resolve("/tmp", "bloom-visual-smoke");
 const port = Number(process.env.BLOOM_VISUAL_PORT ?? "5178");
+// A slider named after a long topic must keep its size and its centred knob.
+const LONG_TOPIC = "/cartesian_manager/some/very/long/topic_name";
 
 // The three panels Bloom is actually deployed on. 1280x720 and 1820x720 are
 // the sizes the design references are drawn at; 1024x600 is the smallest
@@ -148,6 +150,7 @@ try {
     }
 
     await assertTwoFingerDrive(browser);
+    await assertSliderKnobStaysCentred(browser);
     await captureRuntimeLocales(browser);
     await captureDesktopDebug(browser);
     await captureBuilderCanvas(browser);
@@ -647,6 +650,123 @@ async function captureBuilderCanvas(browser) {
   await assertNoHorizontalOverflow(page, "desktop-1080:builder-canvas");
   await page.screenshot({ fullPage: false, path: resolve(outputDir, "desktop-1080-builder-canvas.png") });
   await page.close();
+}
+
+/** Where a slider card's knob rests and whether its content stays inside the card, in px from the card. */
+async function measureSliderCard(card) {
+  return card.evaluate((frame) => {
+    const box = (element) => element?.getBoundingClientRect();
+    const f = box(frame);
+    const knob = box(frame.querySelector('[role="slider"]'));
+    const track = box(frame.querySelector(".bloom-axis-track, .bloom-limit-track"));
+    const content = box(frame.querySelector(".bloom-slider-widget"));
+    return {
+      contentBottom: content.bottom - f.top,
+      frameHeight: f.height,
+      knobX: knob.left + knob.width / 2 - f.left,
+      knobY: knob.top + knob.height / 2 - f.top,
+      trackX: track.left + track.width / 2 - f.left,
+      trackY: track.top + track.height / 2 - f.top,
+    };
+  });
+}
+
+function assertSliderRestsCentred(label, before, after) {
+  const off = (a, b) => Math.abs(a - b) > 1;
+  if (off(after.knobX, after.trackX) || off(after.knobY, after.trackY)) {
+    throw new Error(`${label}: the knob at rest is off the track centre (${JSON.stringify(after)}).`);
+  }
+  if (off(after.knobX, before.knobX) || off(after.knobY, before.knobY)) {
+    throw new Error(`${label}: a long title or topic moved the knob (${JSON.stringify({ before, after })}).`);
+  }
+  if (after.contentBottom > after.frameHeight + 1 || after.frameHeight > before.frameHeight + 1) {
+    throw new Error(
+      `${label}: a long title or topic grew the card past its size (${JSON.stringify({ before, after })}).`,
+    );
+  }
+}
+
+/**
+ * Robin, 2026-09-29: a slider given a long topic, and named after it, grew past its minimum and its knob left the
+ * centre. Both directions and the limit slider, in the Builder canvas and at runtime, on both tablets.
+ */
+async function assertSliderKnobStaysCentred(browser) {
+  for (const viewport of viewports.filter((entry) => entry.width <= 1280)) {
+    const page = await browser.newPage({ viewport, ...TABLET_EMULATION });
+    await installConfigurationMocks(page, configurations);
+    await installRuntimeWebSocketMock(page);
+    await page.goto(baseUrl, { waitUntil: "networkidle" });
+    await page.getByRole("button", { name: "Builder: Compose screens" }).click();
+    await page.getByRole("button", { exact: true, name: "Apps" }).click();
+    await page.getByRole("button", { name: "Open Explorer Manager app" }).click();
+    await page.getByRole("button", { name: "Open Drive · Operator screen builder" }).click();
+    await page.getByRole("heading", { level: 2, name: "Drive · Operator" }).waitFor();
+    await page
+      .getByRole("button", { name: /^Add Slider widget/ })
+      .first()
+      .click();
+    const placed = page.locator(".builder-widget-frame.is-selected");
+    await placed.waitFor();
+    const placedId = await placed.getAttribute("data-widget-id");
+    for (const id of ["drive-z", "drive-rz", placedId]) {
+      const card = page.locator(`.builder-widget-frame[data-widget-id="${id}"]`);
+      await card.locator(".builder-widget-selector").click();
+      const before = await measureSliderCard(card);
+      const title = page.locator(".builder-settings-editor input").first();
+      await title.fill(LONG_TOPIC);
+      await title.press("Tab");
+      if (id === placedId) {
+        const topic = page.getByLabel("Output topic");
+        if (!(await topic.isVisible())) {
+          await page.locator("details.builder-settings-advanced > summary").click();
+        }
+        await topic.fill(LONG_TOPIC);
+        await topic.press("Tab");
+      }
+      await page.waitForTimeout(150);
+      assertSliderRestsCentred(`${viewport.name}:builder:${id}`, before, await measureSliderCard(card));
+    }
+    await page.screenshot({ path: resolve(outputDir, `${viewport.name}-builder-slider-long-topic.png`) });
+    await page.close();
+  }
+
+  const renamed = structuredClone(configurations);
+  for (const screen of renamed["explorer-manager"].applications[0].screens) {
+    for (const widget of screen.widgets) {
+      if (widget.kind === "slider") {
+        widget.title = LONG_TOPIC;
+        widget.settings = { ...widget.settings, topic: LONG_TOPIC };
+      }
+    }
+  }
+  for (const viewport of viewports.filter((entry) => entry.width <= 1280)) {
+    const measureRuntime = async (bundle, renamedTo) => {
+      const page = await browser.newPage({ viewport, ...TABLET_EMULATION });
+      await installConfigurationMocks(page, bundle);
+      await installRuntimeWebSocketMock(page);
+      await showExplorerRuntimeScreen(page, null);
+      const found = {};
+      for (const [id, direction] of [
+        ["drive-z", "vertical"],
+        ["drive-rz", "horizontal"],
+      ]) {
+        const surface = `.bloom-slider-widget[data-slider-kind="motion"][data-direction="${direction}"]`;
+        found[id] = await measureSliderCard(
+          page.locator(".widget-preview-card", { has: page.locator(surface) }).first(),
+        );
+      }
+      if (renamedTo) {
+        await page.screenshot({ path: resolve(outputDir, `${viewport.name}-runtime-slider-long-topic.png`) });
+      }
+      await page.close();
+      return found;
+    };
+    const before = await measureRuntime(configurations, null);
+    const after = await measureRuntime(renamed, LONG_TOPIC);
+    for (const id of Object.keys(before)) {
+      assertSliderRestsCentred(`${viewport.name}:runtime:${id}`, before[id], after[id]);
+    }
+  }
 }
 
 /** Bloom Debug is desktop-only (device-classes.md): authored at 1920×1080, checked at 1440×900. */

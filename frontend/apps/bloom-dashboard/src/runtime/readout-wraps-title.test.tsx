@@ -26,13 +26,29 @@ describe("a slider's or gauge's readout", () => {
     ]) {
       expect(declarationsFor(css, readout)).toMatch(/flex:\s*0 0 auto/);
     }
-    for (const title of [
-      ".bloom-slider-widget > .bloom-widget-head > strong",
-      ".bloom-gauge-widget > .bloom-display-header > strong",
-    ]) {
+    const rules = declarationsFor(css, ".bloom-gauge-widget > .bloom-display-header > strong");
+    expect(rules).toMatch(/white-space:\s*normal/);
+    expect(rules).not.toMatch(/text-overflow:\s*ellipsis/);
+  });
+
+  // Robin, 2026-09-29: a slider named after its topic wrapped the path a character at a time, grew the card
+  // past its minimum and pushed the knob off the centre it rests at.
+  it("keeps a slider's title to the one line its minimum budgets, so the track never moves", async () => {
+    const fs = (await import(/* @vite-ignore */ `node:${"fs"}`)) as NodeFs;
+    const css = fs.readFileSync(`${nodeProcess.cwd()}/src/runtime-widgets.css`, "utf8");
+    for (const title of [".bloom-slider-widget > .bloom-widget-head > strong", ".bloom-axis-title "]) {
       const rules = declarationsFor(css, title);
-      expect(rules).toMatch(/white-space:\s*normal/);
-      expect(rules).not.toMatch(/text-overflow:\s*ellipsis/);
+      expect(rules).toMatch(/white-space:\s*nowrap/);
+      expect(rules).toMatch(/overflow:\s*hidden/);
+      expect(rules).not.toMatch(/overflow-wrap:\s*anywhere/);
+    }
+    // The knob rests at the middle of the control box, which is inset evenly from both ends.
+    for (const direction of ["horizontal", "vertical"]) {
+      const box = declarationsFor(css, `[data-direction="${direction}"] .bloom-axis-slider `);
+      const [start, end] = direction === "horizontal" ? ["left", "right"] : ["top", "bottom"];
+      expect(box.match(new RegExp(`\\b${start}:\\s*([^;]+);`))?.[1]).toBe(
+        box.match(new RegExp(`\\b${end}:\\s*([^;]+);`))?.[1],
+      );
     }
   });
 

@@ -163,6 +163,10 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Fixed
 
+- **A slider keeps its size and its centred knob whatever it is named** (lab report, Robin). A title with no spaces,
+  such as a topic path, wrapped one character at a time: the card grew past its minimum and the knob left the centre
+  it rests at, in the Builder and at runtime. A slider's title now stays on the one line its minimum budgets and
+  clips with an ellipsis; the readout keeps its width.
 - **An older preset button keeps its topic.** Apps saved before preset precedence carried both, so a Jaco button that
   once had a Home preset picked moved the arm home in one tap. A preset now wins only when the button has no topic of
   its own or sends the preset's command; the inspector says which one a press sends.

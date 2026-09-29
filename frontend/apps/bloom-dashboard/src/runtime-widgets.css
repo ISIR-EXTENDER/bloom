@@ -363,8 +363,11 @@
 
 .bloom-axis-title {
   z-index: 3;
+  overflow: hidden;
   font-size: 16px;
   font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .bloom-axis-readout {
@@ -475,6 +478,8 @@
 .bloom-slider-widget[data-direction="horizontal"] .bloom-axis-title {
   top: 8px;
   left: 14px;
+  /* Clear of the readout in the other corner. */
+  max-width: calc(100% - 96px);
 }
 
 .bloom-slider-widget[data-direction="horizontal"] .bloom-axis-readout {
@@ -1874,7 +1879,15 @@ button.bloom-toggle-segment {
   max-width: 60%;
 }
 
-.bloom-slider-widget > .bloom-widget-head > strong,
+/* A slider's head is the one line its minimum budgets (widget-min-size.md). A wrapping title grew the
+   card and pushed the track off the centre it rests at, so a long one clips instead. */
+.bloom-slider-widget > .bloom-widget-head > strong {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .bloom-gauge-widget > .bloom-display-header > strong,
 .bloom-confidence-bars > .bloom-display-header > strong {
   flex: 1 1 auto;
