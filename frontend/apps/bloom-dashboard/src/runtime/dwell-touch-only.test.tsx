@@ -95,7 +95,7 @@ describe("maintenance sheet under dwell", () => {
     expect(screen.getByText(/Roles without dwell are touch only too/)).toBeTruthy();
 
     // What keeps STOP and dwell still works by dwell.
-    rest("Practice tour");
+    rest("Practice");
     expect(props.onOpenTour).toHaveBeenCalledOnce();
   });
   it("offers by dwell only the roles that dwell", () => {

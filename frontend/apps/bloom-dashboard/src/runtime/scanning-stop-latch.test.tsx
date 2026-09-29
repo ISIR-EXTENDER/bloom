@@ -3,9 +3,10 @@
  */
 import type { RuntimeStopState } from "@bloom/api-client";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "../App";
 import { explorerManagerClient as configurationClient } from "../test-support/configuration-client";
+import { elapse, installFakeClock, uninstallFakeClock } from "../test-support/fake-clock";
 import { openRuntimeApp } from "../test-support/open-runtime-app";
 import type { RuntimeActionClient } from "./runtime-action-dispatcher";
 
@@ -18,6 +19,9 @@ globalThis.ResizeObserver = ResizeObserverMock as never;
 HTMLElement.prototype.getClientRects = () => [new DOMRect(0, 0, 10, 10)] as unknown as DOMRectList;
 
 describe("a switch operator can undo their own STOP", () => {
+  beforeEach(installFakeClock);
+  afterEach(uninstallFakeClock);
+
   it("keeps scanning on while stopped, with resume as its only target", async () => {
     window.localStorage.setItem(
       "bloom.runtime-user-preferences.v1",
@@ -55,7 +59,7 @@ describe("a switch operator can undo their own STOP", () => {
     // the highlight must rest on resume or on the way out of the screen.
     await waitFor(() => expect(document.querySelector("[data-scan-switch]")).not.toBeNull());
     // Resume listens once the switch has rested after the latch.
-    await act(() => new Promise((resolve) => setTimeout(resolve, 1600)));
+    await elapse(1600);
     await waitFor(() => expect(document.querySelector("[data-scan-lit]")).toBe(resume));
 
     // One press arms; a switch cannot hold, and one press must not restart the robot.
@@ -66,7 +70,7 @@ describe("a switch operator can undo their own STOP", () => {
     expect(client.resumeRuntimeStop).not.toHaveBeenCalled();
 
     // A second press within 600 ms is the same press bouncing; this one is a second decision.
-    await new Promise((resolve) => setTimeout(resolve, 650));
+    await elapse(650);
     act(() => {
       window.dispatchEvent(new KeyboardEvent("keydown", { key: " " }));
     });

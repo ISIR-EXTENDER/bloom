@@ -44,6 +44,7 @@ describe("resolveRuntimeProfile", () => {
       language: "en",
       motorAccessibilityPreset: "large-targets",
       name: "Tablet high visibility",
+      practiceOffer: "start",
       themePresetId: null,
     });
   });
@@ -76,6 +77,7 @@ describe("resolveRuntimeProfile", () => {
       language: "en",
       motorAccessibilityPreset: "default",
       name: "Default",
+      practiceOffer: "start",
       themePresetId: null,
     });
   });

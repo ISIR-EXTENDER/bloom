@@ -130,6 +130,10 @@
   min-inline-size: 0;
 }
 
+.runtime-settings-segments[data-columns="2"] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .runtime-settings-segments button,
 .runtime-settings-toggle,
 .runtime-settings-stepper button {

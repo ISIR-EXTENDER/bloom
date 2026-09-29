@@ -46,11 +46,14 @@ opens **Drive · Bench**. To change role mid-session, open Maintenance and hold 
 
 ### Kiosk Bar
 
-The 44 px bar reads, left to right: app name, screen title, a status chip, the command frame, the publish rate, a
-**Gamepad** chip while a pad is connected, the role pill, and the **⋯** maintenance hold, drawn as a fill on the button itself. Under scanning **⋯** is part of the
+The 44 px bar reads, left to right: app name, screen title, a status chip, the command frame, a behaviour chip
+(**Speed up on** / **Assist on**) while a manager behaviour is on, the publish rate, a **Gamepad** chip while a pad
+is connected, the practice offer on a role's first entry, the role pill, and the **⋯** maintenance hold, drawn as a
+fill on the button itself. Under scanning **⋯** is part of the
 scan set, and selecting it opens maintenance at once: a switch cannot hold anything down, and waiting out the scan
 cycle is already the deliberate act the 1.5 s hold asks a pointer for. The pointer and keyboard hold is unchanged.
 A tap released too early says to keep holding.
+With a mouse, resting on a chip shows a short native tooltip saying what it means; touch never shows one.
 
 A role that does not drive can skip the hold: with **A tap opens the menu** set in the Builder's role editor
 (`menu_on_tap`), a tap on **⋯** opens maintenance, and the screen title becomes a button that opens it on the screen
@@ -79,7 +82,7 @@ joystick still held under the sheet does not resume motion when the zero goes ou
 publish rate, command frame, profile and its layout, device class, and **App**, which names the application) and four
 actions: **Settings**, **Switch role**, **Reload this app**, and **Exit to library**. **Switch role** appears only when
 the app offers more than one profile. Reloading returns to the same app, role and screen. Screen switching, the
-practice tour, the supervisor mirror, Builder shortcuts, Help, Home, and the EN/ES/FR selector sit in a **More** group
+**Practice**, the supervisor mirror, Builder shortcuts, Help, Home, and the EN/ES/FR selector sit in a **More** group
 below them; only that group scrolls, so **Close** at the top and **Resume operating** at the bottom stay on screen.
 Resuming closes the sheet and publishing resumes at once. Nothing in the sheet changes what the app sends.
 
@@ -212,8 +215,19 @@ supervisor takeover remains a future product and safety decision if supervisory 
 
 ## Guided Practice
 
-Hold **Maintenance** and choose **Practice tour**, or open the same tour from Runtime Settings. Practice replaces the
-live artboard and suspends composed teleop. Its five checks introduce the current screen, use the app's own movement
+On the first entry to an app the bar offers practice: **Try the controls first — nothing is sent to the robot**, with
+**Start practice** and **× Hide**, both the bar's full height. On the 1024×600 panel, and whenever a behaviour,
+gamepad or command-feedback chip takes the room, the sentence folds away and the two buttons stay; a screen reader
+still hears it as the button's description. On that crowded narrow bar the app name steps aside too, so the screen
+title reads whole; the name stays on the title's hover help and in the maintenance sheet's facts. **Hide** keeps the offer out of the bar for this role and app on this
+device, and opening practice, from the offer or from the menu, does the same; a Builder preview hides it for that
+session only. The **Practice offer**
+card in Runtime Settings, under **How you reach the controls**, reads **Offer at start** or **Off**: a hidden offer
+shows as neither, choosing **Offer at start** brings it back on **Save and resume**, and **Off** keeps it out of the
+bar for this role on this device. Practice itself stays findable either way: hold **Maintenance** and choose
+**Practice** under **More**.
+
+Practice replaces the live artboard and suspends composed teleop. Its five checks introduce the current screen, use the app's own movement
 label twice, rehearse STOP and held resume, rehearse the Maintenance hold, and return to operation.
 
 The practice surface has no runtime action client, robot-intent callback, or teleop callback. Its movement, STOP, and
@@ -487,7 +501,8 @@ row and shown read-only in the bar and the maintenance sheet. A stored per-profi
 removed.
 
 Settings uses the active scan period and dwell duration itself, so its controls and **Save and resume** stay reachable
-under scanning and dwell. **Practice tour** opens the guided local-only path without returning through the live
+under scanning and dwell. **Practice offer** decides whether the bar offers practice when the app opens; the offer
+itself, and **Practice** in the maintenance menu, open the guided local-only path without returning through the live
 controls first.
 
 The scan set is read from the DOM, so it contains exactly the buttons a screen renders; a pad is never a scan target

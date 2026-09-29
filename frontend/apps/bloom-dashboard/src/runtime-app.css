@@ -905,14 +905,20 @@
 }
 
 .runtime-kiosk-app {
+  /* Gives way after the screen title, never below ten characters, and says so with an ellipsis. */
+  min-width: 10ch;
   margin: 0;
+  overflow: hidden;
   color: var(--bloom-ink);
   font-size: 18px;
   font-weight: 700;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .runtime-kiosk-screen {
+  /* The title gives way to the chips, never past six characters. */
+  min-width: 6ch;
   overflow: hidden;
   color: var(--bloom-muted);
   font-size: 16px;
@@ -1050,37 +1056,96 @@ button.runtime-kiosk-screen:focus-visible {
   white-space: nowrap;
 }
 
-/* The first-entry practice offer: two quiet targets in the bar, gone once answered. */
+/* The first-entry practice offer: what it is, one way in, one way out. Hidden once answered; Settings brings it back. */
 .runtime-kiosk-tour-offer {
   display: flex;
   flex: 0 0 auto;
-  gap: 4px;
-  align-items: stretch;
-  min-height: 44px;
+  gap: 6px;
+  align-items: center;
+  height: 44px;
+  min-inline-size: 0;
   margin: 0;
-  padding: 0;
+  padding: 0 0 0 12px;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   background: var(--bloom-surface-container);
 }
 
+.runtime-kiosk-tour-offer p {
+  max-width: 220px;
+  margin: 0 4px 0 0;
+  color: var(--bloom-ink);
+  font-size: 12px;
+  line-height: 1.25;
+}
+
 .runtime-kiosk-tour-offer button {
-  min-width: 44px;
-  min-height: 44px;
-  padding: 0 10px;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 48px;
+  height: 44px;
+  /* The bar's height, like ⋯: the display preset's taller floor is for the canvas. */
+  min-height: 0;
+  padding: 0 12px;
   border: none;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--bloom-primary);
+  border-radius: 10px;
   font: inherit;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
+  white-space: nowrap;
   cursor: pointer;
 }
 
-.runtime-kiosk-tour-offer button:first-child {
+.runtime-kiosk-tour-offer-start {
   background: var(--bloom-primary);
   color: var(--bloom-on-primary);
+}
+
+.runtime-kiosk-tour-offer-hide {
+  background: transparent;
+  color: var(--bloom-ink);
+}
+
+.runtime-kiosk-tour-offer-hide span {
+  font-size: 20px;
+  line-height: 1;
+}
+
+/* The sentence is the first thing to give way: gone on the narrow panel and whenever another chip (behaviour,
+   gamepad, command feedback) takes the room. It still describes the button to a screen reader. */
+.runtime-kiosk-bar:has(.runtime-kiosk-behaviour, .runtime-kiosk-gamepad, .runtime-kiosk-command-feedback)
+.runtime-kiosk-tour-offer {
+  padding-left: 0;
+}
+
+.runtime-kiosk-bar:has(.runtime-kiosk-behaviour, .runtime-kiosk-gamepad, .runtime-kiosk-command-feedback)
+  .runtime-kiosk-tour-offer
+  p {
+  display: none;
+}
+
+@media (max-width: 1100px) {
+  /* A chip on the narrow panel: the bar closes its gaps, then drops the app name, so the screen title, the one
+     word that says where the operator is, reads whole. The name stays on the title's hover help and in the sheet. */
+  .runtime-kiosk-bar:has(.runtime-kiosk-behaviour, .runtime-kiosk-gamepad, .runtime-kiosk-command-feedback) {
+    gap: 8px;
+  }
+
+  .runtime-kiosk-bar:has(.runtime-kiosk-behaviour, .runtime-kiosk-gamepad, .runtime-kiosk-command-feedback)
+    .runtime-kiosk-app {
+    display: none;
+  }
+
+  .runtime-kiosk-tour-offer {
+    padding-left: 0;
+  }
+
+  .runtime-kiosk-tour-offer p {
+    display: none;
+  }
 }
 
 .runtime-kiosk-command-feedback {

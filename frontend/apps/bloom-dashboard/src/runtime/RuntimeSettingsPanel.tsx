@@ -33,6 +33,8 @@ type RuntimeSettingsPanelProps = {
   onPreviewTheme?: (presetId: BloomThemePresetId | null) => void;
   onSave: (overrides: RuntimeProfileOverrides) => void;
   overrides: RuntimeProfileOverrides;
+  /** Whether this app's practice offer is hidden on this device, and the way to show it again. */
+  practiceOffer?: { hidden: boolean; onRestore: () => void };
   runtimeRole: "bench" | "operator";
 };
 
@@ -62,13 +64,18 @@ export function RuntimeSettingsPanel({
   onPreviewTheme,
   onSave,
   overrides,
+  practiceOffer,
   runtimeRole,
 }: RuntimeSettingsPanelProps) {
   const rootRef = useRef<HTMLElement | null>(null);
   const [draft, setDraft] = useState(() => normalizeRuntimeProfileOverrides(overrides));
+  // Choosing "Offer at start" while the offer is hidden brings it back on save; only a choice does, so saving a
+  // text size never surfaces an offer someone hid.
+  const [offerRestored, setOfferRestored] = useState(false);
   const [tryCount, setTryCount] = useState(0);
   const lastTryRef = useRef(0);
   const profile = useMemo(() => applyRuntimeProfileOverrides(baseProfile, draft), [baseProfile, draft]);
+  const offerHidden = practiceOffer?.hidden === true && !offerRestored && profile.practiceOffer === "start";
   const strings = useRuntimeStrings(profile.language);
   const inputMethod: InputMethod =
     profile.motorAccessibilityPreset === "scan" ? "scan" : profile.dwellEnabled ? "dwell" : "touch";
@@ -314,6 +321,25 @@ export function RuntimeSettingsPanel({
               selected={pushMode}
             />
           </SettingCard>
+          <SettingCard
+            label={strings.settings.practiceOffer}
+            note={offerHidden ? strings.settings.practiceOfferHidden : strings.settings.practiceOfferNote}
+            readout="practice_offer"
+          >
+            <Segments<"hidden" | "off" | "start">
+              columns={2}
+              label={strings.settings.practiceOffer}
+              onSelect={(value) => {
+                update({ ...draft, practiceOffer: value === "off" ? "off" : "start" });
+                setOfferRestored(value !== "off");
+              }}
+              options={[
+                { label: strings.settings.practiceOfferAtStart, value: "start" },
+                { label: strings.settings.valueOff, value: "off" },
+              ]}
+              selected={offerHidden ? "hidden" : profile.practiceOffer}
+            />
+          </SettingCard>
         </div>
 
         <div className="runtime-settings-column">
@@ -402,6 +428,9 @@ export function RuntimeSettingsPanel({
             className="runtime-settings-save"
             onClick={() => {
               onSave(draft);
+              if (offerRestored) {
+                practiceOffer?.onRestore();
+              }
               onClose();
             }}
             type="button"
@@ -453,12 +482,14 @@ function SettingCard({
 }
 
 function Segments<Value extends number | string>({
+  columns,
   disabled = false,
   label,
   onSelect,
   options,
   selected,
 }: {
+  columns?: 2;
   disabled?: boolean;
   label: string;
   onSelect: (value: Value) => void;
@@ -466,7 +497,7 @@ function Segments<Value extends number | string>({
   selected: Value;
 }) {
   return (
-    <fieldset className="runtime-settings-segments">
+    <fieldset className="runtime-settings-segments" data-columns={columns}>
       <legend className="sr-only">{label}</legend>
       {options.map((option) => (
         <button

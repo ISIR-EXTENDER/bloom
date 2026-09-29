@@ -44,6 +44,7 @@ const profile: ResolvedRuntimeProfile = {
   name: "Operator",
   repeatGuardMs: 0,
   scanPeriodMs: 1400,
+  practiceOffer: "start",
   themePresetId: null,
 };
 

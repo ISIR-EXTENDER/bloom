@@ -3,9 +3,10 @@
  */
 import type { RuntimeStopState } from "@bloom/api-client";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "../App";
 import { explorerManagerClient as configurationClient } from "../test-support/configuration-client";
+import { elapse, installFakeClock, uninstallFakeClock } from "../test-support/fake-clock";
 import { openRuntimeApp } from "../test-support/open-runtime-app";
 import type { RuntimeActionClient } from "./runtime-action-dispatcher";
 
@@ -17,8 +18,6 @@ class ResizeObserverMock {
 globalThis.ResizeObserver = ResizeObserverMock as never;
 HTMLElement.prototype.getClientRects = () => [new DOMRect(0, 0, 10, 10)] as unknown as DOMRectList;
 
-const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
 // On the focused element, as a switch box's key arrives: dispatching on window missed the bug.
 function pressSwitch(holdMs = 0) {
   const target = document.activeElement ?? document.body;
@@ -27,7 +26,7 @@ function pressSwitch(holdMs = 0) {
   });
   return (async () => {
     if (holdMs > 0) {
-      await act(() => wait(holdMs));
+      await elapse(holdMs);
     }
     act(() => {
       fireEvent.keyUp(document.activeElement ?? document.body, { key: " " });
@@ -82,8 +81,10 @@ async function openScanning(client: RuntimeActionClient) {
 }
 
 describe("STOP under switch scanning", () => {
+  beforeEach(installFakeClock);
   afterEach(() => {
     cleanup();
+    uninstallFakeClock();
     window.localStorage.clear();
     window.location.hash = "";
   });
@@ -111,7 +112,7 @@ describe("STOP under switch scanning", () => {
     await pressSwitch();
     const resume = await screen.findByRole("button", { name: /Press twice to resume/ });
     // Resume listens once the switch has rested after the latch: two 2.5 s periods.
-    await act(() => wait(5100));
+    await elapse(5100);
     await waitFor(() => expect(document.querySelector("[data-scan-lit]")).toBe(resume), { timeout: 8000 });
 
     // A switch cannot hold: a long press is one press, and it only arms.
@@ -120,7 +121,7 @@ describe("STOP under switch scanning", () => {
     await screen.findByRole("button", { name: /Press again to resume/ });
 
     // The confirming press comes a scan period after the arming one.
-    await act(() => wait(1400));
+    await elapse(1400);
     await pressSwitch();
     await waitFor(() => expect(client.resumeRuntimeStop).toHaveBeenCalledOnce());
   }, 30000);
@@ -144,7 +145,7 @@ describe("STOP under switch scanning", () => {
         document.body.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
       });
     }
-    await act(() => wait(50));
+    await elapse(50);
     expect(screen.queryByRole("button", { name: /Press again to resume/ })).toBeNull();
     expect(client.resumeRuntimeStop).not.toHaveBeenCalled();
   }, 20000);

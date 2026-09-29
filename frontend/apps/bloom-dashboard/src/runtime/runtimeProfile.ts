@@ -22,6 +22,8 @@ export type ResolvedRuntimeProfile = {
   language: RuntimeLanguage;
   motorAccessibilityPreset: UserProfile["motor_accessibility_preset"];
   name: string;
+  /** Whether the bar offers practice when the app opens; a device choice, never authored. */
+  practiceOffer: "off" | "start";
   /** The role's own palette, or null to follow the app. */
   themePresetId: BloomThemePresetId | null;
 };
@@ -39,6 +41,7 @@ const DEFAULT_RUNTIME_PROFILE: ResolvedRuntimeProfile = {
   language: "en",
   motorAccessibilityPreset: "default",
   name: "Default",
+  practiceOffer: "start",
   themePresetId: null,
 };
 
@@ -99,6 +102,7 @@ export function applyRuntimeProfileOverrides(
     fontScale: clampFontScale(overrides.fontScale ?? profile.fontScale),
     language: overrides.language ?? profile.language,
     motorAccessibilityPreset,
+    practiceOffer: overrides.practiceOffer ?? profile.practiceOffer,
     repeatGuardMs: clampRange(overrides.repeatGuardMs ?? profile.repeatGuardMs, 0, 600),
     scanPeriodMs: clampRange(overrides.scanPeriodMs ?? profile.scanPeriodMs, 600, 3000),
     themePresetId: overrides.themePresetId ?? profile.themePresetId,
@@ -145,6 +149,7 @@ function normalizeRuntimeProfile(profile: UserProfile | ResolvedRuntimeProfile):
       language: profile.language ?? "en",
       motorAccessibilityPreset: profile.motor_accessibility_preset,
       name: profile.name,
+      practiceOffer: "start",
       themePresetId: readProfileThemePresetId(profile.app_theme_preset_id),
     };
   }
@@ -162,6 +167,7 @@ function normalizeRuntimeProfile(profile: UserProfile | ResolvedRuntimeProfile):
     language: profile.language,
     motorAccessibilityPreset: profile.motorAccessibilityPreset,
     name: profile.name,
+    practiceOffer: profile.practiceOffer,
     themePresetId: profile.themePresetId,
   };
 }

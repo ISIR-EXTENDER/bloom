@@ -1,6 +1,6 @@
 import type { ApplicationConfig, RuntimeLanguage, ScreenConfig, UserProfile } from "@bloom/api-client";
 import { localizeOperatorText } from "@bloom/widgets";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 import { useAssistiveActivation } from "./assistive-activation";
 import { RuntimeMaintenanceSheet } from "./RuntimeMaintenanceSheet";
 import type { RuntimeFitWarning } from "./runtime-canvas-fit";
@@ -85,7 +85,7 @@ export type RuntimeKioskBarProps = {
   onOpenTour: () => void;
   /** Set when the app was opened as a Builder preview: the way back was a 1.5 s hold and two menus deep. */
   onBackToBuilder?: () => void;
-  /** The first-entry practice offer; null once answered or once the tour has been walked. */
+  /** The first-entry practice offer; null once hidden, once the tour has been opened, or with the setting off. */
   tourOffer?: { onAccept: () => void; onDismiss: () => void } | null;
   onReload?: () => void;
   onSuspendTeleop: () => void;
@@ -121,6 +121,9 @@ export function RuntimeKioskBar(props: RuntimeKioskBarProps) {
     dwell,
   } = props;
   const strings = useRuntimeStrings(language);
+  const offerBodyId = useId();
+  // Names the app too: the crowded narrow bar drops the app name and keeps the screen title whole.
+  const screenTitleHelp = `${application.name} · ${strings.kiosk.screenTitle}`;
   const [maintenanceOpen, setMaintenanceOpen] = useState(false);
   const maintenanceButtonRef = useRef<HTMLButtonElement | null>(null);
   const openMaintenance = () => {
@@ -173,21 +176,32 @@ export function RuntimeKioskBar(props: RuntimeKioskBarProps) {
       <header className="runtime-kiosk-bar">
         {/* Level 2: level 1 belongs to the app configuration page. */}
         <h2 className="runtime-kiosk-app">{application.name}</h2>
+        {/* Hover help is a native title: subtle, no space, gone on moving away. Touch never sees it. */}
         {menuOnTap ? (
           <button
+            aria-description={screenTitleHelp}
             aria-label={strings.kiosk.screenMenuAria(localizeOperatorText(screen.title, language))}
             className="runtime-kiosk-screen"
             data-menu="true"
             onClick={openMaintenance}
+            title={screenTitleHelp}
             type="button"
           >
             {localizeOperatorText(screen.title, language)}
           </button>
         ) : (
-          <span className="runtime-kiosk-screen">{localizeOperatorText(screen.title, language)}</span>
+          <span className="runtime-kiosk-screen" title={screenTitleHelp}>
+            {localizeOperatorText(screen.title, language)}
+          </span>
         )}
         {statusChip ? (
-          <span className="runtime-kiosk-status" data-tone={statusChip.tone} role="status">
+          <span
+            aria-description={strings.kiosk.statusTitles[statusChip.tone]}
+            className="runtime-kiosk-status"
+            data-tone={statusChip.tone}
+            role="status"
+            title={strings.kiosk.statusTitles[statusChip.tone]}
+          >
             <span aria-hidden="true" className="runtime-kiosk-status-dot" />
             {statusChip.label}
           </span>
@@ -199,7 +213,8 @@ export function RuntimeKioskBar(props: RuntimeKioskBarProps) {
         ) : null}
         {activeBehaviour ? (
           <span
-            aria-label={`${strings.kiosk.behaviourChipTitle}: ${behaviourWord(activeBehaviour, strings)}`}
+            aria-description={strings.kiosk.behaviourChipTitle}
+            aria-label={behaviourWord(activeBehaviour, strings)}
             className="runtime-kiosk-behaviour"
             data-behaviour={activeBehaviour}
             role="status"
@@ -208,7 +223,7 @@ export function RuntimeKioskBar(props: RuntimeKioskBarProps) {
             {behaviourWord(activeBehaviour, strings)}
           </span>
         ) : null}
-        <span className="runtime-kiosk-rate" data-held={held ? "true" : undefined}>
+        <span className="runtime-kiosk-rate" data-held={held ? "true" : undefined} title={strings.kiosk.rateTitle}>
           {rate}
         </span>
         {gamepadName ? (
@@ -242,11 +257,24 @@ export function RuntimeKioskBar(props: RuntimeKioskBarProps) {
         {tourOffer ? (
           <fieldset className="runtime-kiosk-tour-offer">
             <legend className="sr-only">{strings.tour.offerAria}</legend>
-            <button onClick={tourOffer.onAccept} type="button">
+            {/* The sentence still describes the button where the narrow panel hides it. */}
+            <p id={offerBodyId}>{strings.tour.offerBody}</p>
+            <button
+              aria-describedby={offerBodyId}
+              className="runtime-kiosk-tour-offer-start"
+              onClick={tourOffer.onAccept}
+              type="button"
+            >
               {strings.tour.offerStart}
             </button>
-            <button onClick={tourOffer.onDismiss} type="button">
-              {strings.tour.offerDismiss}
+            <button
+              aria-label={strings.tour.offerHideAria}
+              className="runtime-kiosk-tour-offer-hide"
+              onClick={tourOffer.onDismiss}
+              type="button"
+            >
+              <span aria-hidden="true">×</span>
+              {strings.tour.offerHide}
             </button>
           </fieldset>
         ) : null}
@@ -262,7 +290,7 @@ export function RuntimeKioskBar(props: RuntimeKioskBarProps) {
             {strings.kiosk.backToBuilder}
           </button>
         ) : null}
-        <span className="runtime-kiosk-role" data-role={resolveRuntimeRole(profile)}>
+        <span className="runtime-kiosk-role" data-role={resolveRuntimeRole(profile)} title={strings.kiosk.roleTitle}>
           {localizeOperatorText(profile.name, language)}
         </span>
         {menuOnTap ? (

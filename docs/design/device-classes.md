@@ -10,7 +10,7 @@ owns.
 | input | touch | mouse + keyboard |
 | density floor | 48 px, 64 px on accessible profiles | 40 px — unless the profile raises it |
 | hover states | never load-bearing | allowed |
-| bar height | 44 | 44 |
+| bar height | 44 — its own controls (⋯, screen menu, the practice offer) take the full 44 | 44 |
 | who | operators, bench work in the field | bench work at a desk, Bloom Debug |
 
 ## Separate apps, paired in the library
@@ -53,6 +53,9 @@ and a tablet used only by an engineer still needs 48.
 
 Bloom Debug takes the 40 px desktop scale because no operator profile can open it — the density is
 earned by the audience, not granted by the screen size.
+
+The kiosk bar is the one exception to the floor: its controls follow the bar's 44 px height on both classes,
+because a taller bar takes canvas from the controls under the hand. Canvas targets keep 48 / 64.
 
 ## Which screens have a desktop class
 

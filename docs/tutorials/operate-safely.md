@@ -119,8 +119,8 @@ still held under the sheet does not resume motion when the zero goes out.
 
 The sheet opens on the app's **Screens** (**Drive**, **Positions**, **Robot feedback**, and so on), then six read-only
 facts — link, publish rate, command frame, profile and its layout, device class, and the application — and four
-actions: **Settings**, **Switch role**, **Reload this app**, **Exit to library**. A **More** group holds the practice
-tour, the supervisor mirror, the Builder shortcuts, Help, Home, and the EN/ES/FR selector. Only that group
+actions: **Settings**, **Switch role**, **Reload this app**, **Exit to library**. A **More** group holds
+**Practice**, the supervisor mirror, the Builder shortcuts, Help, Home, and the EN/ES/FR selector. Only that group
 scrolls, so **Close** and **Resume operating** stay reachable.
 
 Nothing in the sheet changes what the app sends. Resuming closes it and publishing restarts at once.
@@ -145,11 +145,14 @@ The command frame is not a setting, because it changes what the app publishes. I
 row, and only while every motion control is back at zero, so a frame change cannot reinterpret motion already in
 progress.
 
-## Practice first
+## Practice
 
-Open Maintenance and choose **Practice tour** under **More**, or accept the **Practice first** offer in the bar on a
-first visit. It replaces the live artboard and suspends
-teleop; its controls change local state only and reach no robot. Five checks introduce the screen, use the app's own
+The first time an app opens, the bar offers it: **Try the controls first — nothing is sent to the robot**, with
+**Start practice** and **× Hide**. On the 1024×600 panel only the two buttons show. **Hide** keeps the offer away
+for this role on this device; Settings > **Practice offer** brings it back (**Offer at start**) or turns it off for this role (**Off**).
+Practice is always in the maintenance menu too: open Maintenance and choose **Practice** under **More**.
+
+Practice replaces the live artboard and suspends teleop; its controls change local state only and reach no robot. Five checks introduce the screen, use the app's own
 movement label, rehearse STOP and the held resume, rehearse the Maintenance hold, and return to operation.
 
 Use it with a new operator before the arm is powered.

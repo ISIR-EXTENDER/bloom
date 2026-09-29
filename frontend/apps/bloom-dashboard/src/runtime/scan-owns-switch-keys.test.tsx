@@ -3,9 +3,10 @@
  */
 import type { RuntimeStopState } from "@bloom/api-client";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "../App";
 import { explorerManagerClient as configurationClient } from "../test-support/configuration-client";
+import { elapse, installFakeClock, uninstallFakeClock } from "../test-support/fake-clock";
 import { openRuntimeApp } from "../test-support/open-runtime-app";
 import type { RuntimeActionClient } from "./runtime-action-dispatcher";
 
@@ -18,7 +19,6 @@ globalThis.ResizeObserver = ResizeObserverMock as never;
 HTMLElement.prototype.getClientRects = () => [new DOMRect(0, 0, 10, 10)] as unknown as DOMRectList;
 
 const PERIOD_MS = 800;
-const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const lit = () => document.querySelector<HTMLElement>("[data-scan-lit]");
 
 // A switch key as a browser delivers it, on the focused element or on window, with the native click a browser
@@ -36,7 +36,7 @@ async function pressSwitch({ holdMs = 0, on = "focus" }: { holdMs?: number; on?:
   };
   send("keyDown");
   for (let held = 0; held < holdMs; held += 100) {
-    await act(() => wait(100));
+    await elapse(100);
     send("keyDown", true);
   }
   send("keyUp");
@@ -87,7 +87,7 @@ type Surface = "main screen" | "maintenance sheet" | "settings" | "tour";
 async function openMaintenance() {
   const menu = screen.getByRole("button", { name: "Hold to open maintenance" });
   fireEvent.pointerDown(menu);
-  await act(() => wait(1600));
+  await elapse(1600);
   fireEvent.pointerUp(menu);
   return screen.findByRole("dialog");
 }
@@ -112,7 +112,7 @@ async function openOn(surface: Surface, client: RuntimeActionClient) {
     tap(within(sheet).getByRole("button", { name: /^Settings/ }));
     await screen.findByRole("region", { name: "Settings" });
   } else if (surface === "tour") {
-    tap(within(sheet).getByRole("button", { name: "Practice tour" }));
+    tap(within(sheet).getByRole("button", { name: "Practice" }));
     await screen.findByRole("region", { name: /tour|practice/i });
   }
 }
@@ -130,14 +130,16 @@ const stopButton = () => screen.queryByRole("button", { name: "Stop the robot" }
 const stopAgainButton = () => screen.queryByRole("button", { name: "Stop the robot again" });
 const resumeButton = () => screen.queryByRole("button", { name: /Press twice to resume|Press again to resume/ });
 // Resume listens only once the switch has rested after a latch: max(1.5 s, two periods).
-const settleAfterLatch = () => act(() => wait(Math.max(1500, 2 * PERIOD_MS) + 100));
+const settleAfterLatch = () => elapse(Math.max(1500, 2 * PERIOD_MS) + 100);
 const isStopChrome = (element: HTMLElement) => element.hasAttribute("data-scan-priority");
 
 describe.each<Surface>(["main screen", "maintenance sheet", "settings", "tour"])(
   "switch keys under scan on the %s",
   (surface) => {
+    beforeEach(installFakeClock);
     afterEach(() => {
       cleanup();
+      uninstallFakeClock();
       window.localStorage.clear();
       window.location.hash = "";
     });

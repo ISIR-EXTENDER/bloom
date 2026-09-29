@@ -104,7 +104,7 @@ describe("a dwell that fires in one surface", () => {
   it("does not continue from the tour's close onto the control beneath", async () => {
     const client = await openDwellRuntime();
     await openSheet();
-    fireEvent.pointerMove(screen.getByRole("button", { name: "Practice tour" }), { clientX: 500, clientY: 120 });
+    fireEvent.pointerMove(screen.getByRole("button", { name: "Practice" }), { clientX: 500, clientY: 120 });
     await screen.findByRole("button", { name: "Close practice" }, { timeout: 5000 });
     await restUntilGone("Close practice", () => screen.queryByRole("button", { name: "Close practice" }) === null);
 

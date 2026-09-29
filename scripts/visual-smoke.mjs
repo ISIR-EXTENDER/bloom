@@ -6,6 +6,7 @@ import {
   installRuntimeWebSocketMock,
   launchBrowser,
   loadSeedConfigurationsByPath,
+  pushCommandState,
   repoRoot,
   startDashboardServer,
   TABLET_EMULATION,
@@ -152,6 +153,7 @@ try {
     await assertTwoFingerDrive(browser);
     await assertSliderKnobStaysCentred(browser);
     await captureRuntimeLocales(browser);
+    await capturePracticeOffer(browser);
     await captureDesktopDebug(browser);
     await captureBuilderCanvas(browser);
     await capturePalettes(browser);
@@ -254,7 +256,7 @@ async function showRuntime(page) {
 async function showRuntimeTour(page) {
   await showExplorerRuntimeScreen(page, null);
   await holdForMaintenance(page);
-  await page.getByRole("button", { name: "Practice tour" }).click();
+  await page.getByRole("button", { exact: true, name: "Practice" }).click();
   await page.getByRole("region", { name: "Practice this app" }).waitFor();
 }
 
@@ -388,6 +390,113 @@ async function captureRuntimeLocales(browser) {
       await page.screenshot({ path: resolve(outputDir, "runtime-settings-pseudo-1280x720.png") });
     }
     await page.close();
+  }
+}
+
+/**
+ * The first-entry practice offer on both tablet panels, in English and in the longer French, with and without
+ * the manager's behaviour chip: the sentence is the first thing to give way, the buttons and ⋯ never move.
+ */
+async function capturePracticeOffer(browser) {
+  for (const language of ["en", "fr"]) {
+    for (const viewport of viewports.filter((candidate) => candidate.width <= 1280)) {
+      for (const behaviour of [null, "shared_control"]) {
+        const page = await browser.newPage({
+          viewport: { width: viewport.width, height: viewport.height },
+          ...TABLET_EMULATION,
+        });
+        await installConfigurationMocks(page, configurations);
+        await installRuntimeWebSocketMock(page);
+        await showExplorerRuntimeScreen(page, null);
+        // The language is switched from the sheet, as an operator would; opening it leaves the offer in place.
+        if (language !== "en") {
+          await holdForMaintenance(page);
+          await page
+            .locator(".runtime-maintenance-languages button")
+            .filter({ hasText: language.toUpperCase() })
+            .click();
+          await page.locator(".runtime-maintenance-return").click();
+          await page.getByRole("dialog").waitFor({ state: "detached" });
+        }
+        if (behaviour) {
+          await pushCommandState(page, { [`${behaviour}:active`]: true });
+          await page.locator(`.runtime-kiosk-behaviour[data-behaviour="${behaviour}"]`).waitFor();
+        }
+        const label = `practice-offer-${language}-${behaviour ? "assist-" : ""}${viewport.name}`;
+        await assertNoHorizontalOverflow(page, label);
+        await assertPracticeOfferFits(page, label, viewport.width > 1100 && behaviour === null, behaviour !== null);
+        await page.screenshot({ fullPage: false, path: resolve(outputDir, `${label}.png`) });
+        await page.close();
+      }
+    }
+  }
+}
+
+/**
+ * The offer sits inside the bar and clear of everything else in it, its two buttons take the bar's full 44 px
+ * and at least 48 px of width, and the sentence shows on the wide panel and folds away on the narrow one. With a
+ * chip in the bar the screen title, the word that says where the operator is, must still read whole.
+ */
+async function assertPracticeOfferFits(page, label, sentenceShown, titleWhole = false) {
+  const result = await page.evaluate(() => {
+    const bar = document.querySelector(".runtime-kiosk-bar");
+    const offer = bar?.querySelector(".runtime-kiosk-tour-offer");
+    if (!bar || !offer) return { missing: { bar: !bar, offer: !offer } };
+    const box = (element) => element.getBoundingClientRect();
+    const barBox = box(bar);
+    // Bar controls take the bar's full 44 px, which its 1 px bottom border sits under: that border is the tolerance.
+    const give = Number.parseFloat(getComputedStyle(bar).borderBottomWidth) || 1;
+    const inside = (element) => {
+      const rect = box(element);
+      return (
+        rect.left >= barBox.left - give &&
+        rect.right <= barBox.right + give &&
+        rect.top >= barBox.top - give &&
+        rect.bottom <= barBox.bottom + give
+      );
+    };
+    const offerBox = box(offer);
+    const overlaps = [...bar.children]
+      .filter((element) => element !== offer && !element.classList.contains("runtime-kiosk-spacer"))
+      .map((element) => ({ className: element.className, rect: box(element) }))
+      .filter(({ rect }) => rect.width > 0)
+      .filter(({ rect }) => Math.min(offerBox.right, rect.right) - Math.max(offerBox.left, rect.left) > 0.5)
+      .map(({ className }) => className);
+    const outside = [
+      ".runtime-kiosk-role",
+      ".runtime-kiosk-maintenance",
+      ".runtime-kiosk-tour-offer",
+      ".runtime-kiosk-behaviour",
+      ".runtime-kiosk-screen",
+    ]
+      .map((selector) => bar.querySelector(selector))
+      .filter((element) => element && !inside(element))
+      .map((element) => element.className);
+    const sentence = offer.querySelector("p");
+    const title = bar.querySelector(".runtime-kiosk-screen");
+    return {
+      titleClipped: Boolean(title) && title.scrollWidth > title.clientWidth,
+      buttons: [...offer.querySelectorAll("button")].map((button) => ({
+        height: box(button).height,
+        name: button.getAttribute("aria-label") ?? button.textContent.trim(),
+        width: box(button).width,
+      })),
+      outside,
+      overlaps,
+      sentenceVisible: Boolean(sentence) && getComputedStyle(sentence).display !== "none" && box(sentence).width > 0,
+    };
+  });
+  const smallTargets = (result.buttons ?? []).filter((button) => button.height < 44 || button.width < 48);
+  if (
+    result.missing ||
+    result.outside.length > 0 ||
+    result.overlaps.length > 0 ||
+    result.buttons.length !== 2 ||
+    smallTargets.length > 0 ||
+    (titleWhole && result.titleClipped) ||
+    result.sentenceVisible !== sentenceShown
+  ) {
+    throw new Error(`${label}: the practice offer does not fit the bar: ${JSON.stringify(result)}`);
   }
 }
 

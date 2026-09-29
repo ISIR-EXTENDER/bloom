@@ -28,6 +28,7 @@ const defaultProfile: ResolvedRuntimeProfile = {
   name: "Camille",
   repeatGuardMs: 0,
   scanPeriodMs: 1400,
+  practiceOffer: "start",
   themePresetId: null,
 };
 
@@ -492,5 +493,59 @@ describe("the colours card", () => {
       JSON.stringify({ profileOverrides: { "c:a:operator": { themePresetId: "neon" } } }),
     );
     expect(loadRuntimeUserPreferences().profileOverrides["c:a:operator"]).toBeUndefined();
+  });
+});
+
+describe("the practice offer setting", () => {
+  function renderHidden() {
+    const onRestore = vi.fn();
+    const onSave = vi.fn<(next: RuntimeProfileOverrides) => void>();
+    render(
+      <RuntimeSettingsPanel
+        applicationName="Explorer Manager"
+        baseProfile={defaultProfile}
+        onClose={() => undefined}
+        onSave={onSave}
+        overrides={{}}
+        practiceOffer={{ hidden: true, onRestore }}
+        runtimeRole="operator"
+      />,
+    );
+    return { card: screen.getByRole("group", { name: "Practice offer" }), onRestore, onSave };
+  }
+
+  it("shows a hidden offer as neither choice, and says how to get it back", () => {
+    const { card } = renderHidden();
+
+    expect(within(card).getByRole("button", { name: "Offer at start" })).toHaveAttribute("aria-pressed", "false");
+    expect(within(card).getByRole("button", { name: "Off" })).toHaveAttribute("aria-pressed", "false");
+    expect(
+      screen.getByText("Hidden for this role on this device. Choose Offer at start to show it again."),
+    ).toBeTruthy();
+  });
+
+  it("brings a hidden offer back only when Offer at start is chosen and saved", () => {
+    const untouched = renderHidden();
+    fireEvent.click(screen.getByRole("button", { name: "Save and resume" }));
+    expect(untouched.onRestore).not.toHaveBeenCalled();
+    cleanup();
+
+    const { card, onRestore, onSave } = renderHidden();
+    fireEvent.click(within(card).getByRole("button", { name: "Offer at start" }));
+    expect(within(card).getByRole("button", { name: "Offer at start" })).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(screen.getByRole("button", { name: "Save and resume" }));
+
+    expect(onRestore).toHaveBeenCalledOnce();
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ practiceOffer: "start" }));
+  });
+
+  it("turns the offer off for this role without touching the hidden flag", () => {
+    const { card, onRestore, onSave } = renderHidden();
+    fireEvent.click(within(card).getByRole("button", { name: "Off" }));
+    expect(within(card).getByRole("button", { name: "Off" })).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(screen.getByRole("button", { name: "Save and resume" }));
+
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ practiceOffer: "off" }));
+    expect(onRestore).not.toHaveBeenCalled();
   });
 });

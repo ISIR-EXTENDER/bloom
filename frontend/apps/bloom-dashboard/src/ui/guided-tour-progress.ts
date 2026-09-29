@@ -1,7 +1,7 @@
 import { isRecord } from "@bloom/widgets";
 import { useCallback, useState } from "react";
 
-import { runtimePreferenceKey } from "../runtime/runtime-profile-overrides";
+import { runtimePreferenceKey, runtimeProfileOverrideKey } from "../runtime/runtime-profile-overrides";
 
 const STORAGE_KEY = "bloom.guided-tour-progress.v1";
 const OFFER_STORAGE_KEY = "bloom.guided-tour-offer.v1";
@@ -10,6 +10,11 @@ type GuidedTourProgress = Record<string, string[]>;
 
 export function guidedTourProgressKey(kind: "builder" | "runtime", configId: string, appId: string): string {
   return `${kind}:${runtimePreferenceKey({ appId, configId })}`;
+}
+
+/** The offer is answered per role: hiding it as Operator leaves Bench's first entry intact. */
+export function guidedTourOfferKey(configId: string, appId: string, profileId: string): string {
+  return `runtime:${runtimeProfileOverrideKey({ appId, configId }, profileId)}`;
 }
 
 export function loadGuidedTourProgress(tourKey: string): string[] {
@@ -52,6 +57,17 @@ export function dismissGuidedTourOffer(tourKey: string): void {
     window.localStorage.setItem(OFFER_STORAGE_KEY, JSON.stringify(next));
   } catch {
     // A blocked store only means the offer shows again next time.
+  }
+}
+
+/** Settings brings the offer back: the key leaves the dismissed list, so it shows on the next entry too. */
+export function restoreGuidedTourOffer(tourKey: string): void {
+  try {
+    const dismissed = JSON.parse(window.localStorage.getItem(OFFER_STORAGE_KEY) ?? "[]");
+    const next = Array.isArray(dismissed) ? dismissed.filter((key) => key !== tourKey) : [];
+    window.localStorage.setItem(OFFER_STORAGE_KEY, JSON.stringify(next));
+  } catch {
+    // A blocked store never hid it in the first place.
   }
 }
 

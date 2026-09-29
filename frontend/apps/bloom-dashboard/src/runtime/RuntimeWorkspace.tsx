@@ -27,9 +27,9 @@ import { ScreenArtboard } from "../screen/ScreenArtboard";
 import type { WorkspaceSelection } from "../ui/ConfigurationWorkspace";
 import {
   dismissGuidedTourOffer,
-  guidedTourProgressKey,
+  guidedTourOfferKey,
   isGuidedTourOfferDismissed,
-  loadGuidedTourProgress,
+  restoreGuidedTourOffer,
 } from "../ui/guided-tour-progress";
 import { BloomDebugPanel } from "./BloomDebugPanel";
 import { resolveCameraStreamTargets, useCameraStreams } from "./camera-stream";
@@ -156,17 +156,6 @@ export function RuntimeWorkspace({
   const workspaceRef = useRef<HTMLElement | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [tourOpen, setTourOpen] = useState(false);
-  // Offered once per app on this device: the tour was only reachable behind the maintenance hold,
-  // so a first-time operator had to find a hold gesture to learn the hold gesture.
-  const tourKey = guidedTourProgressKey("runtime", selection.configId, selection.appId);
-  const [tourOfferAnswered, setTourOfferAnswered] = useState(true);
-  useEffect(() => {
-    setTourOfferAnswered(isGuidedTourOfferDismissed(tourKey) || loadGuidedTourProgress(tourKey).length > 0);
-  }, [tourKey]);
-  const answerTourOffer = () => {
-    dismissGuidedTourOffer(tourKey);
-    setTourOfferAnswered(true);
-  };
   const [maintenanceOpen, setMaintenanceOpen] = useState(false);
   // Read synchronously by the intent gate: a held control's next tick must not beat the re-render that holds it.
   const motionHeldRef = useRef(false);
@@ -203,6 +192,25 @@ export function RuntimeWorkspace({
   );
   const profileOverrideKey = runtimeProfileOverrideKey(selection, baseRuntimeProfile.id);
   const activeProfileOverrides = profileOverrides[profileOverrideKey] ?? EMPTY_PROFILE_OVERRIDES;
+  // Offered once per role per app on this device: the tour was only reachable behind the maintenance hold,
+  // so a first-time operator had to find a hold gesture to learn the hold gesture. Hide and opening the
+  // tour both answer it; Settings shows it again, or switches the offer off. A Builder preview answers it
+  // for the session only, never for the operator.
+  const tourOfferKey = guidedTourOfferKey(selection.configId, selection.appId, baseRuntimeProfile.id);
+  const [tourOfferAnswered, setTourOfferAnswered] = useState(true);
+  useEffect(() => {
+    setTourOfferAnswered(isGuidedTourOfferDismissed(tourOfferKey));
+  }, [tourOfferKey]);
+  const answerTourOffer = () => {
+    if (!openedFromBuilder) {
+      dismissGuidedTourOffer(tourOfferKey);
+    }
+    setTourOfferAnswered(true);
+  };
+  const restoreTourOffer = () => {
+    restoreGuidedTourOffer(tourOfferKey);
+    setTourOfferAnswered(false);
+  };
   const runtimeProfile = useMemo(
     () => resolveRuntimeProfile(application, viewportSize, preferredProfileId, activeProfileOverrides),
     [activeProfileOverrides, application, preferredProfileId, viewportSize],
@@ -609,6 +617,7 @@ export function RuntimeWorkspace({
           statusChip={statusChip}
           onSave={(nextOverrides) => onProfileOverridesChange(baseRuntimeProfile.id, nextOverrides)}
           overrides={activeProfileOverrides}
+          practiceOffer={{ hidden: tourOfferAnswered, onRestore: restoreTourOffer }}
           runtimeRole={resolveRuntimeRole({
             id: baseRuntimeProfile.id,
             layoutId: profileLayoutId(application, baseRuntimeProfile.id),
@@ -739,11 +748,12 @@ export function RuntimeWorkspace({
           setSettingsOpen(true);
         }}
         onOpenTour={() => {
+          answerTourOffer();
           holdMotion();
           setTourOpen(true);
         }}
         tourOffer={
-          tourOfferAnswered
+          tourOfferAnswered || runtimeProfile.practiceOffer === "off"
             ? null
             : {
                 onAccept: () => {

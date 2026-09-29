@@ -460,3 +460,44 @@ describe("the gamepad chip", () => {
     expect(screen.queryByText("Gamepad")).toBeNull();
   });
 });
+
+describe("hover help on the bar's chips", () => {
+  afterEach(cleanup);
+
+  // A native title: subtle, takes no space, leaves on moving away. Every chip carries one in every locale.
+  it.each(["en", "es", "fr"] as const)("gives every chip a title in %s", (language) => {
+    renderBar({ activeBehaviour: "intent_scaling", language, statusChip: { label: "READY", tone: "ready" } });
+
+    for (const selector of [
+      ".runtime-kiosk-screen",
+      ".runtime-kiosk-status",
+      ".runtime-kiosk-frame",
+      ".runtime-kiosk-behaviour",
+      ".runtime-kiosk-rate",
+      ".runtime-kiosk-role",
+    ]) {
+      const chip = document.querySelector<HTMLElement>(selector);
+      expect(chip, selector).not.toBeNull();
+      expect(chip?.getAttribute("title"), selector).toMatch(/\S/);
+    }
+    // Where the chip already has a name, the title is also its description, and the name is the word alone.
+    for (const selector of [".runtime-kiosk-status", ".runtime-kiosk-behaviour"]) {
+      const chip = document.querySelector<HTMLElement>(selector);
+      expect(chip?.getAttribute("aria-description"), selector).toBe(chip?.getAttribute("title"));
+      expect(chip?.getAttribute("aria-label") ?? chip?.textContent, selector).toBe(chip?.textContent);
+    }
+  });
+
+  it("explains each status tone, and the screen menu button keeps its description", () => {
+    for (const tone of ["connecting", "held", "link-down", "not-in-control", "stopped"] as const) {
+      renderBar({ statusChip: { label: tone, tone } });
+      expect(document.querySelector(".runtime-kiosk-status")?.getAttribute("title")).toMatch(/\S/);
+      cleanup();
+    }
+    renderBar({ profile: { id: "bench", layoutId: "drive_bench", menuOnTap: true, name: "Bench" } });
+    const menu = screen.getByRole("button", { name: /open the screen list/ });
+    expect(menu.getAttribute("aria-description")).toBe(menu.getAttribute("title"));
+    // The crowded narrow bar drops the app name, so the title's help carries it.
+    expect(menu.getAttribute("title")).toMatch(/^Explorer Manager · /);
+  });
+});

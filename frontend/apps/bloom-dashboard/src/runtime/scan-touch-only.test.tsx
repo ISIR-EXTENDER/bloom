@@ -98,7 +98,7 @@ describe("controls that leave for a page with no scanner", () => {
     expect(screen.getByRole("dialog", { name: "Maintenance" })).toBeTruthy();
 
     const seen = litOverCycles();
-    expect(seen).toContain("Practice tour");
+    expect(seen).toContain("Practice");
     expect(seen).not.toContain("Supervisor mirror");
     expect(screen.getByText(/Supervisor mirror, Edit, Help and Home are not scanned/)).toBeTruthy();
   });

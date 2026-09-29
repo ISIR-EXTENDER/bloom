@@ -43,7 +43,9 @@ export type RuntimeStrings = {
     movementFallback: string;
     moveBody: (controlName: string, directionLabel: string, count: number) => string;
     offerAria: string;
-    offerDismiss: string;
+    offerBody: string;
+    offerHide: string;
+    offerHideAria: string;
     offerStart: string;
     practice: string;
     progress: (complete: number, total: number) => string;
@@ -93,6 +95,14 @@ export type RuntimeStrings = {
     holdHint: string;
     maintenanceHelp: string;
     referenceFrameTitle: string;
+    /** Hover help on the bar's chips: what each means and what ends it. Native titles, so nothing on touch. */
+    rateTitle: string;
+    roleTitle: string;
+    screenTitle: string;
+    statusTitles: Record<
+      "connecting" | "debug" | "held" | "link-down" | "not-in-control" | "ready" | "stopped",
+      string
+    >;
     settings: string;
     supervisorMirror: string;
     switchScreen: string;
@@ -230,6 +240,10 @@ export type RuntimeStrings = {
     onlyForTouchAndDwell: string;
     inputMethodScanTouchOnly: string;
     inputMethodDwellTouchOnly: string;
+    practiceOffer: string;
+    practiceOfferAtStart: string;
+    practiceOfferHidden: string;
+    practiceOfferNote: string;
     practiceTour: string;
     pushModes: Record<"drag" | "latch" | "step", string>;
     pushMoves: string;

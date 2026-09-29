@@ -12,6 +12,8 @@ export type RuntimeProfileOverrides = {
   fontScale?: number;
   language?: RuntimeLanguage;
   motorAccessibilityPreset?: UserProfile["motor_accessibility_preset"];
+  /** "off" keeps the first-entry practice offer out of the bar for this role on this device. */
+  practiceOffer?: "off" | "start";
   repeatGuardMs?: number;
   scanPeriodMs?: number;
   /** This tablet's palette for the role; absent follows the role, then the app. */
@@ -57,6 +59,9 @@ export function normalizeRuntimeProfileOverrides(value: unknown): RuntimeProfile
 
   if (typeof value.language === "string" && RUNTIME_LANGUAGES.has(value.language as RuntimeLanguage)) {
     overrides.language = value.language as RuntimeLanguage;
+  }
+  if (value.practiceOffer === "off" || value.practiceOffer === "start") {
+    overrides.practiceOffer = value.practiceOffer;
   }
   if (isBloomThemePresetId(value.themePresetId)) {
     overrides.themePresetId = value.themePresetId;

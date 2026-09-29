@@ -291,6 +291,8 @@ export async function installRuntimeWebSocketMock(page) {
           this.openAsCameraStream();
           return;
         }
+        // A check can push what the backend would (a command-state snapshot) on the open runtime socket.
+        window.__bloomRuntimeSockets = [...(window.__bloomRuntimeSockets ?? []), this];
         window.setTimeout(() => {
           this.readyState = BloomHarnessWebSocket.OPEN;
           this.dispatchEvent(new Event("open"));
@@ -480,6 +482,24 @@ export async function installRuntimeWebSocketMock(page) {
 
     window.WebSocket = BloomHarnessWebSocket;
   });
+}
+
+/** Pushes a command-state snapshot (ADR 0142) as the backend would, on the open runtime socket. */
+export async function pushCommandState(page, entries) {
+  await page.evaluate((values) => {
+    const socket = (window.__bloomRuntimeSockets ?? []).findLast((candidate) => candidate.readyState === 1);
+    if (!socket) {
+      throw new Error("no open runtime socket to push command state on");
+    }
+    const revision = Date.now();
+    const snapshot = Object.fromEntries(
+      Object.entries(values).map(([key, value]) => [
+        key,
+        { by: "manager", revision, source: "measured", updated_at: new Date().toISOString(), value },
+      ]),
+    );
+    socket.reply({ type: "command_state", revision, self: socket.sessionId, snapshot });
+  }, entries);
 }
 
 export async function assertNoHorizontalOverflow(page, label) {

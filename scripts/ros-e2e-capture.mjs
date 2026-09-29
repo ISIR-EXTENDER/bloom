@@ -87,7 +87,7 @@ const captures = [
     setup: async (page) => {
       await openRuntime(page);
       await holdForMaintenance(page);
-      await page.getByRole("button", { name: "Practice tour" }).click();
+      await page.getByRole("button", { exact: true, name: "Practice" }).click();
       await page.getByRole("region", { name: "Practice this app" }).waitFor();
       await page.waitForTimeout(300);
     },

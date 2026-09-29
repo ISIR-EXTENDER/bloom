@@ -78,7 +78,7 @@ describe("the Explorer Manager joystick lab", () => {
 
     const translation = await screen.findByRole("application", { name: "Translation" });
     const toolFrame = () => screen.getByRole("button", { name: /^Tool/ });
-    expect(screen.getByTitle("Reference frame for operator commands")).toHaveTextContent("base_link");
+    expect(screen.getByTitle(/Frame the rotation pads/)).toHaveTextContent("base_link");
 
     // Three keyboard steps cross the Joystick lab's 0.2 axis dead zone.
     fireEvent.keyDown(translation, { key: "ArrowRight" });
@@ -93,9 +93,7 @@ describe("the Explorer Manager joystick lab", () => {
     fireEvent.keyUp(translation, { key: "ArrowRight" });
     await waitFor(() => expect(toolFrame()).toBeEnabled());
     fireEvent.click(toolFrame());
-    await waitFor(() =>
-      expect(screen.getByTitle("Reference frame for operator commands")).toHaveTextContent("effector_frame"),
-    );
+    await waitFor(() => expect(screen.getByTitle(/Frame the rotation pads/)).toHaveTextContent("effector_frame"));
     expect(runtimeActionClient.sendTeleopCommand).toHaveBeenCalledWith(
       expect.objectContaining({
         frame_id: "effector_frame",

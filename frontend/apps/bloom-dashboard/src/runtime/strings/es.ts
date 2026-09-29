@@ -43,9 +43,11 @@ export const esRuntimeStrings: RuntimeStrings = {
     disconnected: "Controles de práctica desconectados de los comandos del robot",
     localOnly: "Práctica local - nada aquí puede controlar el robot",
     movementFallback: "control de movimiento",
-    offerAria: "¿Primera vez aquí?",
-    offerDismiss: "Ahora no",
-    offerStart: "Practicar primero",
+    offerAria: "Oferta de práctica",
+    offerBody: "Prueba primero los controles: no se envía nada al robot.",
+    offerHide: "Ocultar",
+    offerHideAria: "Ocultar la oferta de práctica",
+    offerStart: "Practicar",
     moveBody: (controlName, directionLabel, count) =>
       `Usa ${directionLabel} en ${controlName} dos veces. Movimiento ${Math.min(count, 2)} de 2.`,
     practice: "Práctica guiada",
@@ -115,7 +117,7 @@ export const esRuntimeStrings: RuntimeStrings = {
     frameUnavailableOnRobot: "No disponible en este robot.",
     behaviourAssist: "Asistencia activa",
     behaviourChipTitle:
-      "Comportamiento del gestor activo, en todas las pantallas; STOP, Cancelar o salir de la app lo termina",
+      "Un comportamiento del gestor está activo; STOP, Cancelar o salir de la app vuelven al paso directo",
     behaviourMissing: (parameters) =>
       `El cartesian_manager en marcha no declara ${parameters}: arranca un gestor compilado con este comportamiento.`,
     behaviourSpeedUp: "Aceleración activa",
@@ -131,7 +133,21 @@ export const esRuntimeStrings: RuntimeStrings = {
     holdHint: "Mantén ⋯ pulsado para abrir el menú",
     maintenanceHelp:
       "El movimiento se detiene mientras el mantenimiento está abierto. Devuelve los controles a posición neutra antes de reanudar.",
-    referenceFrameTitle: "Marco de referencia de los comandos",
+    referenceFrameTitle:
+      "Marco en el que se leen los pads de rotación; la traslación siempre es la base. base_link = la base, effector_frame = la mano, hybrid_frame = el marco del gestor: el eje de la herramienta de la mano, alineado con la base.",
+    rateTitle: "Con qué frecuencia esta tableta envía comandos mientras se mantiene un control",
+    roleTitle: "El rol con el que esta tableta abrió la app; se aplican sus ajustes. Cambia de rol en Mantenimiento.",
+    screenTitle: "Pantalla en la que estás · el rol cuyos ajustes se aplican",
+    statusTitles: {
+      connecting: "Esperando el enlace con el servidor. Termina cuando el enlace se establece.",
+      debug: "Bloom Debug en lugar de LISTO; cualquier otro estado tiene prioridad.",
+      held: "Mantenimiento, Ajustes o la práctica están abiertos: el robot se mantiene en ceros. Reanudar la operación lo termina.",
+      "link-down": "Se perdió el enlace con el servidor y no se envía nada. Termina cuando el enlace vuelve.",
+      "not-in-control":
+        "Otra sesión controla el robot, así que esta pantalla está inactiva. Tomar el control lo termina.",
+      ready: "Enlazado, y esta tableta controla el robot. STOP, mantenimiento o perder el enlace lo terminan.",
+      stopped: "El STOP está enclavado y nada se mueve. Mantener pulsado para reanudar lo termina.",
+    },
     settings: "Ajustes",
     supervisorMirror: "Vista de supervisión",
     switchScreen: "Cambiar pantalla de operación",
@@ -266,7 +282,11 @@ export const esRuntimeStrings: RuntimeStrings = {
   },
   settings: {
     title: "Ajustes",
-    practiceTour: "Recorrido de práctica",
+    practiceOffer: "Oferta de práctica",
+    practiceOfferAtStart: "Ofrecer al abrir",
+    practiceOfferHidden: "Oculta para este rol en este dispositivo. Elige Ofrecer al abrir para mostrarla de nuevo.",
+    practiceOfferNote: "Se muestra en la barra superior al abrir la app.",
+    practiceTour: "Práctica",
     display: "Pantalla",
     textSize: "Tamaño del texto",
     textSizes: { normal: "Normal", large: "Grande", larger: "Más grande" },

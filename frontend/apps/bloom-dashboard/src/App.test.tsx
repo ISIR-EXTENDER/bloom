@@ -556,8 +556,8 @@ describe("App", () => {
     await screen.findByRole("region", { name: "Runtime application" });
 
     // The tour used to hide behind the maintenance hold; the offer sits in the bar on the first entry.
-    const offer = await screen.findByRole("group", { name: "First time here?" });
-    fireEvent.click(within(offer).getByRole("button", { name: "Practice first" }));
+    const offer = await screen.findByRole("group", { name: "Practice offer" });
+    fireEvent.click(within(offer).getByRole("button", { name: "Start practice" }));
     expect(await screen.findByRole("region", { name: "Practice this app" })).toBeVisible();
     unmount();
 
@@ -567,7 +567,60 @@ describe("App", () => {
     fireEvent.click(screen.getByRole("button", { name: "Open as Bench" }));
     await screen.findByRole("region", { name: "Runtime application" });
 
-    expect(screen.queryByRole("group", { name: "First time here?" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("group", { name: "Practice offer" })).not.toBeInTheDocument();
+    window.history.replaceState(null, "", "#/");
+  });
+
+  it("remembers Hide on this device, and Settings brings the offer back or turns it off", async () => {
+    const configurationClient = createConfigurationClient({
+      bundles: {
+        "explorer-manager": explorerManagerConfiguration as unknown as ConfigurationBundle,
+      },
+      ids: ["explorer-manager"],
+    });
+    const { unmount } = render(<App configurationClient={configurationClient} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Runtime: Operate and inspect" }));
+    await openRuntimeApp("Explorer Manager", "Bench");
+    await screen.findByRole("region", { name: "Runtime application" });
+
+    const offer = await screen.findByRole("group", { name: "Practice offer" });
+    fireEvent.click(within(offer).getByRole("button", { name: "Hide the practice offer" }));
+    expect(screen.queryByRole("group", { name: "Practice offer" })).not.toBeInTheDocument();
+    unmount();
+
+    window.history.replaceState(null, "", "#/runtime");
+    render(<App configurationClient={configurationClient} />);
+    await screen.findByRole("button", { name: "Explorer Manager" });
+    fireEvent.click(screen.getByRole("button", { name: "Open as Bench" }));
+    await screen.findByRole("region", { name: "Runtime application" });
+    expect(screen.queryByRole("group", { name: "Practice offer" })).not.toBeInTheDocument();
+
+    // Hidden reads as neither choice; Offer at start brings it back on save.
+    fireEvent.click(screen.getByRole("button", { name: "Open maintenance" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Settings" }));
+    const settings = screen.getByRole("region", { name: "Settings" });
+    const card = within(settings).getByRole("group", { name: "Practice offer" });
+    expect(within(card).getByRole("button", { name: "Offer at start" })).toHaveAttribute("aria-pressed", "false");
+    expect(within(settings).getByText(/Hidden for this role/)).toBeVisible();
+    fireEvent.click(within(card).getByRole("button", { name: "Offer at start" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save and resume" }));
+    expect(await screen.findByRole("group", { name: "Practice offer" })).toBeVisible();
+
+    // Off keeps it out of the bar for this role on this device.
+    fireEvent.click(screen.getByRole("button", { name: "Open maintenance" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Settings" }));
+    const offCard = within(screen.getByRole("region", { name: "Settings" })).getByRole("group", {
+      name: "Practice offer",
+    });
+    fireEvent.click(within(offCard).getByRole("button", { name: "Off" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save and resume" }));
+    await screen.findByRole("region", { name: "Runtime application" });
+    expect(screen.queryByRole("group", { name: "Practice offer" })).not.toBeInTheDocument();
+    await waitFor(() => {
+      const preferences = JSON.parse(window.localStorage.getItem("bloom.runtime-user-preferences.v1") ?? "{}");
+      expect(preferences.profileOverrides["explorer-manager:explorer-manager:bench"].practiceOffer).toBe("off");
+    });
     window.history.replaceState(null, "", "#/");
   });
 
@@ -636,7 +689,7 @@ describe("App", () => {
     expect(await screen.findByTestId("runtime-artboard")).toBeVisible();
 
     openRuntimeMenu();
-    fireEvent.click(screen.getByRole("button", { name: "Practice tour" }));
+    fireEvent.click(screen.getByRole("button", { name: "Practice" }));
     expect(screen.getByRole("region", { name: "Practice this app" })).toBeVisible();
 
     const sendTeleopCommand = runtimeActionClient.sendTeleopCommand;

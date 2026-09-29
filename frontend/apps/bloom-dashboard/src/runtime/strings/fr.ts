@@ -43,9 +43,11 @@ export const frRuntimeStrings: RuntimeStrings = {
     disconnected: "Commandes d'entraînement déconnectées des commandes du robot",
     localOnly: "Entraînement local - rien ici ne peut commander le robot",
     movementFallback: "commande de mouvement",
-    offerAria: "Première fois ici ?",
-    offerDismiss: "Pas maintenant",
-    offerStart: "S'entraîner d'abord",
+    offerAria: "Offre d'entraînement",
+    offerBody: "Essayez d'abord les commandes : rien n'est envoyé au robot.",
+    offerHide: "Masquer",
+    offerHideAria: "Masquer l'offre d'entraînement",
+    offerStart: "S'entraîner",
     moveBody: (controlName, directionLabel, count) =>
       `Utilisez ${directionLabel} sur ${controlName} deux fois. Mouvement ${Math.min(count, 2)} sur 2.`,
     practice: "Entraînement guidé",
@@ -115,7 +117,7 @@ export const frRuntimeStrings: RuntimeStrings = {
     frameUnavailableOnRobot: "Indisponible sur ce robot.",
     behaviourAssist: "Assistance active",
     behaviourChipTitle:
-      "Comportement du gestionnaire actif, sur chaque écran ; STOP, Annuler ou quitter l'app y met fin",
+      "Un comportement du gestionnaire est actif ; STOP, Annuler ou quitter l'app ramène au passage direct",
     behaviourMissing: (parameters) =>
       `Le cartesian_manager en cours ne déclare pas ${parameters} : lancez un gestionnaire compilé avec ce comportement.`,
     behaviourSpeedUp: "Accélération active",
@@ -131,7 +133,22 @@ export const frRuntimeStrings: RuntimeStrings = {
     holdHint: "Maintenez ⋯ appuyé pour ouvrir le menu",
     maintenanceHelp:
       "Le mouvement est arrêté pendant l'ouverture de la maintenance. Remettez les commandes au neutre avant de reprendre.",
-    referenceFrameTitle: "Repère des commandes opérateur",
+    referenceFrameTitle:
+      "Repère dans lequel les pads de rotation sont lus ; la translation est toujours la base. base_link = la base, effector_frame = la main, hybrid_frame = le repère du gestionnaire : l'axe outil de la main, maintenu aligné avec la base.",
+    rateTitle: "Fréquence à laquelle cette tablette envoie des commandes tant qu'une commande est tenue",
+    roleTitle:
+      "Le rôle avec lequel cette tablette a ouvert l'app ; ses réglages s'appliquent. Changez de rôle dans Maintenance.",
+    screenTitle: "Écran où vous êtes · le rôle dont les réglages s'appliquent",
+    statusTitles: {
+      connecting: "En attente du lien avec le serveur. Cela prend fin quand le lien s'établit.",
+      debug: "Bloom Debug à la place de PRÊT ; tout autre état passe devant.",
+      held: "Maintenance, Réglages ou l'entraînement est ouvert : le robot est maintenu à zéro. Reprendre le pilotage y met fin.",
+      "link-down": "Le lien avec le serveur est perdu et rien n'est envoyé. Cela prend fin quand le lien revient.",
+      "not-in-control":
+        "Une autre session commande le robot, cet écran est donc inactif. Prendre le contrôle y met fin.",
+      ready: "Lié, et cette tablette commande le robot. STOP, la maintenance ou la perte du lien y mettent fin.",
+      stopped: "Le STOP est verrouillé et rien ne bouge. Maintenir pour reprendre y met fin.",
+    },
     settings: "Réglages",
     supervisorMirror: "Vue superviseur",
     switchScreen: "Changer d'écran opérateur",
@@ -267,7 +284,11 @@ export const frRuntimeStrings: RuntimeStrings = {
   },
   settings: {
     title: "Réglages",
-    practiceTour: "Visite d'entraînement",
+    practiceOffer: "Offre d'entraînement",
+    practiceOfferAtStart: "Proposer à l'ouverture",
+    practiceOfferHidden: "Masquée pour ce rôle sur cet appareil. Choisissez Proposer à l'ouverture pour la revoir.",
+    practiceOfferNote: "Affichée dans le bandeau à l'ouverture de l'app.",
+    practiceTour: "Entraînement",
     display: "Affichage",
     textSize: "Taille du texte",
     textSizes: { normal: "Normale", large: "Grande", larger: "Plus grande" },

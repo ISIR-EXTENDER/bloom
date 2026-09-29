@@ -198,7 +198,7 @@ Work through these deliberately; none of them can be tested any other way.
 - **Spanish and French wording** has not had a native speaker's review. Keep a participant session in English.
 
 If the operator is new to Bloom, the practice tour is worth five minutes first: hold **⋯** for 1.5 seconds, then
-**More > Practice tour**. It commands no robot.
+**More > Practice**. It commands no robot.
 
 ## 9. If Bloom publishes but the arm does not move
 

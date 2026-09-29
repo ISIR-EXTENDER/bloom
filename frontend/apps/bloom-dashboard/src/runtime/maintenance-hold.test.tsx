@@ -88,7 +88,7 @@ describe("maintenance holds the robot, and STOP outranks it (plan §8.3)", () =>
 
   it.each([
     ["Settings", "Settings"],
-    ["Practice tour", "Practice this app"],
+    ["Practice", "Practice this app"],
   ])(
     "keeps STOP live and engageable while %s is open",
     async (action, region) => {

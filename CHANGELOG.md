@@ -137,6 +137,13 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
   Faults: reset from the arm's web page, or turn it off and on.
 - **A press stays answered.** A latched control whose own write was seen no longer reads **Sending…** again when the
   server's reset replaces that write within three seconds (STOP right after Assist on).
+- **The practice offer says what it is.** The bar's first-entry offer was two bare links, "Practice first" and "Not
+  now". It now reads **Try the controls first — nothing is sent to the robot** with **Start practice** and **× Hide**,
+  each the bar's full height; the 1024×600 panel keeps the two buttons and folds the sentence into the button's spoken
+  description. **Hide** is remembered per role and app on this device, and a **Practice offer** card in Settings
+  brings it back (**Offer at start**) or turns it off for this role on this device (**Off**). The maintenance menu's
+  entry is now **Practice**, so the tour stays one hold away whether or not the offer shows. The answer is stored
+  under a new per-role key, so anyone who answered or walked the tour before this release sees the offer once more.
 - **A stateful control shows what the backend knows, and says where it comes from**
   ([ADR 0142](docs/decisions/0142-command-state-lives-in-the-backend.md)). Toggles, latched mode buttons and
   parameter switches used to show what this screen last sent and re-send it until the robot answered. They now render
