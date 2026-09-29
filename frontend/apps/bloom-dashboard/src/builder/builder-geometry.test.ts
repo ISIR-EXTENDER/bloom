@@ -118,6 +118,18 @@ describe("builder geometry", () => {
     expect(overlapsRegion(placeClearOfRegions(intoStop, bench) ?? intoStop, bench.reserved_regions)).toBeNull();
   });
 
+  it("refuses a move onto another widget, but lets an overlap already there be dragged apart", () => {
+    const bench = screenById("manager_drive_bench");
+    const neutral = bench.widgets.find((widget) => widget.id === "drive-mode-both") as WidgetConfig;
+    const ontoJaco = { ...neutral.layout, x: 210 };
+
+    expect(explainLayoutRefusal(ontoJaco, bench, { from: neutral.layout, id: neutral.id })).toContain("cover Jaco");
+    // Without a moving widget the question is the canvas and the regions only, as before.
+    expect(explainLayoutRefusal(ontoJaco, bench)).toBeNull();
+    // Already on Jaco: a step that still touches it is how the author gets it off.
+    expect(explainLayoutRefusal({ ...ontoJaco, x: 190 }, bench, { from: ontoJaco, id: neutral.id })).toBeNull();
+  });
+
   it("places a widget above a region that fills the canvas below it, and refuses when nothing fits", () => {
     const bench = screenById("manager_drive_bench");
     const floor: ReservedRegion = { id: "floor", owner: "runtime-chrome", x: 0, y: 300, width: 1280, height: 376 };

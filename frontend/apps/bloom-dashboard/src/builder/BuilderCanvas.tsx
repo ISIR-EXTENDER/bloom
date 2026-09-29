@@ -83,7 +83,7 @@ export function BuilderCanvas({
         // The same question the inspector asks. Refusing only a reserved region let a resize handle
         // push a widget past the artboard edge, which the inspector then refused for the very same
         // layout -- and the backend has no upper bound, so a save persisted it.
-        const refusal = explainLayoutRefusal(final, screen);
+        const refusal = explainLayoutRefusal(final, screen, { from: start, id: widgetId });
         if (refusal) {
           onRefuseWidgetLayout?.(refusal);
         }

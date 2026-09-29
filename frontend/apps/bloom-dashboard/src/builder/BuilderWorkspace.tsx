@@ -522,7 +522,7 @@ export function BuilderWorkspace({
           if (!widget) {
             return;
           }
-          const refusal = explainLayoutRefusal(layout, draftScreen);
+          const refusal = explainLayoutRefusal(layout, draftScreen, { from: widget.layout, id: widgetId });
           if (refusal) {
             setLayoutNotice(
               `${widget.title} cannot grow to ${layout.width}×${layout.height} here: ${refusal}. Move it first, then resize.`,

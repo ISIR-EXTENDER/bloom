@@ -974,7 +974,27 @@ async function freshAppSession() {
       await openRuntimeApp(page, dashboardUrl, { appName });
       const unavailable = await page.locator("[data-runtime-unavailable='true']").count();
       assert(unavailable === 0, `${unavailable} widget(s) marked unavailable`);
-      const drive = await driveAndMeasure(page, "fresh");
+      // Each word on the robot's own wire axis and sign, as the Manager app sends it: moving is not enough, a
+      // pad on the identity mapping moves the Explorer's hand backwards and still moves it.
+      if (robot.settle) {
+        const release = await pressSliderEnd(page, robot.settle.control, robot.settle.end);
+        await page.waitForTimeout(robot.driveHoldMs);
+        await release();
+        await ros.waitFor(TWIST, (data) => isZeroTwist(data), { since: Date.now(), timeoutMs: 2000 });
+        await page.waitForTimeout(800);
+      }
+      const rows = [];
+      for (const gesture of DRIVE_GESTURES.filter((row) => ["Forward", "Right", "Up"].includes(row.word))) {
+        rows.push(await driveGestureAndMeasure(page, gesture));
+      }
+      const table = rows.map((row) => row.summary).join("; ");
+      const failed = rows.filter((row) => row.verdict.verdict === "fail").map((row) => row.word);
+      assert(failed.length === 0, `${failed.join(", ")} did not follow the wire: ${table}`);
+      const pivot = await pivotAndMeasure(page);
+      const warned = rows.filter((row) => row.verdict.verdict === "warn");
+      const drive = {
+        summary: `${warned.length ? `WARN ${warned.map((row) => `${row.word} (${row.verdict.reasons.join(", ")})`).join(", ")}; ` : ""}${table}; Pivot ${pivot}`,
+      };
 
       const close = await offerGripper(page, "Close");
       let since = Date.now();
@@ -1606,6 +1626,7 @@ async function pivotAndMeasure(page) {
     .locator(".bloom-axis-track");
   const box = await track.boundingBox();
   const start = await ros.waitFor(POSE, () => true, { since: Date.now() });
+  const startHand = await ros.waitFor(HAND, () => true, { since: Date.now(), timeoutMs: 5000 });
   const since = Date.now();
   await page.mouse.move(box.x + 2, box.y + box.height / 2);
   await page.mouse.down();
@@ -1624,11 +1645,17 @@ async function pivotAndMeasure(page) {
   await page.waitForTimeout(800);
   const end = ros.latest(POSE).data;
   const turned = rotationVector(start.orientation, end.orientation);
+  // The tip the 3D view draws: qontrol's command can turn while the joints do not follow.
+  const measured = rotationVector(startHand.orientation, ros.latest(HAND).data.orientation);
   assert(
     turned.z > MIN_ROTATION_RAD && Math.abs(turned.z) > 0.7 * Math.hypot(turned.x, turned.y, turned.z),
     `hand turned ${fmtVector(turned)} rad about base axes, expected +z > ${MIN_ROTATION_RAD}`,
   );
-  return `wire ${fmtTwist(wire)}; hand yawed ${turned.z.toFixed(3)} rad about base z (${fmtVector(turned)})`;
+  assert(
+    robot.jointsMayLag || measured.z > -MIN_ROTATION_RAD,
+    `the tip turned ${fmtVector(measured)} rad, the other way from the command`,
+  );
+  return `wire ${fmtTwist(wire)}; hand yawed ${turned.z.toFixed(3)} rad about base z (${fmtVector(turned)}), tip ${measured.z.toFixed(3)} (${fmtVector(measured)})`;
 }
 
 /** The rotation that takes orientation `from` to `to`, as an axis-angle vector in the base frame. */

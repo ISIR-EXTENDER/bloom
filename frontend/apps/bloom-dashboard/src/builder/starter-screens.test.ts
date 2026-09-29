@@ -1,7 +1,7 @@
 import type { ApplicationConfig } from "@bloom/api-client";
 import { minSizeFor, normalizeWidgetSettings } from "@bloom/widgets";
 import { describe, expect, it } from "vitest";
-
+import { overlapsRegion, reviewScreens } from "./builder-geometry";
 import {
   CREATE_THEME_PRESETS,
   createApplicationFromPlaygroundScreen,
@@ -56,6 +56,22 @@ describe("what a starter screen greets an author with", () => {
     }
 
     expect(below, below.join("\n")).toEqual([]);
+  });
+});
+
+describe("what a starter screen leaves an author", () => {
+  // The Neutral button of the demo sat on the gripper; a starter must not start there itself.
+  it.each(STARTERS)("puts no widget on another or in STOP on %s", (starterId) => {
+    const application = createGuidedApplication(
+      { includeOnboardingSpots: true, name: "Clear", starterId, themePresetId: "bloom" },
+      [],
+      "Explorer",
+    );
+    const rules = reviewScreens(application).filter((rule) => rule.id === "overlap");
+    const screen = application.screens[0];
+
+    expect(rules).toEqual([expect.objectContaining({ passed: true })]);
+    expect(screen?.widgets.filter((widget) => overlapsRegion(widget.layout, screen.reserved_regions))).toEqual([]);
   });
 });
 

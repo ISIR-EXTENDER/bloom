@@ -8,7 +8,13 @@ import {
   type UserProfile,
 } from "@bloom/api-client";
 import { BLOOM_THEME_PRESET_ORDER, type BloomThemePresetId } from "@bloom/ui";
-import { gripperToggleSettings, PALETTE_WIRING, speedSliderSettings, translationPadSettings } from "@bloom/widgets";
+import {
+  gripperToggleSettings,
+  PALETTE_WIRING,
+  SLIDER_PURPOSES,
+  speedSliderSettings,
+  translationPadSettings,
+} from "@bloom/widgets";
 import { createUniqueApplicationName, ensureUniqueId } from "../configurations/configuration-editor";
 import { withThemePreset } from "./app-config-model";
 import { defaultStopRegion, NEW_TABLET_CANVAS } from "./builder-geometry";
@@ -123,7 +129,7 @@ export function createStarterScreen(
           id: "onboarding-title",
           kind: "label" as const,
           title: "Onboarding title",
-          layout: { x: 48, y: 36, width: 560, height: 86 },
+          layout: { x: 48, y: 24, width: 560, height: 86 },
           settings: {
             align: "left",
             fontSize: 28,
@@ -172,27 +178,42 @@ export function createStarterScreen(
       widgets: [
         ...onboardingWidgets,
         {
+          id: "teleop-height",
+          kind: "slider",
+          title: "Height",
+          layout: { x: 48, y: 126, width: 110, height: 332 },
+          settings: sliderPurpose("height", robotName),
+        },
+        {
           id: "teleop-joystick",
           kind: "joystick",
           title: "Translation",
           // 280x332 is the joystick contract; a starter below it greets a new author with a warning.
-          layout: { x: 72, y: 160, width: 300, height: 332 },
+          layout: { x: 172, y: 126, width: 280, height: 332 },
           // The Manager apps' pad for this arm: its words and its axes, so up moves the hand forward.
           settings: translationPadSettings(robotName),
+        },
+        {
+          id: "teleop-pivot",
+          kind: "slider",
+          title: "Pivot",
+          layout: { x: 172, y: 472, width: 280, height: 132 },
+          settings: sliderPurpose("pivot", robotName),
         },
         {
           id: "max-velocity",
           kind: "slider",
           // It published to /cmd/max_velocity, which nothing on either arm reads: the first touch failed.
           title: PALETTE_WIRING.slider?.title ?? "Max linear speed",
-          layout: { x: 440, y: 190, width: 440, height: 132 },
+          layout: { x: 928, y: 14, width: 338, height: 132 },
           settings: speedSliderSettings(robotName),
         },
         {
           id: "gripper",
           kind: "toggle",
           title: "Gripper",
-          layout: { x: 440, y: 360, width: 220, height: 120 },
+          // The rail above STOP, as the Manager apps' bench: the middle stays free for what the author adds.
+          layout: { x: 928, y: 160, width: 338, height: 120 },
           settings: gripperToggleSettings(robotName),
         },
       ],
@@ -206,4 +227,10 @@ export function createStarterScreen(
     reserved_regions: [defaultStopRegion(NEW_TABLET_CANVAS)],
     widgets: onboardingWidgets,
   };
+}
+
+function sliderPurpose(id: "height" | "pivot", robotName?: string): Record<string, unknown> {
+  const purpose = SLIDER_PURPOSES.find((candidate) => candidate.id === id);
+  if (!purpose) throw new Error(`No slider purpose ${id}`);
+  return purpose.settings(robotName);
 }

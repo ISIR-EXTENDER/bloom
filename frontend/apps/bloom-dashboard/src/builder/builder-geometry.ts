@@ -183,8 +183,16 @@ export function overlapsRegion(layout: WidgetLayout, regions: readonly ReservedR
   );
 }
 
-/** Why a layout cannot stand on this screen, or null when it sits inside the canvas and clear of every region. */
-export function explainLayoutRefusal(layout: WidgetLayout, screen: ScreenConfig): string | null {
+/**
+ * Why a layout cannot stand on this screen, or null when it sits inside the canvas and clear of every region.
+ * Given the widget being moved, it may not land on another it was not already on: a dragged Neutral button sat
+ * on the starter's gripper and the save kept it.
+ */
+export function explainLayoutRefusal(
+  layout: WidgetLayout,
+  screen: ScreenConfig,
+  moving?: { from: WidgetLayout; id: string },
+): string | null {
   const { artboard } = resolveBuilderPanel(screen);
   const region = overlapsRegion(layout, screen.reserved_regions);
   if (region) {
@@ -197,6 +205,15 @@ export function explainLayoutRefusal(layout: WidgetLayout, screen: ScreenConfig)
     layout.y + layout.height > artboard.height
   ) {
     return `it would run past the ${artboard.width}×${artboard.height} canvas`;
+  }
+  const covered =
+    moving &&
+    screen.widgets.find(
+      (widget) =>
+        widget.id !== moving.id && boxesOverlap(layout, widget.layout) && !boxesOverlap(moving.from, widget.layout),
+    );
+  if (covered) {
+    return `it would cover ${covered.title}, which cannot be pressed under it`;
   }
   return null;
 }

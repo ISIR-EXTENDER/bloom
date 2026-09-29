@@ -78,6 +78,32 @@ describe("the builder canvas", () => {
     expect(onRefuseWidgetLayout).toHaveBeenCalledWith(expect.stringMatching(/STOP/));
   });
 
+  // The demo's Command button, dragged onto the starter's gripper, was saved there: neither could be pressed.
+  it("refuses a move onto another widget, and says which", () => {
+    const onCommitWidgetLayout = vi.fn();
+    const onRefuseWidgetLayout = vi.fn();
+    render(
+      <BuilderCanvas
+        onCommitWidgetLayout={onCommitWidgetLayout}
+        onPreviewWidgetLayout={vi.fn()}
+        onRefuseWidgetLayout={onRefuseWidgetLayout}
+        onSelectWidget={vi.fn()}
+        screen={bench}
+        selectedWidgetId={null}
+      />,
+    );
+    const handle = screen.getByRole("button", { name: "Select and move Neutral widget" });
+
+    // From 14,46 onto Jaco at 202,46.
+    fireEvent.pointerDown(handle, { button: 0, clientX: 0, clientY: 0 });
+    fireEvent.pointerMove(window, { clientX: 200, clientY: 0 });
+    fireEvent.pointerUp(window);
+
+    const [, start, final] = onCommitWidgetLayout.mock.calls[0] ?? [];
+    expect(final).toEqual(start);
+    expect(onRefuseWidgetLayout).toHaveBeenCalledWith(expect.stringMatching(/cover Jaco/));
+  });
+
   it.each([
     ["Select and move Max linear speed widget", { clientX: 0, clientY: 96 }, "top", "134px"],
     // The card now ends flush with the STOP region, so the legal preview is a shrink.
@@ -166,12 +192,13 @@ describe("the builder canvas", () => {
     const startTop = pixels(frameOf().style.top);
     const startWidth = pixels(frameOf().style.width);
 
-    // Layouts snap to the grid, so the step is a direction, not an exact pixel count.
+    // Layouts snap to the grid, so the step is a direction, not an exact pixel count. Up, because Max angular
+    // speed sits right below it and a step down would now be refused for covering it.
     fireEvent.keyDown(screen.getByRole("button", { name: "Select and move Max linear speed widget" }), {
-      key: "ArrowDown",
+      key: "ArrowUp",
       shiftKey: true,
     });
-    expect(pixels(frameOf().style.top)).toBeGreaterThan(startTop);
+    expect(pixels(frameOf().style.top)).toBeLessThan(startTop);
 
     fireEvent.keyDown(screen.getByRole("button", { name: "Resize Max linear speed widget" }), { key: "ArrowRight" });
     expect(pixels(frameOf().style.width)).toBeGreaterThan(startWidth);
@@ -479,7 +506,7 @@ describe("leaving the builder with unsaved work", () => {
     const onBackToBuilderHome = vi.fn();
     renderWorkspace(bench, { onBackToBuilderHome });
     fireEvent.keyDown(screen.getByRole("button", { name: "Select and move Max linear speed widget" }), {
-      key: "ArrowDown",
+      key: "ArrowUp",
       shiftKey: true,
     });
 

@@ -53,7 +53,7 @@ describe("Sync publish guardrails", () => {
 
     act(() => result.current.syncRuntimePolicyFromActionPresets());
 
-    const slider = guided.screens[0]?.widgets.find((widget) => widget.kind === "slider");
+    const slider = guided.screens[0]?.widgets.find((widget) => widget.id === "max-velocity");
     expect(result.current.draft.runtime_policy.allowed_publish_topics).toContain(slider?.settings.topic);
     expect(result.current.draft.runtime_policy.allowed_message_types).toContain(
       resolvePublishedMessageType("slider", slider?.settings),

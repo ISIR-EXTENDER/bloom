@@ -71,6 +71,32 @@ async function authorAndDrive() {
       return `${application.screens.length} screen(s), id ${application.id}`;
     });
 
+    await check(page, "the-starter-opens-clear-at-1024x600-and-1280x720", async () => {
+      // A Command button dragged onto the starter's gripper hid it; the starter itself must leave every control clear.
+      const found = [];
+      for (const viewport of [
+        { width: 1024, height: 600 },
+        { width: 1280, height: 720 },
+      ]) {
+        const runtime = await browser.newContext({ deviceScaleFactor: 1, viewport });
+        try {
+          const tablet = await runtime.newPage();
+          await openStarter(tablet);
+          const boxes = await readControlBoxes(tablet);
+          assert(
+            boxes.length >= 6 && boxes.some((box) => box.name === "STOP"),
+            `${viewport.width}x${viewport.height}: ${boxes.map((box) => box.name).join(", ")}`,
+          );
+          found.push(...overlapping(boxes).map((pair) => `${viewport.width}x${viewport.height}: ${pair}`));
+          await shot(tablet, `starter-${viewport.width}x${viewport.height}`);
+        } finally {
+          await runtime.close();
+        }
+      }
+      assert(found.length === 0, found.join("; "));
+      return "no control overlaps another or STOP at either size";
+    });
+
     await check(page, "screen-opens-in-the-builder", async () => {
       await openScreenBuilder(page);
       await shot(page, "screen-builder");
@@ -176,6 +202,50 @@ async function authorAndDrive() {
 }
 
 // ---- Helpers ----
+
+async function openStarter(tablet) {
+  await tablet.goto(dashboardUrl, { waitUntil: "networkidle" });
+  await tablet.getByRole("button", { name: "Runtime: Operate and inspect" }).click();
+  await tablet.getByRole("button", { exact: true, name: APP_NAME }).click();
+  if (await tablet.locator(".runtime-library-open").isDisabled()) {
+    await tablet.locator(".runtime-library-roles").getByRole("button").first().click();
+  }
+  await tablet.locator(".runtime-library-open").click();
+  await tablet
+    .locator('[data-testid="runtime-artboard"] article[data-widget-kind]')
+    .first()
+    .waitFor({ timeout: 20000 });
+  await tablet.waitForTimeout(500);
+}
+
+/** Every widget card on the artboard and the STOP button, as page boxes. */
+async function readControlBoxes(tablet) {
+  return tablet.evaluate(() => {
+    const cards = [...document.querySelectorAll('[data-testid="runtime-artboard"] article[data-widget-kind]')].map(
+      (element) => ({ element, name: element.getAttribute("aria-label") || element.getAttribute("data-widget-kind") }),
+    );
+    const stop = [...document.querySelectorAll("button")].find((button) =>
+      (button.getAttribute("aria-label") ?? "").startsWith("Stop the robot"),
+    );
+    return [...cards, ...(stop ? [{ element: stop, name: "STOP" }] : [])].map(({ element, name }) => {
+      const box = element.getBoundingClientRect();
+      return { bottom: box.bottom, left: box.left, name, right: box.right, top: box.top };
+    });
+  });
+}
+
+function overlapping(boxes) {
+  const pairs = [];
+  boxes.forEach((a, index) => {
+    for (const b of boxes.slice(index + 1)) {
+      const width = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+      const height = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+      if (width > 2 && height > 2)
+        pairs.push(`${a.name} and ${b.name} overlap ${Math.round(width)}x${Math.round(height)} px`);
+    }
+  });
+  return pairs;
+}
 
 async function fetchApplication(page) {
   const list = await page.request.get(`${apiUrl}/api/v1/configurations`);
