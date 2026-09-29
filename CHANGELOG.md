@@ -148,6 +148,7 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
   `BLOOM_MAX_PETANQUE_ALPHA`, `BLOOM_MAX_PETANQUE_FINISH_ANGLE`). A duration of 0 or an angle near 90° threw violently.
 - **The capability report lists the deployment's allowlists**: publish topics, message types, parameters and service
   calls, so the Builder can tell an entry the app can allow from one the robot refuses anyway.
+- Demo GIFs in the README and tutorials, recorded against the simulations.
 
 ### Changed
 

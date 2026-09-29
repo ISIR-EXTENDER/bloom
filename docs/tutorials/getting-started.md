@@ -63,6 +63,11 @@ Choose **Open Runtime**. The left column, **Apps on this robot**, lists the ship
 Kinova Manager, Visual servoing, Widget Lab, Sandbox V0.0, Petanque admin, Bloom Debug, the webcam visualizer, and one
 camera test app per robot. Select **Explorer Manager**, choose **Operator** in the **Open as** rail, and press **Open as Operator**.
 
+![Explorer: the Runtime library, Explorer Manager picked, the Operator role, Open; the kiosk bar reads READY.](../assets/demo/gifs/explorer-open.gif)
+
+Explorer: pick the app, the Operator role, Open; the kiosk bar reads READY. The live model on the right needs the
+simulation from Part 2; in this part the controls stay inert.
+
 You are now in the kiosk. The 44 px bar across the top reads the app name, the screen title, a status chip, the command
 frame, the publish rate and the role. Controls that need a ROS seam the backend does not have are visible but inert and
 say why. That is the correct behavior with no robot attached, and it is the point of running this part first: you can
@@ -162,6 +167,17 @@ press **Open as Operator**.
 Before you move anything, read the kiosk bar: the app, the screen, `READY`, the command frame, the publish rate, the
 role. Then drag the **Translation** pad and let go.
 
+![Explorer: the Translation pad pushed Forward and held; the hand moves forward in the 3D view and stops when the pad is released.](../assets/demo/gifs/explorer-forward.gif)
+
+Explorer: the pad pushed Forward and held moves the hand forward in the 3D view; on release the pad springs back and
+the hand stops.
+
+The gripper is a single button. **Close gripper** closes the fingers, and the same button then reads **Open gripper**.
+
+![Kinova: Close gripper closes the fingers on the model; Open gripper opens them.](../assets/demo/gifs/kinova-gripper.gif)
+
+Kinova: Close gripper closes the fingers on the model; Open gripper opens them.
+
 In another sourced terminal, watch what left Bloom and what the manager did with it:
 
 ```bash
@@ -184,6 +200,13 @@ publish rate in the kiosk bar reads `publishing · N Hz` while you hold and `zer
 If the arm does not move but `/joystick_cartesian_command` does, the problem is below Bloom: check the manager and the
 controllers. If neither topic carries anything, check that the kiosk bar reads `READY` rather than `NOT IN CONTROL` —
 another browser tab may still own the robot.
+
+Press **STOP** before you leave the pad, and hold **HOLD TO RESUME** for one second to drive again.
+
+![Explorer: after STOP the bar reads STOPPED and a push moves nothing; the one-second hold resumes and the same push moves the hand again.](../assets/demo/gifs/explorer-stop.gif)
+
+Explorer: while stopped the bar reads STOPPED and a push moves nothing; the one-second hold resumes, and the same push
+moves the hand again.
 
 **Watch the arm in Bloom rather than rviz.** On the laptop, open **Bloom Debug** and switch to its **Robot view**
 screen (hold **⋯** for 1.5 seconds, then pick the screen): the robot the manager runs with, drawn from the description
