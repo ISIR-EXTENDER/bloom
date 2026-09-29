@@ -321,6 +321,8 @@ yaws positively about the base z axis ([record](validation/ros-sim-e2e.md)); not
 | Live tuning | A slider or toggle bound to a node parameter (Snake gain on Drive · Bench, the throw shape on Petanque's Teleop settings, the manager's servo input gate on Visual servoing · Approach) sets it through the node's own parameter service and opens on the value the node holds. Owner-only and audited; allowed while STOP is latched, because a gain is configuration, not motion (ADR 0139). |
 | Speed limits | Bench sliders start at the configured controller limits; Operator segments offer Slow, Medium, and Fast (Explorer 0.08 / 0.15 / 0.30, Kinova 0.025 / 0.05 / 0.10). Both publish linear/angular limits to `qontrol_controller` and are disabled when the ROS graph has no subscriber. |
 
+![Explorer: the same Forward push at Slow, Medium and Fast; the hand travels visibly further at each step.](assets/demo/gifs/explorer-speed.gif)
+
 What each word drives in the base frame is the seed's `axis_mapping`, one per robot. The Explorer's is the profile
 saved from `extender_ui`'s Sandbox teleop config and driven on the arm (swap X/Y, invert linear X); the Kinova's is
 that app's unconfigured default, not yet driven on the gen3:

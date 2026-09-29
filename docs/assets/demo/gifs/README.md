@@ -20,6 +20,7 @@ The GIFs shipped here, the ones the README and the tutorials embed:
 | `explorer-open.gif` | Explorer | The Runtime library: pick Explorer Manager, the Operator role, Open; the kiosk reads READY. The model on the right is already live. |
 | `explorer-forward.gif` | Explorer | The Translation pad pushed Forward and held: the hand moves forward in the 3D view; on release the pad springs back and the hand stops. |
 | `explorer-gripper.gif` | Explorer | Close gripper: the fingers close on the model; Open gripper: they open. |
+| `explorer-speed.gif` | Explorer | The same Forward push at Slow, Medium and Fast: the hand travels visibly further in the 3D view at each step. |
 | `explorer-stop.gif` | Explorer | STOP: the controls are inert while stopped (a push moves nothing), the one-second hold resumes, the same push moves the hand again. |
 | `explorer-assist-to-goals.gif` | Explorer | Two goals published on `/shared_control/goals` (PoseArray, base_link); Assist to goals ON: the confidence bars appear and the goals are drawn in the 3D view; a push toward one goal fills its bar; Reset assist forgets them. |
 | `explorer-settings-palette.gif` | Explorer | Settings from the maintenance menu: the Dark palette recolours the whole screen, then back to the app's own palette, Save and resume. |
