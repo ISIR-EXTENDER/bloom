@@ -1116,12 +1116,21 @@ button.runtime-kiosk-screen:focus-visible {
 
 /* The sentence is the first thing to give way: gone on the narrow panel and whenever another chip (behaviour,
    gamepad, command feedback) takes the room. It still describes the button to a screen reader. */
-.runtime-kiosk-bar:has(.runtime-kiosk-behaviour, .runtime-kiosk-gamepad, .runtime-kiosk-command-feedback)
-.runtime-kiosk-tour-offer {
+.runtime-kiosk-bar:has(
+  .runtime-kiosk-behaviour,
+  .runtime-kiosk-gamepad,
+  .runtime-kiosk-command-feedback,
+  .runtime-kiosk-motion-cue
+) .runtime-kiosk-tour-offer {
   padding-left: 0;
 }
 
-.runtime-kiosk-bar:has(.runtime-kiosk-behaviour, .runtime-kiosk-gamepad, .runtime-kiosk-command-feedback)
+.runtime-kiosk-bar:has(
+    .runtime-kiosk-behaviour,
+    .runtime-kiosk-gamepad,
+    .runtime-kiosk-command-feedback,
+    .runtime-kiosk-motion-cue
+  )
   .runtime-kiosk-tour-offer
   p {
   display: none;
@@ -1130,11 +1139,21 @@ button.runtime-kiosk-screen:focus-visible {
 @media (max-width: 1100px) {
   /* A chip on the narrow panel: the bar closes its gaps, then drops the app name, so the screen title, the one
      word that says where the operator is, reads whole. The name stays on the title's hover help and in the sheet. */
-  .runtime-kiosk-bar:has(.runtime-kiosk-behaviour, .runtime-kiosk-gamepad, .runtime-kiosk-command-feedback) {
+  .runtime-kiosk-bar:has(
+    .runtime-kiosk-behaviour,
+    .runtime-kiosk-gamepad,
+    .runtime-kiosk-command-feedback,
+    .runtime-kiosk-motion-cue
+  ) {
     gap: 8px;
   }
 
-  .runtime-kiosk-bar:has(.runtime-kiosk-behaviour, .runtime-kiosk-gamepad, .runtime-kiosk-command-feedback)
+  .runtime-kiosk-bar:has(
+      .runtime-kiosk-behaviour,
+      .runtime-kiosk-gamepad,
+      .runtime-kiosk-command-feedback,
+      .runtime-kiosk-motion-cue
+    )
     .runtime-kiosk-app {
     display: none;
   }
@@ -1169,6 +1188,63 @@ button.runtime-kiosk-screen:focus-visible {
   border-color: var(--bloom-pollen);
   background: color-mix(in srgb, var(--bloom-pollen) 32%, var(--bloom-surface));
   color: var(--bloom-ink);
+}
+
+/* A verdict said the arm did not do what the control asked: discreet, dismissable, never in the way of STOP. */
+.runtime-kiosk-motion-cue {
+  display: flex;
+  min-width: 0;
+  max-width: min(320px, 30vw);
+  min-height: 32px;
+  gap: 7px;
+  align-items: center;
+  padding: 2px 2px 2px 9px;
+  border: 1px solid var(--bloom-pollen);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bloom-pollen) 28%, var(--bloom-surface));
+  color: var(--bloom-ink);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.runtime-kiosk-motion-cue > span:not(.runtime-kiosk-motion-cue-mark) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.runtime-kiosk-motion-cue-mark {
+  display: inline-grid;
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--bloom-ink);
+  color: var(--bloom-surface);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.runtime-kiosk-motion-cue-dismiss {
+  display: inline-grid;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--bloom-ink);
+  font-size: 16px;
+}
+
+.runtime-kiosk-motion-cue-dismiss:focus-visible {
+  outline: 3px solid var(--bloom-focus-ring);
+  outline-offset: 1px;
 }
 
 .runtime-kiosk-command-feedback strong {

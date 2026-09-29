@@ -37,5 +37,7 @@ export const STACK = {
   sharedControlGoals: "/shared_control/goals",
   sharedControlSoftGoal: "/shared_control/soft_goal",
   tagDetections: "/tag_detections",
+  // robot_state_publisher's tree; Bloom Debug's Command vs motion reads only the tip from it, through the backend.
+  tf: "/tf",
   twist: "/joystick_cartesian_command",
 };

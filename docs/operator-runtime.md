@@ -561,7 +561,10 @@ removed.
 Settings uses the active scan period and dwell duration itself, so its controls and **Save and resume** stay reachable
 under scanning and dwell. **Practice offer** decides whether the bar offers practice when the app opens; the offer
 itself, and **Practice** in the maintenance menu, open the guided local-only path without returning through the live
-controls first.
+controls first. **Motion warnings** (`motion_cue`, off by default) puts a small cue in the bar when a verdict of
+Bloom Debug's Command vs motion rules says the hand went the other way or the gripper did not move within 4 s: no
+numbers, a dismiss button kept out of the scan cycle, gone on its own after 30 s. The runtime reads the same streams as
+the panel for it, only while the setting is on.
 
 The scan set is read from the DOM, so it contains exactly the buttons a screen renders; a pad is never a scan target
 because a click on it moves nothing. STOP opens every cycle, ahead of the screen's own controls, on every surface that

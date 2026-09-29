@@ -12,6 +12,8 @@ export type RuntimeProfileOverrides = {
   fontScale?: number;
   language?: RuntimeLanguage;
   motorAccessibilityPreset?: UserProfile["motor_accessibility_preset"];
+  /** A discreet cue in the bar when the hand went the wrong way or the gripper did not move; off unless chosen. */
+  motionCue?: boolean;
   /** "off" keeps the first-entry practice offer out of the bar for this role on this device. */
   practiceOffer?: "off" | "start";
   repeatGuardMs?: number;
@@ -51,6 +53,7 @@ export function normalizeRuntimeProfileOverrides(value: unknown): RuntimeProfile
   const overrides: RuntimeProfileOverrides = {};
   copyBoolean(value, "audioCues", overrides);
   copyBoolean(value, "dwellEnabled", overrides);
+  copyBoolean(value, "motionCue", overrides);
   copyFiniteNumber(value, "deadzone", overrides);
   copyFiniteNumber(value, "dwellMs", overrides);
   copyFiniteNumber(value, "fontScale", overrides);
@@ -76,7 +79,7 @@ export function normalizeRuntimeProfileOverrides(value: unknown): RuntimeProfile
   return overrides;
 }
 
-function copyBoolean<Key extends "audioCues" | "dwellEnabled">(
+function copyBoolean<Key extends "audioCues" | "dwellEnabled" | "motionCue">(
   source: Record<string, unknown>,
   key: Key,
   target: RuntimeProfileOverrides,

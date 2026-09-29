@@ -6,6 +6,7 @@ import { RuntimeMaintenanceSheet } from "./RuntimeMaintenanceSheet";
 import type { RuntimeFitWarning } from "./runtime-canvas-fit";
 import { useRuntimeStrings } from "./strings";
 import { useHoldGesture } from "./use-hold-gesture";
+import type { MotionCueKind } from "./use-motion-cue";
 
 /**
  * The runtime's only chrome: one 44 px bar of status (design 1b, 10). Everything that leaves or changes the session
@@ -86,6 +87,8 @@ export type RuntimeKioskBarProps = {
   onOpenTour: () => void;
   /** Set when the app was opened as a Builder preview: the way back was a 1.5 s hold and two menus deep. */
   onBackToBuilder?: () => void;
+  /** A verdict said the hand or the gripper did not do what was asked; only with the role's motion warnings on. */
+  motionCue?: { kind: MotionCueKind; onDismiss: () => void } | null;
   /** The first-entry practice offer; null once hidden, once the tour has been opened, or with the setting off. */
   tourOffer?: { onAccept: () => void; onDismiss: () => void } | null;
   onReload?: () => void;
@@ -116,6 +119,7 @@ export function RuntimeKioskBar(props: RuntimeKioskBarProps) {
     onMaintenanceOpenChange,
     language = "en",
     tourOffer = null,
+    motionCue = null,
     gamepadName = null,
     onBackToBuilder,
     scanning,
@@ -253,6 +257,30 @@ export function RuntimeKioskBar(props: RuntimeKioskBarProps) {
           >
             <strong>{feedbackLabel(commandFeedback.status, strings)}</strong>
             <span>{commandFeedback.detail}</span>
+          </span>
+        ) : null}
+        {motionCue ? (
+          <span
+            aria-description={strings.kiosk.motionCueTitle}
+            className="runtime-kiosk-motion-cue"
+            data-cue={motionCue.kind}
+            role="status"
+            title={strings.kiosk.motionCueTitle}
+          >
+            <span aria-hidden="true" className="runtime-kiosk-motion-cue-mark">
+              !
+            </span>
+            <span>{strings.kiosk.motionCue[motionCue.kind]}</span>
+            {/* Out of the scan cycle: the way to STOP never waits on a warning, and the warning leaves on its own. */}
+            <button
+              aria-label={strings.kiosk.motionCueDismiss}
+              className="runtime-kiosk-motion-cue-dismiss"
+              data-scan-touch-only=""
+              onClick={motionCue.onDismiss}
+              type="button"
+            >
+              <span aria-hidden="true">×</span>
+            </button>
           </span>
         ) : null}
         {tourOffer ? (

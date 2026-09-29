@@ -39,8 +39,11 @@ export async function waitReady(page, pattern = /^(READY|DEBUG)$/) {
   await page.getByRole("status").filter({ hasText: pattern }).first().waitFor({ timeout: 20000 });
 }
 
-/** From the landing to one screen of one app as one role, READY. Without a role, the first offered. */
-export async function openRuntimeApp(page, dashboardUrl, { appName, roleName, layoutId }) {
+/**
+ * From the landing to one screen of one app as one role, READY. Without a role, the first offered. `ready` widens
+ * what counts as open, for a watching page opened beside one that holds control.
+ */
+export async function openRuntimeApp(page, dashboardUrl, { appName, roleName, layoutId, ready }) {
   await page.goto(dashboardUrl, { waitUntil: "networkidle" });
   await page.getByRole("button", { name: "Runtime: Operate and inspect" }).click();
   await page.getByRole("button", { exact: true, name: appName }).click();
@@ -55,7 +58,7 @@ export async function openRuntimeApp(page, dashboardUrl, { appName, roleName, la
     ? page.locator(`[data-testid="runtime-artboard"][data-screen-id="${layoutId}"]`)
     : page.locator('[data-testid="runtime-artboard"]');
   await artboard.waitFor({ timeout: 15000 });
-  await waitReady(page);
+  await waitReady(page, ready);
 }
 
 /**

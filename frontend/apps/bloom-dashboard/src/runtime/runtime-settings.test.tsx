@@ -25,6 +25,7 @@ const defaultProfile: ResolvedRuntimeProfile = {
   id: "operator",
   language: "en",
   motorAccessibilityPreset: "default",
+  motionCue: false,
   name: "Camille",
   repeatGuardMs: 0,
   scanPeriodMs: 1400,
@@ -76,6 +77,16 @@ describe("runtime settings", () => {
     const { container } = renderSettings(overrides);
 
     expect(within(container).getByRole("region", { name: "Settings" })).toHaveAttribute("data-assistive", expected);
+  });
+
+  it("keeps motion warnings off until the role turns them on, and saves the choice", () => {
+    const { onSave } = renderSettings();
+    const toggle = screen.getByRole("switch", { name: "Motion warnings" });
+    expect(toggle).toHaveAttribute("aria-checked", "false");
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute("aria-checked", "true");
+    fireEvent.click(screen.getByRole("button", { name: "Save and resume" }));
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ motionCue: true }));
   });
 
   it("keeps the stored setting keys out of what a screen reader reads", () => {

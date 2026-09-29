@@ -282,6 +282,26 @@ export function RuntimeSettingsPanel({
               {profile.audioCues ? strings.settings.valueOn : strings.settings.valueOff}
             </button>
           </div>
+          <div className="runtime-settings-card runtime-settings-card-row">
+            <div>
+              <strong>{strings.settings.motionCue}</strong>
+              <span aria-hidden="true" className="runtime-settings-key">
+                motion_cue
+              </span>
+            </div>
+            <button
+              aria-checked={profile.motionCue}
+              aria-description={strings.settings.motionCueNote}
+              aria-label={strings.settings.motionCue}
+              className="runtime-settings-toggle"
+              onClick={() => update({ ...draft, motionCue: !profile.motionCue })}
+              role="switch"
+              title={strings.settings.motionCueNote}
+              type="button"
+            >
+              {profile.motionCue ? strings.settings.valueOn : strings.settings.valueOff}
+            </button>
+          </div>
 
           <h3 className="runtime-settings-group">{strings.settings.reach}</h3>
           <SettingCard

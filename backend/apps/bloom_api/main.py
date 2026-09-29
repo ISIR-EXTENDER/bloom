@@ -52,6 +52,7 @@ from libs.ros_adapters.safety import (
     petanque_parameter_bounds,
 )
 from libs.ros_adapters.teleop_targets import TeleopTargetDirectory
+from libs.ros_adapters.tip_stream import TipPoseDerivingGateway
 from libs.sessions import (
     InMemoryRuntimeAuditLog,
     NoopRuntimeRecordingGateway,
@@ -132,7 +133,9 @@ def create_app(
     if is_live_subscription_gateway(subscription_gateway):
         # Only around a live gateway, so the Noop stays recognisable and the
         # subscription ack keeps saying no samples will arrive.
-        subscription_gateway = ManipulabilityDerivingGateway(subscription_gateway)
+        subscription_gateway = TipPoseDerivingGateway(
+            ManipulabilityDerivingGateway(subscription_gateway), lambda: measured_tip(app)
+        )
     app.state.runtime_topic_subscription_gateway = subscription_gateway
     app.state.runtime_audit_log = runtime_audit_log or InMemoryRuntimeAuditLog()
     app.state.runtime_command_policy = runtime_command_policy or RuntimeCommandPolicy(
@@ -308,15 +311,23 @@ def create_teleop_command_gateway(settings: Settings, node: object) -> TeleopCom
     )
 
 
+def measured_tip(app: FastAPI) -> tuple[CartesianPose, str] | None:
+    """The tip through TF, from the manager's base frame to qontrol's tip_frame, and that frame; None until known."""
+    source = getattr(app.state, "tip_pose_source", None)
+    facts = manager_facts(app)
+    if source is None or not facts.base_frame or not facts.tip_frame:
+        return None
+    pose = source.lookup(facts.base_frame, facts.tip_frame)
+    return None if pose is None else (pose, facts.tip_frame)
+
+
 def read_hand_pose(app: FastAPI) -> tuple[CartesianPose | None, bool]:
     """The tip measured through TF while joint states are live; else qontrol's commanded /ee_pose, said to be so."""
     tracker: CommandStateTracker = app.state.command_state_tracker
-    facts = manager_facts(app)
-    tip = app.state.tip_pose_source
-    if tip is not None and facts.base_frame and facts.tip_frame and tracker.live_joint_names(LIVE_SAMPLE_SEC):
-        measured = tip.lookup(facts.base_frame, facts.tip_frame)
+    if tracker.live_joint_names(LIVE_SAMPLE_SEC):
+        measured = measured_tip(app)
         if measured is not None:
-            return measured, True
+            return measured[0], True
     live = tracker.live_hand(LIVE_SAMPLE_SEC)
     if live is None:
         return None, False

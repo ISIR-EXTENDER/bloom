@@ -32,6 +32,8 @@ export const WIDGET_MIN_SIZE: Readonly<Record<string, { off: WidgetMinSize; on: 
   "value-strip": { off: [440, 140], on: [440, 140] },
   "joint-table": { off: [480, 280], on: [480, 280] },
   jacobian: { off: [480, 360], on: [480, 360] },
+  // The drive and gripper readings side by side over the verdict log.
+  "motion-check": { off: [720, 520], on: [720, 520] },
   // One bar row per goal, the agnostic one first: three rows and the title.
   "confidence-bars": { off: [280, 160], on: [320, 200] },
 };

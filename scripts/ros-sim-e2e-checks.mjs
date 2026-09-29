@@ -18,7 +18,17 @@ import {
   ROS_TOGGLE,
   saveScreenDraft,
 } from "./lib/builder-authoring.mjs";
-import { BLOCKED_JOINT_RAD, driveVerdict } from "./lib/drive-verdict.mjs";
+import {
+  BLOCKED_JOINT_RAD,
+  FINGER_WAIT_MS,
+  judgeFinger,
+  MIN_DISPLACEMENT_M,
+  MIN_ROTATION_RAD,
+  MOTION_PROFILES,
+  measureDrive,
+  rotationVector,
+  jointGaps as sharedJointGaps,
+} from "./lib/drive-verdict.mjs";
 import {
   assert,
   createChecks,
@@ -43,52 +53,23 @@ const screenDir = resolve(outputDir, "screens");
 
 const ROBOTS = {
   explorer: {
+    // The words, tip frame, finger and why the joints and gripper may not follow: the panel's own profile.
+    ...MOTION_PROFILES.explorer,
     app: "Explorer Manager",
     joints: 6,
     // command_max_linear_velocity is 0.15 m/s, and a Fast segment left from a demo doubles it.
     driveHoldMs: 800,
-    gripper: { close: [1.1], open: [0.2] },
-    // qontrol's tip_frame, and the finger the gripper controller drives (URDF: a larger value is more closed).
-    // Each word's own axis and sign on the wire: extender_ui's validated Explorer profile (swap XY, invert linear x).
-    words: {
-      Forward: "linear.x-",
-      Right: "linear.y+",
-      Up: "linear.z+",
-      "Tilt up": "angular.x+",
-      "Roll right": "angular.y+",
-    },
-    tipFrame: "ft_frame",
-    finger: "right_finger_joint",
-    // Gazebo's pincette ignores its commands from launch until the arm first moves, and at times while the arm is
-    // still: a finger that does not travel is reported; one that travels the wrong way still fails.
-    fingerMayStall: "Gazebo's Explorer gripper can ignore commands while the arm is still",
-    // From the launch pose link_3 rests on Gazebo's ground plane (base_link at z=0) and qontrol integrates its own
-    // command open loop: the joints sag and lag behind /ee_pose. Reported as a WARN; the wrong way still fails.
-    jointsMayLag:
-      "the Gazebo arm rests on the ground plane and qontrol runs open loop, so its joints sag and lag behind /ee_pose",
+    gripper: { close: [MOTION_PROFILES.explorer.gripper.closed], open: [MOTION_PROFILES.explorer.gripper.open] },
     speed: { slow: 0.08, medium: 0.15 },
     goHome: true,
-    // Named rather than tuned around: from the home pose a +angular.y command turns the hand about
-    // (-x, +y) at ~72%, and +linear.y lands anywhere from 80% to 98% along y, run after run. The wire
-    // is right each time; the compromise is qontrol's at that pose.
-    offAxis: ["Right", "Roll right"],
   },
   kinova: {
+    ...MOTION_PROFILES.kinova,
     app: "Kinova Manager",
     joints: 7,
     // command_max_linear_velocity is 0.05 m/s on the gen3.
     driveHoldMs: 2500,
-    gripper: { close: [0.8], open: [0.0] },
-    // The Kinova Manager seed's identity mapping, pinned so a change to it is a decision, not a drift.
-    words: {
-      Forward: "linear.y+",
-      Right: "linear.x+",
-      Up: "linear.z+",
-      "Tilt up": "angular.y+",
-      "Roll right": "angular.x+",
-    },
-    tipFrame: "end_effector_link",
-    finger: "robotiq_85_left_knuckle_joint",
+    gripper: { close: [MOTION_PROFILES.kinova.gripper.closed], open: [MOTION_PROFILES.kinova.gripper.open] },
     speed: { slow: 0.025, medium: 0.05 },
     // cartesian_manager main ships the gen3 its own seven-joint home.
     goHome: true,
@@ -122,14 +103,12 @@ const MANAGER_STATUS = "/cartesian_manager/status";
 const NO_STATUS = `no ${MANAGER_STATUS}: this manager predates cartesian_manager#12`;
 const MARKERS = "/widget_lab/markers";
 const TARGET = "/widget_lab/target";
-const MIN_DISPLACEMENT_M = 0.03;
 /** Go to is back when inside twice the manager's shipped tolerances (1 cm, 0.05 rad), as the widget reads it. */
 const GO_TO_POSITION_M = 0.02;
 const GO_TO_ANGLE_RAD = 0.1;
 /** The backend's default save band (BLOOM_POSE_SAVE_MAX_OFFSET_M / _RAD): a refusal is right only beyond it. */
 const SAVE_BAND_M = 0.02;
 const SAVE_BAND_RAD = 0.1;
-const MIN_ROTATION_RAD = 0.05;
 /**
  * The hand the robot really has: robot_state_publisher's transform from its joint states, the same kinematics the
  * 3D view draws. qontrol's /ee_pose is the pose of its own integrated command, and stays flat while a stalled joint
@@ -138,12 +117,6 @@ const MIN_ROTATION_RAD = 0.05;
 const HAND = `tf:base_link->${robot.tipFrame}`;
 const JOINTS = STACK.jointStates;
 const QONTROL_COMMANDS = STACK.qontrolCommands;
-/** A horizontal push may not lower the hand more than this, nor take it this much further from the command. */
-const MAX_SAG_M = 0.01;
-const MAX_COMMAND_GAP_M = 0.015;
-/** A gripper press must move the finger at least this far, the right way, within the wait. */
-const MIN_FINGER_TRAVEL_RAD = 0.3;
-const FINGER_WAIT_MS = 4000;
 /**
  * One end of each Drive control, as the operator reads it. The wire must carry one unit component and the
  * simulated hand must move along that component in the base frame; which base axis a word drives is the
@@ -164,13 +137,16 @@ const gestures = {};
 const browser = await chromium.launch({ channel: "chrome" }).catch(() => chromium.launch());
 const { check, results, shot } = createChecks({ screenDir, prefix: `${robotKey}-`, recover });
 const newPage = (viewport) => newBrowserPage(browser, viewport);
-const openApp = (page, appName, roleName, layoutId) =>
-  openRuntimeApp(page, dashboardUrl, { appName, roleName, layoutId });
+const openApp = (page, appName, roleName, layoutId, ready) =>
+  openRuntimeApp(page, dashboardUrl, { appName, ready, roleName, layoutId });
+/** A page opened beside the one driving: it watches, so it may read NOT IN CONTROL. */
+const WATCHING = /^(READY|DEBUG|NOT IN CONTROL)$/;
 try {
   await operatorSession();
   await behavioursSession();
   await benchSession();
   await debugSession();
+  await motionPanelSession();
   await authoredSession();
   await freshAppSession();
   await labSession();
@@ -910,6 +886,111 @@ async function debugSession() {
   }
 }
 
+/**
+ * Bloom Debug's Command vs motion panel beside a live Drive: a push and a gripper press on the operator screen, and
+ * the verdict the panel draws from the wire, /ee_pose, the tip through TF and the joints (motion-verdict.ts).
+ */
+async function motionPanelSession() {
+  const debug = await newPage({ width: 1920, height: 1080 });
+  const drive = await newPage({ width: 1280, height: 720 });
+  const panel = debug.page.locator(".bloom-motion-check");
+  const drivePane = debug.page.getByRole("region", { name: "Drive" });
+  const gripperPane = debug.page.getByRole("region", { name: "Gripper" });
+  const reading = (pane, name) => pane.locator(`[data-reading="${name}"]`).textContent();
+  try {
+    const opened = await check(debug.page, "command-vs-motion-opens", async () => {
+      // The operator screen first: it holds control, and the panel beside it only watches.
+      await openApp(drive.page, robot.app, "Operator", "manager_drive_operator");
+      await openApp(debug.page, "Bloom Debug", undefined, "runtime-topic-monitor", WATCHING);
+      await openScreen(debug.page, "Command vs motion", "command-motion", WATCHING);
+      // The tip streams once TF and qontrol's tip_frame are known to the backend.
+      const readout = panel.locator(".bloom-widget-readout");
+      await expect(readout).toContainText(`tip ${robot.tipFrame}`, { timeout: 20000 });
+      return (await readout.textContent())?.trim();
+    });
+    if (!opened) {
+      return;
+    }
+
+    await check(debug.page, "command-vs-motion-judges-a-push", async () => {
+      if (robot.settle) {
+        const settle = await pressSliderEnd(drive.page, robot.settle.control, robot.settle.end);
+        await drive.page.waitForTimeout(robot.driveHoldMs);
+        await settle();
+        await ros.waitFor(TWIST, (data) => isZeroTwist(data), { since: Date.now(), timeoutMs: 2000 });
+        await drive.page.waitForTimeout(800);
+      }
+      const translation = drive.page.getByRole("application", { name: "Translation" });
+      const release = await pressJoystick(drive.page, translation, { x: 0, y: 2 });
+      await expect(drivePane).toHaveAttribute("data-phase", "held", { timeout: 3000 });
+      await drive.page.waitForTimeout(robot.driveHoldMs);
+      await shot(debug.page, "command-vs-motion-held");
+      await release();
+      await expect(drivePane).toHaveAttribute("data-phase", "judged", { timeout: 5000 });
+      const chip = drivePane.locator("header .bloom-motion-chip");
+      const verdict = (await chip.textContent())?.trim();
+      const grade = await chip.getAttribute("data-grade");
+      const wire = await reading(drivePane, "wire");
+      const text = [
+        `wire ${wire}`,
+        `commanded ${await reading(drivePane, "commanded")}`,
+        `measured ${await reading(drivePane, "measured")}`,
+        `agreement ${await reading(drivePane, "agreement")}`,
+        `dip ${await reading(drivePane, "dip")}`,
+        `joints short ${await reading(drivePane, "joints")}`,
+      ].join("; ");
+      await shot(debug.page, "command-vs-motion-drive");
+      const back = await pressJoystick(drive.page, translation, { x: 0, y: -2 });
+      await drive.page.waitForTimeout(robot.driveHoldMs);
+      await back();
+      await ros.waitFor(TWIST, (data) => isZeroTwist(data), { since: Date.now(), timeoutMs: 2000 });
+      assert(wire?.includes("Forward"), `the panel named the push ${text}`);
+      if (!robot.jointsMayLag) {
+        // Mock hardware: the joints are the command, so a clean push must read follows.
+        assert(verdict === "follows" && grade === "pass", `${verdict} (${grade}): ${text}`);
+        return `${verdict}: ${text}`;
+      }
+      // Gazebo: the arm sags and lags behind qontrol's open-loop command, a WARN; the wrong way still fails.
+      assert(grade !== "fail", `${verdict} (${grade}): ${text}`);
+      return verdict === "follows" ? `follows this run: ${text}` : `WARN ${verdict}: ${text} (${robot.jointsMayLag})`;
+    });
+
+    await check(debug.page, "command-vs-motion-judges-the-gripper", async () => {
+      const middle = (robot.gripper.close[0] + robot.gripper.open[0]) / 2;
+      if ((await settledFinger()) > middle) {
+        await (await offerGripper(drive.page, "Open")).click();
+        await expect(gripperPane)
+          .toHaveAttribute("data-phase", "judged", { timeout: 8000 })
+          .catch(() => undefined);
+        await settledFinger();
+      }
+      const close = await offerGripper(drive.page, "Close");
+      await close.click();
+      await expect(gripperPane.locator('[data-reading="gripper-command"]')).toContainText("Close", { timeout: 5000 });
+      await expect(gripperPane).toHaveAttribute("data-phase", "judged", { timeout: 8000 });
+      await debug.page.waitForTimeout(1500);
+      const chip = gripperPane.locator("header .bloom-motion-chip");
+      const verdict = (await chip.textContent())?.trim();
+      const grade = await chip.getAttribute("data-grade");
+      const text = [
+        `command ${await reading(gripperPane, "gripper-command")}`,
+        `${robot.finger} ${await reading(gripperPane, "finger")}`,
+        `started ${await reading(gripperPane, "start")}`,
+        `arrived ${await reading(gripperPane, "arrive")}`,
+      ].join("; ");
+      await shot(debug.page, "command-vs-motion-gripper");
+      if (verdict === "moves as asked") {
+        return `${verdict}: ${text}`;
+      }
+      assert(robot.fingerMayStall && grade === "warn", `${verdict} (${grade}): ${text}`);
+      return `WARN ${verdict}: ${text} (${robot.fingerMayStall})`;
+    });
+  } finally {
+    await debug.context.close();
+    await drive.context.close();
+  }
+}
+
 /** What an author builds reaches the graph: the Builder harness stops at the API, this presses the result. */
 async function authoredSession() {
   const { context, page } = await newPage({ width: 1600, height: 1000 });
@@ -1427,49 +1508,26 @@ async function driveGestureAndMeasure(page, gesture) {
   const end = ros.latest(POSE).data;
   const endHand = ros.latest(HAND).data;
   const gaps = jointGaps();
-  const components = [...axes(wire.linear, "linear"), ...axes(wire.angular, "angular")].filter(
-    (c) => Math.abs(c.value) > 1e-6,
-  );
-  assert(components.length === 1 && Math.abs(components[0].value) > 0.5, `${gesture.word}: wire ${fmtTwist(wire)}`);
-  const [component] = components;
-  const floor = component.part === "linear" ? MIN_DISPLACEMENT_M : MIN_ROTATION_RAD;
-  const follow = (from, to) => {
-    const moved =
-      component.part === "linear"
-        ? subtract(to.position, from.position)
-        : rotationVector(from.orientation, to.orientation);
-    const magnitude = Math.hypot(moved.x, moved.y, moved.z);
-    return { along: (moved[component.axis] * Math.sign(component.value)) / magnitude, magnitude, moved };
-  };
-  // What qontrol commanded (/ee_pose), and what the joints did (the hand the 3D view draws).
-  const { moved, along, magnitude } = follow(start, end);
-  const measured = follow(startHand, endHand);
-  // The Explorer's Right lands 89-98% along its axis from the home pose, the QP's compromise, not the wire.
-  const commanded = magnitude > floor && along > 0.85;
-  // A horizontal push must not sag: the lowest the measured hand went while held, and where it stopped.
-  const horizontal = component.part === "linear" && component.axis !== "z";
-  const dip = horizontal ? lowestDip(startHand, ros.since(HAND, since)) : 0;
-  // How much further from qontrol's command the joints left the hand during this push alone.
-  const gap = distance(end.position, endHand.position) - distance(start.position, startHand.position);
-  const sagged = dip > MAX_SAG_M;
-  const drifted = horizontal && gap > MAX_COMMAND_GAP_M;
-  const joints = measured.magnitude > floor && measured.along > 0.85;
-  const tolerance = component.part === "linear" ? MAX_SAG_M : MIN_ROTATION_RAD;
-  const against = -measured.moved[component.axis] * Math.sign(component.value);
-  const wireWord = `${component.part}.${component.axis}${component.value > 0 ? "+" : "-"}`;
-  const verdict = driveVerdict({
-    commandedAgainst: -moved[component.axis] * Math.sign(component.value),
-    commandedFollowed: commanded,
-    drifted,
-    jointsMayLag: robot.jointsMayLag,
-    known: (robot.offAxis ?? []).includes(gesture.word),
-    maxJointGap: Math.max(0, ...gaps.map((row) => Math.abs(row.gap))),
-    measuredAgainst: against,
-    measuredFollowed: joints,
-    sagged,
-    tolerance,
-    wireOk: robot.words[gesture.word] === wireWord,
+  // What qontrol commanded (/ee_pose), and what the joints did (the hand the 3D view draws): the panel's own rules.
+  const measure = measureDrive({
+    end,
+    endHand,
+    gaps,
+    lowestHandZ: Math.min(endHand.position.z, ...ros.since(HAND, since).map((sample) => sample.data.position.z)),
+    profile: robot,
+    start,
+    startHand,
+    wire,
+    word: gesture.word,
   });
+  assert(measure, `${gesture.word}: wire ${fmtTwist(wire)}`);
+  const { component, dip, gap, horizontal, verdict, unit } = measure;
+  const { moved, along } = measure.commanded;
+  const measured = measure.measured;
+  const joints = measured.followed;
+  const { sagged, drifted, tolerance } = measure.row;
+  const against = measured.against;
+  const wireWord = measure.wireAxis;
   const ok = verdict.verdict === "pass";
   // the stroke back, so the next gesture starts near the same pose
   const back = gesture.pad
@@ -1481,7 +1539,6 @@ async function driveGestureAndMeasure(page, gesture) {
   await page.waitForTimeout(robot.driveHoldMs);
   await back();
   await ros.waitFor(TWIST, (data) => isZeroTwist(data), { since: Date.now(), timeoutMs: 2000 });
-  const unit = component.part === "linear" ? "m" : "rad";
   const sign = component.value > 0 ? "+" : "-";
   const flaws = [
     ...(robot.words[gesture.word] === wireWord
@@ -1527,10 +1584,6 @@ async function pressSliderEnd(page, name, end) {
   };
 }
 
-function axes(vector, part) {
-  return ["x", "y", "z"].map((axis) => ({ axis, part, value: vector[axis] }));
-}
-
 /** The finger once it has stopped: an Open pressed by offerGripper may still be moving it. */
 async function settledFinger() {
   let last = fingerPosition();
@@ -1559,7 +1612,7 @@ async function fingerMoved(before, direction, since, word) {
   assert(before !== null, `no ${robot.finger} in ${JOINTS}`);
   const travelled = (data) => direction * (data.position[data.name.indexOf(robot.finger)] - before);
   const moved = await ros
-    .waitFor(JOINTS, (data) => Math.abs(travelled(data)) > MIN_FINGER_TRAVEL_RAD, { since, timeoutMs: FINGER_WAIT_MS })
+    .waitFor(JOINTS, (data) => judgeFinger(travelled(data)) !== null, { since, timeoutMs: FINGER_WAIT_MS })
     .catch(() => null);
   const went = (now) => `${word}: ${robot.finger} ${before.toFixed(2)} -> ${now.toFixed(2)} rad`;
   if (moved === null) {
@@ -1567,35 +1620,17 @@ async function fingerMoved(before, direction, since, word) {
     assert(robot.fingerMayStall, `${went(now)} in ${FINGER_WAIT_MS} ms, no travel`);
     return `${before.toFixed(2)} -> ${now.toFixed(2)} rad, WARN no travel in ${FINGER_WAIT_MS} ms: ${robot.fingerMayStall}`;
   }
-  assert(travelled(moved) > 0, `${went(moved.position[moved.name.indexOf(robot.finger)])}: the opposite way`);
+  assert(
+    judgeFinger(travelled(moved)) === "moves",
+    `${went(moved.position[moved.name.indexOf(robot.finger)])}: the opposite way`,
+  );
   await new Promise((resolveWait) => setTimeout(resolveWait, 600));
   return `${before.toFixed(2)} -> ${fingerPosition().toFixed(2)} rad`;
 }
 
-/** How far below its start the measured hand went at its lowest, in metres (0 when it never went lower). */
-function lowestDip(start, samples) {
-  return Math.max(0, ...samples.map((sample) => start.position.z - sample.data.position.z));
-}
-
 /** Each arm joint's command minus its position, largest first: a joint blocked by a contact shows here. */
 function jointGaps() {
-  const command = ros.latest(QONTROL_COMMANDS)?.data.data;
-  const joints = ros.latest(JOINTS)?.data;
-  if (!command || !joints) {
-    return [];
-  }
-  return command
-    .map((value, index) => {
-      const name = `joint_${index + 1}`;
-      const at = joints.name.indexOf(name);
-      return at < 0 ? null : { gap: value - joints.position[at], name };
-    })
-    .filter(Boolean)
-    .sort((a, b) => Math.abs(b.gap) - Math.abs(a.gap));
-}
-
-function subtract(a, b) {
-  return { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z };
+  return sharedJointGaps(ros.latest(QONTROL_COMMANDS)?.data.data, ros.latest(JOINTS)?.data);
 }
 
 /** Pivot's left end is +angular.z on the wire, and the hand must yaw the same way about the base z axis. */
@@ -1631,22 +1666,6 @@ async function pivotAndMeasure(page) {
   return `wire ${fmtTwist(wire)}; hand yawed ${turned.z.toFixed(3)} rad about base z (${fmtVector(turned)})`;
 }
 
-/** The rotation that takes orientation `from` to `to`, as an axis-angle vector in the base frame. */
-function rotationVector(from, to) {
-  const c = { x: -from.x, y: -from.y, z: -from.z, w: from.w };
-  const a = to;
-  const q = {
-    w: a.w * c.w - a.x * c.x - a.y * c.y - a.z * c.z,
-    x: a.w * c.x + a.x * c.w + a.y * c.z - a.z * c.y,
-    y: a.w * c.y - a.x * c.z + a.y * c.w + a.z * c.x,
-    z: a.w * c.z + a.x * c.y - a.y * c.x + a.z * c.w,
-  };
-  const sine = Math.hypot(q.x, q.y, q.z);
-  const angle = 2 * Math.atan2(sine, q.w);
-  const scale = sine > 1e-9 ? angle / sine : 0;
-  return { x: q.x * scale, y: q.y * scale, z: q.z * scale };
-}
-
 async function pressJoystick(page, locator, deflection) {
   const box = await locator.boundingBox();
   const radius = Math.min(box.width, box.height) / 2;
@@ -1676,7 +1695,7 @@ async function openMaintenance(page) {
   await dialog.waitFor();
 }
 
-async function openScreen(page, title, layoutId) {
+async function openScreen(page, title, layoutId, ready) {
   await openMaintenance(page);
   await page
     .getByRole("dialog", { name: "Maintenance" })
@@ -1685,7 +1704,7 @@ async function openScreen(page, title, layoutId) {
     .click();
   await page.getByRole("dialog", { name: "Maintenance" }).waitFor({ state: "hidden" });
   await page.locator(`[data-testid="runtime-artboard"][data-screen-id="${layoutId}"]`).waitFor();
-  await waitReady(page);
+  await waitReady(page, ready);
 }
 
 async function readStop(page) {

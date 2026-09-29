@@ -14,6 +14,8 @@ export * from "./legacy-widgets";
 export * from "./manager-behaviours";
 export * from "./min-size";
 export * from "./mode-request";
+export * from "./motion-check";
+export * from "./motion-verdict";
 export * from "./numbers";
 export * from "./operator-glossary";
 export * from "./pad-geometry";

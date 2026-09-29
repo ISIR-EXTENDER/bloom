@@ -83,6 +83,8 @@ export const WIDGET_MIN_SIZE = {
   // Bloom Debug (desktop): a scrolling joint table, and a 6-column matrix with its manipulability row.
   'joint-table':       { off: [480, 280], on: [480, 280] },
   jacobian:            { off: [480, 360], on: [480, 360] },
+  // The drive and gripper readings side by side over the verdict log.
+  'motion-check':      { off: [720, 520], on: [720, 520] },
   // One bar row per goal, the agnostic one first: three rows and the title; more rows scroll inside the card.
   'confidence-bars':   { off: [280, 160], on: [320, 200] },
 };

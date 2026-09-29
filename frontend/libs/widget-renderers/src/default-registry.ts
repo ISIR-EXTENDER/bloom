@@ -7,6 +7,7 @@ import { EventLogWidget, GaugeWidget, PlotWidget } from "./display-renderers";
 import { PlaceholderWidget } from "./fallback-renderers";
 import { GesturePadWidget } from "./gesture-pad-renderer";
 import { JoystickWidget } from "./joystick-renderer";
+import { MotionCheckWidget } from "./motion-check-renderer";
 import { PlotBoardWidget, PlotPickerWidget, ValueStripWidget } from "./plot-board-renderer";
 import { PositionLibraryWidget } from "./position-library-renderer";
 import { Robot3dWidget } from "./robot-3d-renderer";
@@ -26,6 +27,7 @@ export const DEFAULT_WIDGET_RENDERERS: readonly WidgetRendererRegistration[] = [
   { kind: "gesture-pad", render: GesturePadWidget },
   { kind: "jacobian", render: JacobianWidget },
   { kind: "joint-table", render: JointTableWidget },
+  { kind: "motion-check", render: MotionCheckWidget },
   { kind: "plot", render: PlotWidget },
   { kind: "plot-board", render: PlotBoardWidget },
   { kind: "plot-picker", render: PlotPickerWidget },

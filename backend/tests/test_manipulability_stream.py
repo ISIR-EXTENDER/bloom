@@ -6,6 +6,7 @@ from apps.bloom_api.main import create_app
 from apps.bloom_api.settings import Settings
 from libs.config import InMemoryConfigurationRepository
 from libs.ros_adapters.manipulability import ManipulabilityDerivingGateway, measure_from_sample_value
+from libs.ros_adapters.tip_stream import TipPoseDerivingGateway
 from libs.sessions import (
     NoopRuntimeTopicSubscriptionGateway,
     RuntimeTopicSample,
@@ -96,7 +97,10 @@ def test_create_app_wraps_only_live_subscription_gateways() -> None:
         runtime_topic_subscription_gateway=NoopRuntimeTopicSubscriptionGateway(),
     )
 
-    assert isinstance(live.state.runtime_topic_subscription_gateway, ManipulabilityDerivingGateway)
+    # The tip stream wraps the manipulability one: both derive from a live gateway only.
+    outer = live.state.runtime_topic_subscription_gateway
+    assert isinstance(outer, TipPoseDerivingGateway)
+    assert isinstance(outer._inner, ManipulabilityDerivingGateway)
     # The Noop must stay recognisable, so subscription acks keep saying that
     # no samples will ever arrive.
     assert not is_live_subscription_gateway(noop.state.runtime_topic_subscription_gateway)

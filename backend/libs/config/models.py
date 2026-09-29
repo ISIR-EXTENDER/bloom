@@ -19,6 +19,7 @@ class WidgetKind(str, Enum):
     JOINT_TABLE = "joint-table"
     JOYSTICK = "joystick"
     LABEL = "label"
+    MOTION_CHECK = "motion-check"
     PLOT = "plot"
     PLOT_BOARD = "plot-board"
     PLOT_PICKER = "plot-picker"

@@ -105,6 +105,7 @@ const READING_KINDS = new Set([
   "gauge",
   "jacobian",
   "joint-table",
+  "motion-check",
   "plot",
   "topic-echo",
   "topic-plot",
@@ -369,4 +370,23 @@ export function resolvePublishedMessageType(
   );
   // A slider's number goes out as Float64 when nothing names a type.
   return named?.trim() ?? (kind === "slider" ? "std_msgs/msg/Float64" : null);
+}
+
+/** Kinds that only read or draw: nothing they do reaches the robot. */
+const WATCH_KINDS = new Set([
+  ...READING_KINDS,
+  "camera",
+  "label",
+  "plot-board",
+  "plot-picker",
+  "robot-3d",
+  "value-strip",
+]);
+
+/**
+ * A screen that only watches, such as Bloom Debug's: it needs no robot control, so a bench can read it beside the
+ * tablet that drives. The server still refuses any send from a session that does not own control.
+ */
+export function isWatchOnlyScreen(screen: { widgets: readonly { kind: string }[] }): boolean {
+  return screen.widgets.every((widget) => WATCH_KINDS.has(widget.kind));
 }

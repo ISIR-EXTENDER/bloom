@@ -9,6 +9,7 @@ import { jacobianContract } from "./settings/jacobian";
 import { jointTableContract } from "./settings/joint-table";
 import { joystickContract, normalizeJoystickCompatibility } from "./settings/joystick";
 import { labelContract } from "./settings/label";
+import { motionCheckContract } from "./settings/motion-check";
 import { plotContract } from "./settings/plot";
 import { plotBoardContract } from "./settings/plot-board";
 import { plotPickerContract } from "./settings/plot-picker";
@@ -32,6 +33,7 @@ export * from "./settings/jacobian";
 export * from "./settings/joint-table";
 export * from "./settings/joystick";
 export * from "./settings/label";
+export * from "./settings/motion-check";
 export * from "./settings/plot";
 export * from "./settings/plot-board";
 export * from "./settings/plot-picker";
@@ -54,6 +56,7 @@ export const WIDGET_SETTINGS_CONTRACTS: Readonly<Record<WidgetKind, WidgetSettin
   "gesture-pad": gesturePadContract,
   joystick: joystickContract,
   label: labelContract,
+  "motion-check": motionCheckContract,
   plot: plotContract,
   slider: sliderContract,
   toggle: toggleContract,

@@ -4,13 +4,18 @@ import {
   appendTopicEchoMessage,
   appendTopicPlotSample,
   asRecord,
+  createMotionCheckState,
   getNumberSetting,
+  MOTION_TIP_FIELD_PATH,
+  type MotionRobot,
+  type MotionStream,
   readConfidences,
   readNumber,
   readOptionalString,
   resolveSubscriptionTopic,
   type SavedHandPose,
   sameConfidences,
+  stepMotionCheck,
 } from "@bloom/widgets";
 import { appendSeriesSample, createSeriesSubscriptionRequests, isSeriesWidget, seriesTopics } from "./plot-series-data";
 import type { RuntimeTopicSampleMessage, RuntimeTopicSubscriptionRequest } from "./runtime-action-dispatcher";
@@ -42,7 +47,64 @@ export function createRuntimeTopicSubscriptionRequests(screen: ScreenConfig): Ru
       widget_id: widget.id,
     })),
   );
-  return [...widgetRequests, ...viewRequests, ...createSeriesSubscriptionRequests(screen, widgetRequests)];
+  const motionRequests = screen.widgets.flatMap((widget): RuntimeTopicSubscriptionRequest[] =>
+    resolveMotionCheckTopics(widget)
+      .filter((extra) => extra.stream !== "twist")
+      .map((extra) => ({
+        type: "subscribe_topic",
+        topic: extra.topic,
+        message_type: extra.messageType,
+        field_path: extra.fieldPath,
+        widget_id: widget.id,
+      })),
+  );
+  return [
+    ...widgetRequests,
+    ...viewRequests,
+    ...motionRequests,
+    ...createSeriesSubscriptionRequests(screen, widgetRequests),
+  ];
+}
+
+/** What a Command vs motion panel reads, each stepped into its tracker as its own stream; the wire is its topic. */
+const MOTION_CHECK_TOPICS: readonly {
+  fieldPath: string;
+  messageType: string;
+  setting: string;
+  stream: MotionStream;
+}[] = [
+  { fieldPath: "", messageType: "geometry_msgs/msg/TwistStamped", setting: "topic", stream: "twist" },
+  { fieldPath: "", messageType: "geometry_msgs/msg/PoseStamped", setting: "poseTopic", stream: "pose" },
+  // The backend looks the tip up through TF and streams only that transform, not the whole tree.
+  { fieldPath: MOTION_TIP_FIELD_PATH, messageType: "tf2_msgs/msg/TFMessage", setting: "tipTopic", stream: "tip" },
+  { fieldPath: "", messageType: "sensor_msgs/msg/JointState", setting: "jointStateTopic", stream: "joints" },
+  {
+    fieldPath: "",
+    messageType: "std_msgs/msg/Float64MultiArray",
+    setting: "jointCommandTopic",
+    stream: "jointCommand",
+  },
+  { fieldPath: "", messageType: "std_msgs/msg/Float64MultiArray", setting: "gripperTopic", stream: "gripper" },
+];
+
+type MotionCheckTopic = { fieldPath: string; messageType: string; stream: MotionStream; topic: string };
+
+/** Every topic a Command vs motion panel names, the wire first. */
+export function resolveMotionCheckTopics(widget: WidgetConfig): MotionCheckTopic[] {
+  if (widget.kind !== "motion-check") {
+    return [];
+  }
+  return MOTION_CHECK_TOPICS.flatMap((entry) => {
+    const topic = readOptionalString(widget.settings[entry.setting]);
+    return topic?.startsWith("/")
+      ? [{ fieldPath: entry.fieldPath, messageType: entry.messageType, stream: entry.stream, topic }]
+      : [];
+  });
+}
+
+/** The rules a panel judges by: its own choice, else the robot the runtime filled in, else the Explorer's. */
+export function motionCheckRobot(widget: WidgetConfig): MotionRobot {
+  return widget.settings.robot === "kinova" ? "kinova" : "explorer";
 }
 
 /** What a 3D robot view reads beside its joint states, each kept under its own field of the snapshot. */
@@ -212,9 +274,12 @@ function widgetTopics(widget: WidgetConfig): string[] {
   }
   const own = resolveWidgetRuntimeTopic(widget);
   return [
-    ...(own ? [own] : []),
-    ...resolveRobotViewTopics(widget).map((extra) => extra.topic),
-    ...resolveHandPoseTopics(widget).map((extra) => extra.topic),
+    ...new Set([
+      ...(own ? [own] : []),
+      ...resolveRobotViewTopics(widget).map((extra) => extra.topic),
+      ...resolveHandPoseTopics(widget).map((extra) => extra.topic),
+      ...resolveMotionCheckTopics(widget).map((extra) => extra.topic),
+    ]),
   ];
 }
 
@@ -236,6 +301,23 @@ export function appendRuntimeTopicSample(
       if (series) {
         nextData = nextData ?? { ...currentData };
         nextData[widget.id] = series;
+      }
+      continue;
+    }
+    if (widget.kind === "motion-check") {
+      const robot = motionCheckRobot(widget);
+      const current = currentData[widget.id];
+      let state = current?.type === "motion-check" && current.state.robot === robot ? current.state : null;
+      const parsed = Date.parse(topicMessage.receivedAt);
+      const at = Number.isFinite(parsed) ? parsed : Date.now();
+      for (const extra of resolveMotionCheckTopics(widget)) {
+        if (extra.topic === sample.payload.topic) {
+          state = stepMotionCheck(state ?? createMotionCheckState(robot), extra.stream, topicMessage.value, at);
+        }
+      }
+      if (state && (current?.type !== "motion-check" || state !== current.state)) {
+        nextData = nextData ?? { ...currentData };
+        nextData[widget.id] = { state, type: "motion-check" };
       }
       continue;
     }
@@ -418,6 +500,9 @@ export function resolveWidgetRuntimeTopic(widget: WidgetConfig): string | undefi
 function resolveWidgetRuntimeMessageType(widget: WidgetConfig): string {
   if (widget.kind === "robot-3d" || widget.kind === "position-library") {
     return "sensor_msgs/msg/JointState";
+  }
+  if (widget.kind === "motion-check") {
+    return readOptionalString(widget.settings.messageType) ?? "geometry_msgs/msg/TwistStamped";
   }
   return readOptionalString(widget.settings.messageType) ?? "";
 }

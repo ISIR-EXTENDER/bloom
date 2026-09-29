@@ -21,6 +21,8 @@ export type ResolvedRuntimeProfile = {
   id: string;
   language: RuntimeLanguage;
   motorAccessibilityPreset: UserProfile["motor_accessibility_preset"];
+  /** Whether the bar warns when a verdict says the hand went the wrong way or the gripper did not move; a device choice. */
+  motionCue: boolean;
   name: string;
   /** Whether the bar offers practice when the app opens; a device choice, never authored. */
   practiceOffer: "off" | "start";
@@ -40,6 +42,7 @@ const DEFAULT_RUNTIME_PROFILE: ResolvedRuntimeProfile = {
   id: "default",
   language: "en",
   motorAccessibilityPreset: "default",
+  motionCue: false,
   name: "Default",
   practiceOffer: "start",
   themePresetId: null,
@@ -102,6 +105,7 @@ export function applyRuntimeProfileOverrides(
     fontScale: clampFontScale(overrides.fontScale ?? profile.fontScale),
     language: overrides.language ?? profile.language,
     motorAccessibilityPreset,
+    motionCue: overrides.motionCue ?? profile.motionCue,
     practiceOffer: overrides.practiceOffer ?? profile.practiceOffer,
     repeatGuardMs: clampRange(overrides.repeatGuardMs ?? profile.repeatGuardMs, 0, 600),
     scanPeriodMs: clampRange(overrides.scanPeriodMs ?? profile.scanPeriodMs, 600, 3000),
@@ -148,6 +152,7 @@ function normalizeRuntimeProfile(profile: UserProfile | ResolvedRuntimeProfile):
       id: profile.id,
       language: profile.language ?? "en",
       motorAccessibilityPreset: profile.motor_accessibility_preset,
+      motionCue: false,
       name: profile.name,
       practiceOffer: "start",
       themePresetId: readProfileThemePresetId(profile.app_theme_preset_id),
@@ -166,6 +171,7 @@ function normalizeRuntimeProfile(profile: UserProfile | ResolvedRuntimeProfile):
     id: profile.id,
     language: profile.language,
     motorAccessibilityPreset: profile.motorAccessibilityPreset,
+    motionCue: profile.motionCue,
     name: profile.name,
     practiceOffer: profile.practiceOffer,
     themePresetId: profile.themePresetId,

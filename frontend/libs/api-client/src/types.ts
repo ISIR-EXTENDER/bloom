@@ -11,6 +11,7 @@ export const WIDGET_KINDS = [
   "joint-table",
   "joystick",
   "label",
+  "motion-check",
   "plot",
   "plot-board",
   "plot-picker",

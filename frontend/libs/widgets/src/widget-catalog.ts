@@ -249,6 +249,21 @@ export const DEFAULT_WIDGET_DEFINITIONS: readonly WidgetDefinition[] = [
     editor: createDefaultEditorCapabilities(["backgroundColor", "textColor"]),
   },
   {
+    kind: "motion-check",
+    displayName: "Command vs motion",
+    category: "feedback",
+    description:
+      "Judges each Drive push and gripper press: the wire, the commanded hand, the measured tip and the joints short of their command.",
+    defaultTitle: "Command vs motion",
+    defaultSettings: wired("motion-check"),
+    defaultLayout: { width: 1460, height: 736, minWidth: 720, minHeight: 520 },
+    runtimeRequirements: ["data-source"],
+    maturity: "ready",
+    maturityNote: "The measured tip needs the backend's TF listener; without it the verdict rests on /ee_pose alone.",
+    availability: { editor: true, runtime: true },
+    editor: createDefaultEditorCapabilities(["backgroundColor", "textColor"]),
+  },
+  {
     kind: "plot-board",
     displayName: "Plot board",
     category: "feedback",

@@ -41,6 +41,7 @@ const profile: ResolvedRuntimeProfile = {
   id: "operator",
   language: "en",
   motorAccessibilityPreset: "default",
+  motionCue: false,
   name: "Operator",
   repeatGuardMs: 0,
   scanPeriodMs: 1400,

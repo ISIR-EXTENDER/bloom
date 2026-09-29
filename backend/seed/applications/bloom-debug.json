@@ -368,6 +368,75 @@
               "height": 144
             }
           ]
+        },
+        {
+          "id": "command-motion",
+          "title": "Command vs motion",
+          "canvas": {
+            "preset_id": "full-hd",
+            "runtime_mode": "fit"
+          },
+          "widgets": [
+            {
+              "id": "debug-motion-check",
+              "kind": "motion-check",
+              "title": "Command vs motion",
+              "layout": {
+                "x": 14,
+                "y": 130,
+                "width": 1460,
+                "height": 892
+              },
+              "settings": {
+                "topic": "/joystick_cartesian_command",
+                "messageType": "geometry_msgs/msg/TwistStamped",
+                "poseTopic": "/ee_pose",
+                "tipTopic": "/tf",
+                "jointStateTopic": "/joint_states",
+                "jointCommandTopic": "/qontrol_controller/commands",
+                "gripperTopic": "/gripper_controller/commands",
+                "robot": "auto",
+                "show_details": false
+              }
+            },
+            {
+              "id": "debug-gripper-echo",
+              "kind": "topic-echo",
+              "title": "Gripper commands",
+              "layout": {
+                "x": 1486,
+                "y": 130,
+                "width": 420,
+                "height": 736
+              },
+              "settings": {
+                "topic": "/gripper_controller/commands",
+                "messageType": "std_msgs/msg/Float64MultiArray",
+                "fieldPath": "data",
+                "maxMessages": 20,
+                "prettyPrint": false,
+                "show_details": true
+              }
+            }
+          ],
+          "reserved_regions": [
+            {
+              "id": "debug-status",
+              "owner": "runtime-chrome",
+              "x": 14,
+              "y": 14,
+              "width": 1892,
+              "height": 104
+            },
+            {
+              "id": "stop",
+              "owner": "runtime-chrome",
+              "x": 1486,
+              "y": 878,
+              "width": 420,
+              "height": 144
+            }
+          ]
         }
       ]
     }

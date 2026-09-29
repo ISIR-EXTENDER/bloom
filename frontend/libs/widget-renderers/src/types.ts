@@ -1,5 +1,6 @@
 import type { MotorAccessibilityPreset, RuntimeLanguage, WidgetKind } from "@bloom/api-client";
 import type {
+  MotionCheckState,
   PlotSeriesConfig,
   PlotSeriesSample,
   SavedHandPose,
@@ -105,6 +106,11 @@ export type WidgetDataSnapshot =
       softGoalReceivedAt?: string;
       /** The twist the runtime is sending right now, absent when it is not driving. */
       command?: CommandedTwist;
+    }
+  | {
+      /** Command vs motion: the push and press in progress and the verdicts so far. */
+      state: MotionCheckState;
+      type: "motion-check";
     }
   | {
       samples: readonly TopicPlotSample[];

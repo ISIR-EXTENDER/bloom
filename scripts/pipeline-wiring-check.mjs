@@ -265,6 +265,10 @@ const READ_KEYS = [
   "goalsTopic",
   "softGoalTopic",
   "eePoseTopic",
+  // Command vs motion reads the tip through TF, qontrol's joint command and the gripper command beside its wire.
+  "tipTopic",
+  "jointCommandTopic",
+  "gripperTopic",
 ];
 /**
  * A position library with Go to: only the server's Go to route sends a saved hand pose to the manager's pose

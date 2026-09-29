@@ -26,6 +26,23 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Added
 
+- **Command vs motion, on Bloom Debug.** A new screen (and widget kind, `motion-check`) follows each Drive push from the
+  wire to what qontrol commanded (`/ee_pose`) and to the tip the joints really put there (TF, base frame to qontrol's
+  `tip_frame`, streamed by the backend on `/tf` with field path `tip_pose`, one transform per joint state): the wire's
+  axis and word, both hand motions, the agreement along the command, the vertical dip and the joints short of their
+  command, ending in **follows**, **lags**, **blocked** or **WRONG WAY**. A gripper press shows the value and word
+  sent, the finger over time, its travel, when it started and arrived, and **moves as asked**, **did not move within
+  4 s** or **WRONG WAY**. The last 20 verdicts export as CSV. The rules and thresholds are the simulation checks' own,
+  now in one module (`frontend/libs/widgets/src/motion-verdict.ts`) that `scripts/lib/drive-verdict.mjs` re-exports.
+  A screen where nothing sends (every widget reads or draws, as on Bloom Debug) is no longer covered by the
+  take-control gate, so a bench can watch the panel and export its log beside the tablet that drives; the bar still
+  reads NOT IN CONTROL and the server still refuses any send from a session without control.
+- **Motion warnings for the operator, off by default.** A role setting (*Motion warnings*, `motion_cue`) adds a small,
+  dismissable cue to the top bar when a verdict says the hand went the other way or the gripper did not move, in
+  English, Spanish or French. It shows no numbers, stays out of the switch-scan cycle, leaves on its own after 30 s
+  and never covers STOP. It is off by default because the Explorer's Gazebo gripper ignores commands until the arm
+  first moves, which would read as a warning on every fresh launch.
+
 - **Save a pose and go back to it, from the operator's Positions screen.** **Save this pose** stores the server's own
   newest `/ee_pose` (qontrol's *commanded* tip) beside the joints under a name the server picks (Pose 1, Pose 2…),
   and never overwrites a name already held. When TF has the measured tip, a save where it is more than 2 cm or 0.1 rad

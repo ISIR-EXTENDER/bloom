@@ -352,6 +352,7 @@ describe("widget settings contracts", () => {
       "joint-table",
       "joystick",
       "label",
+      "motion-check",
       "plot",
       "plot-board",
       "plot-picker",

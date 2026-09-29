@@ -69,6 +69,10 @@ export type RuntimeStrings = {
     backToOperation: string;
     commandFailed: string;
     commandNotSent: string;
+    /** The operator's motion cue: a verdict said the hand or the gripper did not do what was asked. */
+    motionCue: Record<"gripperStill" | "gripperWrongWay" | "handWrongWay", string>;
+    motionCueTitle: string;
+    motionCueDismiss: string;
     serviceAnswered: string;
     editApp: string;
     editScreen: string;
@@ -255,6 +259,8 @@ export type RuntimeStrings = {
     savedToBody: (profileName: string) => string;
     scanStep: string;
     sound: string;
+    motionCue: string;
+    motionCueNote: string;
     textSize: string;
     textSizes: Record<"large" | "larger" | "normal", string>;
     colours: string;

@@ -1,4 +1,5 @@
 import type { ApplicationConfig, ScreenConfig } from "@bloom/api-client";
+import { MOTION_PROFILES } from "./motion-verdict";
 import { type RobotFamily, robotFamily } from "./robot-family";
 import type { ToggleSettings } from "./settings";
 
@@ -16,8 +17,8 @@ type GripperCalibration = { closed: number; open: number };
 
 /** Explorer matches tablet_interface; the Kinova pair is the Robotiq 85 knuckle joint's own range. */
 const GRIPPER_CALIBRATIONS: Readonly<Record<RobotFamily, GripperCalibration>> = {
-  explorer: { closed: 1.1, open: 0.2 },
-  kinova: { closed: 0.8, open: 0.0 },
+  explorer: MOTION_PROFILES.explorer.gripper,
+  kinova: MOTION_PROFILES.kinova.gripper,
 };
 
 function gripperCalibrationFor(robotName: string | undefined): GripperCalibration {

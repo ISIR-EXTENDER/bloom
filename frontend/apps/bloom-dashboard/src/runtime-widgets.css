@@ -1880,6 +1880,181 @@ button.bloom-toggle-segment {
   );
 }
 
+/* ---- Command vs motion (Bloom Debug): the wire, the commanded hand and the measured tip, then a verdict ---- */
+
+.bloom-motion-check.bloom-info-card {
+  max-height: var(--bloom-widget-height);
+  overflow: hidden;
+}
+
+.bloom-motion-panes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.bloom-motion-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 12px 14px;
+  border-radius: var(--bloom-radius-control);
+  background: var(--bloom-surface-container);
+}
+
+.bloom-motion-pane > header,
+.bloom-motion-log > header {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 28px;
+}
+
+.bloom-motion-pane h4,
+.bloom-motion-log h4 {
+  margin: 0;
+  color: var(--bloom-ink-soft);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.bloom-motion-readings {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 4px 14px;
+  margin: 0;
+}
+
+.bloom-motion-readings dt {
+  color: var(--bloom-muted);
+  font-size: 13px;
+}
+
+.bloom-motion-readings dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-family: var(--bloom-font-mono);
+  font-size: 14px;
+}
+
+.bloom-motion-reasons {
+  margin: 0;
+  color: var(--bloom-ink-soft);
+  font-size: 13px;
+}
+
+/* Word first, colour second: the chip always says follows, lags, blocked or WRONG WAY. */
+.bloom-motion-chip {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  min-height: 24px;
+  padding: 2px 10px;
+  border: 1px solid var(--bloom-hairline-strong);
+  border-radius: 999px;
+  background: var(--bloom-surface-container-high);
+  color: var(--bloom-ink);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.bloom-motion-chip[data-grade="pass"] {
+  border-color: var(--bloom-primary);
+  background: var(--bloom-primary-container);
+}
+
+.bloom-motion-chip[data-grade="warn"] {
+  border-color: var(--bloom-pollen);
+  background: color-mix(in srgb, var(--bloom-pollen) 32%, var(--bloom-surface));
+}
+
+.bloom-motion-chip[data-grade="fail"] {
+  border-color: var(--bloom-error);
+  background: var(--bloom-error-container);
+  color: var(--bloom-on-error-container);
+}
+
+.bloom-motion-chip[data-grade="pending"] {
+  color: var(--bloom-muted);
+  font-weight: 500;
+}
+
+.bloom-motion-trace {
+  width: 100%;
+  height: 64px;
+}
+
+.bloom-motion-trace-line {
+  fill: none;
+  stroke: var(--bloom-series-2);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.bloom-motion-trace-wait {
+  stroke: var(--bloom-hairline-strong);
+  stroke-dasharray: 4 4;
+  vector-effect: non-scaling-stroke;
+}
+
+.bloom-motion-log {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+}
+
+.bloom-motion-log button {
+  min-height: 32px;
+  padding: 4px 12px;
+  border: 1px solid var(--bloom-hairline-strong);
+  border-radius: var(--bloom-radius-control);
+  background: var(--bloom-surface-bright);
+  color: var(--bloom-ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.bloom-motion-log-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.bloom-motion-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.bloom-motion-cell {
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--bloom-hairline);
+  font-weight: 500;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.bloom-motion-colhead {
+  color: var(--bloom-ink-soft);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.bloom-motion-mono {
+  font-family: var(--bloom-font-mono);
+}
+
 /* ---- Display widgets kept from the earlier system, on the card chrome above ---- */
 
 .bloom-display-header {

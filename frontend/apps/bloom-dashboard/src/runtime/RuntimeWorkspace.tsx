@@ -17,8 +17,12 @@ import {
 import {
   BEHAVIOUR_MARKER_PARAMETER,
   behaviourAvailability as behaviourAvailabilityOf,
+  isWatchOnlyScreen,
   MANAGER_NODE,
   type ManagerBehaviour,
+  motionWatchWidgetId,
+  withMotionCheckRobot,
+  withMotionWatch,
   withRobotGripper,
   withRobotGripperScreen,
 } from "@bloom/widgets";
@@ -57,6 +61,7 @@ import { useAudioCues } from "./use-audio-cues";
 import { useDwellActivation } from "./use-dwell-activation";
 import { useEffectiveWidgetData } from "./use-effective-widget-data";
 import { GAMEPAD_CONTRIBUTION_ID, useGamepadInput } from "./use-gamepad-input";
+import { useMotionCue } from "./use-motion-cue";
 import { useParameterReadings } from "./use-parameter-readings";
 import { usePositionLibrary } from "./use-position-library";
 import { findRuntimeRegion, findStopRegion, type RegionRect, useReservedRegionRect } from "./use-reserved-region-rect";
@@ -156,7 +161,10 @@ export function RuntimeWorkspace({
   // An app written for one arm sends this arm's gripper values: the rendered screen as well as the app's presets.
   const robotName = runtimeCapabilityReport?.robot_name;
   const application = useMemo(() => withRobotGripper(storedApplication, robotName), [storedApplication, robotName]);
-  const screen = useMemo(() => withRobotGripperScreen(storedScreen, robotName), [storedScreen, robotName]);
+  const screen = useMemo(
+    () => withMotionCheckRobot(withRobotGripperScreen(storedScreen, robotName), robotName),
+    [storedScreen, robotName],
+  );
   const canvasViewportRef = useRef<HTMLDivElement | null>(null);
   const artboardFrameRef = useRef<HTMLDivElement | null>(null);
   const runtimeControlsRef = useRef<HTMLDivElement | null>(null);
@@ -339,13 +347,19 @@ export function RuntimeWorkspace({
     return merged;
   }, [baseControlStateByWidgetId, parameterReadings]);
   const runtimeLink = useRuntimeLinkState(runtimeActionClient);
+  // With the role's motion warnings on, the screen's data carries a hidden Command vs motion panel to judge by.
+  const dataScreen = useMemo(
+    () => withMotionWatch(screen, runtimeProfile.motionCue, robotName),
+    [robotName, runtimeProfile.motionCue, screen],
+  );
   const dataByWidgetId = useRuntimeTopicData({
     onTopicSample,
     onTopicSubscriptionRequest,
     runtimeActionClient,
     runtimeLink,
-    screen,
+    screen: dataScreen,
   });
+  const motionCue = useMotionCue(dataByWidgetId[motionWatchWidgetId(dataScreen)], runtimeProfile.motionCue);
   const runtimeStop = useRuntimeStop(runtimeActionClient);
   const runtimeControl = useRuntimeControl(runtimeActionClient, onSuspendTeleop);
   const ownsRuntimeControl = !runtimeControl.supported || runtimeControl.state?.is_owner === true;
@@ -383,6 +397,8 @@ export function RuntimeWorkspace({
     screen,
   });
   const runtimeControlBlocked = runtimeControl.supported && !ownsRuntimeControl;
+  // A screen with nothing that sends stays readable beside the tablet that drives; the chip still says who controls.
+  const controlGateShown = runtimeControlBlocked && !isWatchOnlyScreen(screen);
   const stopped = runtimeStop.state?.stopped === true || runtimeStop.stopRequested;
   // Not asserted, or the engage failed: STOP must be resendable. Not while a normal STOP is in flight.
   const stopNeedsReassert =
@@ -783,6 +799,7 @@ export function RuntimeWorkspace({
           holdMotion();
           setTourOpen(true);
         }}
+        motionCue={motionCue ? { kind: motionCue.kind, onDismiss: motionCue.dismiss } : null}
         tourOffer={
           tourOfferAnswered || runtimeProfile.practiceOffer === "off"
             ? null
@@ -807,7 +824,7 @@ export function RuntimeWorkspace({
       {application.id === "bloom-debug" && !debugRegion ? <BloomDebugPanel client={runtimeActionClient} /> : null}
 
       <div className="runtime-app-canvas-shell" ref={runtimeControlsRef}>
-        {runtimeControlBlocked ? (
+        {controlGateShown ? (
           <div aria-live="polite" className="runtime-control-gate" role="status">
             <strong>
               {runtimeControl.claiming
@@ -830,7 +847,7 @@ export function RuntimeWorkspace({
         <div
           className="runtime-app-canvas-viewport"
           data-runtime-mode={screen.canvas.runtime_mode}
-          inert={runtimeControlBlocked || undefined}
+          inert={controlGateShown || undefined}
           ref={canvasViewportRef}
         >
           <div

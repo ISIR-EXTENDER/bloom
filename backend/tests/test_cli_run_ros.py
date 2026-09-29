@@ -21,6 +21,7 @@ from libs.ros_adapters.rclpy_cartesian_manager import RclpyCartesianManagerGatew
 from libs.ros_adapters.rclpy_publishers import RclpyRosPublisherGateway
 from libs.ros_adapters.robot_model import RclpyRobotModelGateway
 from libs.ros_adapters.services import RclpyRosServiceGateway
+from libs.ros_adapters.tip_stream import TipPoseDerivingGateway
 from libs.ros_adapters.topics import RclpyRosTopicCatalogGateway
 
 POLLER_THREADS = {"teleop-target-directory", "command-state-feedback"}
@@ -157,7 +158,8 @@ def test_run_ros_serves_the_api_on_one_node_with_every_ros_gateway(monkeypatch, 
     assert isinstance(state.robot_model_gateway, RclpyRobotModelGateway)
     assert isinstance(state.ros_service_gateway, RclpyRosServiceGateway)
     assert isinstance(state.ros_topic_catalog_gateway, RclpyRosTopicCatalogGateway)
-    assert isinstance(state.runtime_topic_subscription_gateway, ManipulabilityDerivingGateway)
+    assert isinstance(state.runtime_topic_subscription_gateway, TipPoseDerivingGateway)
+    assert isinstance(state.runtime_topic_subscription_gateway._inner, ManipulabilityDerivingGateway)
     assert isinstance(state.camera_frame_gateway, RclpyCameraFrameGateway)
     assert isinstance(state.camera_stream_gateway, RclpyCameraStreamGateway)
     assert isinstance(state.teleop_command_gateway, RclpyCartesianManagerGateway)
