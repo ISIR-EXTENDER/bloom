@@ -12,7 +12,7 @@
  *   node scripts/pipeline-wiring-check.mjs   (the manager configs are read from ../extender_workspace when present)
  *   BLOOM_MANAGER_CONFIG_DIR=/path/to/cartesian_manager/bringup/config node scripts/pipeline-wiring-check.mjs
  */
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -80,8 +80,13 @@ export function createSources(root, overrides = {}) {
   const read = (path) => {
     if (path in overrides) return overrides[path];
     if (!cache.has(path)) {
-      const full = resolve(root, path);
-      cache.set(path, existsSync(full) && statSync(full).isFile() ? readFileSync(full, "utf8") : "");
+      let text = "";
+      try {
+        text = readFileSync(resolve(root, path), "utf8");
+      } catch {
+        // Missing or not a file: nothing to read.
+      }
+      cache.set(path, text);
     }
     return cache.get(path);
   };
@@ -454,7 +459,12 @@ export function readManagerConfigs(dir) {
     }
   }
   const managerCpp = join(dir, "..", "..", "src", "core", "manager.cpp");
-  const parsed = existsSync(managerCpp) ? readFileSync(managerCpp, "utf8") : "";
+  let parsed = "";
+  try {
+    parsed = readFileSync(managerCpp, "utf8");
+  } catch {
+    // No manager checkout next to this one.
+  }
   for (const [, name] of parsed.matchAll(/parts\[1\] == "(\w+)"/g)) found.behaviours.add(name);
   // The QP controller names its command topic in code, not under its controller namespace.
   const controllerSources = join(dir, "..", "..", "..", "qontrol_controllers", "src");

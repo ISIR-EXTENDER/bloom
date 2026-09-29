@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from contextlib import suppress
 
 import pytest
 from fastapi.testclient import TestClient
@@ -90,8 +89,7 @@ def test_a_failing_tick_is_logged_and_the_ticker_keeps_going(caplog: pytest.LogC
         while tracker.ticks < 3:
             await asyncio.sleep(0.001)
         task.cancel()
-        with suppress(asyncio.CancelledError):
-            await task
+        await asyncio.gather(task, return_exceptions=True)
 
     asyncio.run(run())
 

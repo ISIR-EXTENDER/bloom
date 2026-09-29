@@ -16,6 +16,12 @@ from libs.config.storage import create_configuration_repository
 SHIPPED_SANDBOX = Path(__file__).parents[1] / "seed" / "applications" / "sandbox.json"
 
 
+def plain(text: str) -> str:
+    """Rich wraps errors in a box at the terminal width, which differs in CI."""
+    text = re.sub(r"\x1b\[[0-9;]*m", "", text)
+    return " ".join(re.sub(r"[│╭╮╰╯─]", " ", text).split())
+
+
 def sqlite_store(tmp_path: Path, seed_dir: Path | None = None) -> list[str]:
     options = ["--storage", "sqlite", "--database-path", str(tmp_path / "bloom.db")]
     return options + (["--seed-dir", str(seed_dir)] if seed_dir is not None else [])
@@ -64,7 +70,7 @@ def test_publishing_an_unknown_configuration_lists_what_the_store_holds(tmp_path
     result = runner.invoke(cli, ["config", "publish", "sandbx", *store])
 
     assert result.exit_code == 2
-    assert "No configuration 'sandbx' in this store. Available: sandbox" in result.stderr
+    assert "No configuration 'sandbx' in this store. Available: sandbox" in plain(result.stderr)
     assert not (tmp_path / "seed").exists()
 
 
@@ -80,8 +86,8 @@ def test_publishing_an_outdated_copy_points_to_the_shipped_update(tmp_path: Path
     result = runner.invoke(cli, ["config", "publish", "alpha", *store])
 
     assert result.exit_code == 2
-    assert "alpha has a newer shared version" in result.stderr
-    assert "bloom config seed --force alpha" in result.stderr
+    assert "alpha has a newer shared version" in plain(result.stderr)
+    assert "bloom config seed --force alpha" in plain(result.stderr)
     assert load_configuration_file(seed_dir / "alpha.json").applications == ()
 
 
@@ -101,7 +107,7 @@ def test_publishing_an_app_with_uploaded_theme_images_warns_that_they_stay_here(
     result = runner.invoke(cli, ["config", "publish", "sandbox", *store])
 
     assert result.exit_code == 0
-    assert "warning: Uploaded theme images stay on this machine" in result.stderr
+    assert "warning: Uploaded theme images stay on this machine" in plain(result.stderr)
     assert "Published sandbox to" in result.stdout
     assert (tmp_path / "seed" / "sandbox.json").is_file()
 
@@ -119,7 +125,7 @@ def test_an_export_that_cannot_write_fails_cleanly(tmp_path: Path) -> None:
         read_only.chmod(0o700)
 
     assert result.exit_code == 1
-    assert "Could not write" in result.stderr
+    assert "Could not write" in plain(result.stderr)
     assert isinstance(result.exception, SystemExit)
     assert not (read_only / "out.json").exists()
 
