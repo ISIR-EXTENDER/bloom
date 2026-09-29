@@ -7,31 +7,30 @@ Widget Lab's **Robot** screen for the scenes that draw the shared-control goals)
 simulated `cartesian_manager` stack at the same time. Nothing is mocked: every press goes through the API to ROS and
 the model on the right is drawn from `/joint_states`.
 
-Format: 1600 px wide, 12 fps, a caption bar with the step name, under 20 s each. The `.mp4` next to each GIF is the
-same composition at full quality; `frames/` holds three PNG frames per scene (start, middle, end) for a quick look.
+Format: 1600 px wide, 12 fps, a caption bar with the step name, under 20 s each. Only the GIFs are committed; the
+recorder also writes the `.mp4` of each scene at full quality and three PNG frames per scene (start, middle, end)
+under `frames/`, which stay out of git.
 
 ## Scenes
+
+The GIFs shipped here, the ones the README and the tutorials embed:
 
 | GIF | Robot | What it shows |
 | --- | --- | --- |
 | `explorer-open.gif` | Explorer | The Runtime library: pick Explorer Manager, the Operator role, Open; the kiosk reads READY. The model on the right is already live. |
 | `explorer-forward.gif` | Explorer | The Translation pad pushed Forward and held: the hand moves forward in the 3D view; on release the pad springs back and the hand stops. |
-| `explorer-height-pivot.gif` | Explorer | Height Up then Down, Pivot left then right: the model follows each axis. |
 | `explorer-gripper.gif` | Explorer | Close gripper: the fingers close on the model; Open gripper: they open. |
-| `explorer-speed.gif` | Explorer | Slow, Medium, Fast: the same 1.2 s push (and the stroke back) at each Max speed segment, a different travel each time. |
 | `explorer-stop.gif` | Explorer | STOP: the controls are inert while stopped (a push moves nothing), the one-second hold resumes, the same push moves the hand again. |
-| `explorer-go-home.gif` | Explorer | Positions from the maintenance menu; Go home armed by one press and sent by the second; the translucent twin on the right is the joint target and the arm moves to it. In simulation the joint target runs at about 0.14 rad/s, so from the launch pose it takes about 25 s to arrive; the GIF shows the first 15 s (see the notes below). |
-| `explorer-speed-up-intent.gif` | Explorer | Behaviours: Speed up with intent ON, a steady push, the intent gauge climbing 0.4 → 1.0 and the header chip "Speed up on"; OFF again. Right side: the Widget Lab's Robot screen. |
 | `explorer-assist-to-goals.gif` | Explorer | Two goals published on `/shared_control/goals` (PoseArray, base_link); Assist to goals ON: the confidence bars appear and the goals are drawn in the 3D view; a push toward one goal fills its bar; Reset assist forgets them. |
 | `explorer-settings-palette.gif` | Explorer | Settings from the maintenance menu: the Dark palette recolours the whole screen, then back to the app's own palette, Save and resume. |
 | `explorer-settings-scan.gif` | Explorer | Input method Scan, Save and resume: the scanning highlight steps through the Drive controls and the SWITCH button activates the current one. |
-| `explorer-builder-create.gif` | Explorer | Builder: a new app named and created from the Operator controls starter, then saved. |
-| `explorer-builder-place.gif` | Explorer | The screen builder: a Command button added from the palette, dragged onto the panel, Save changes. |
-| `explorer-new-app-drives.gif` | Explorer | The app just built, opened from the library: its pad drives the same arm and its gripper button closes the fingers. |
 | `kinova-open.gif` | Kinova | The library opens Kinova Manager as the Operator, READY, with the gen3 live on the right. |
-| `kinova-forward.gif` | Kinova | The Translation pad pushed Forward and released: the gen3's hand moves out along its forward axis and stops. |
+| `kinova-forward.gif` | Kinova | The Translation pad pushed Forward and released: the gen3's hand moves along base +y (the seed's Forward) and stops; from the home pose its fingers point along +x, so the hand slides sideways to them, away from the camera. |
 | `kinova-gripper.gif` | Kinova | Close and Open on the Robotiq 2F-85, framed on the hand: the fingers close and open on the model. |
 | `kinova-go-home.gif` | Kinova | Go home on the gen3: the manager's seven-joint home target as the translucent twin, and the arm reaching it (within 0.05 rad in about 4 s). |
+
+To re-record before they ship: `explorer-height-pivot`, `explorer-speed-up-intent`, `explorer-go-home`,
+`explorer-builder-create`, `explorer-builder-place` and `explorer-new-app-drives`.
 
 ## Re-recording
 

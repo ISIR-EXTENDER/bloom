@@ -121,6 +121,28 @@ made for a different person.
 Bloom opens each app in the role last used on that device, so getting back to work is one press. Choosing another
 role is one more, and becomes the new default for that device.
 
+This is what the operator's screen does, recorded against the simulated robots with the live 3D model beside it.
+The [demo GIF set](docs/assets/demo/gifs/README.md) has the rest.
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/assets/demo/gifs/explorer-open.gif" alt="Explorer: the Runtime library, Explorer Manager picked, the Operator role, Open; the kiosk bar reads READY and the model on the right is live." width="100%" /></td>
+    <td width="50%"><img src="docs/assets/demo/gifs/explorer-forward.gif" alt="Explorer: the Translation pad pushed Forward and held; the hand moves forward in the 3D view and stops when the pad is released." width="100%" /></td>
+  </tr>
+  <tr>
+    <td align="center"><b>Open</b>: Explorer Manager as the Operator, and the bar reads READY.</td>
+    <td align="center"><b>Drive</b>: Explorer's hand follows the pad and stops on release.</td>
+  </tr>
+  <tr>
+    <td><img src="docs/assets/demo/gifs/kinova-gripper.gif" alt="Kinova: Close gripper closes the fingers on the model; Open gripper opens them." width="100%" /></td>
+    <td><img src="docs/assets/demo/gifs/explorer-stop.gif" alt="Explorer: after STOP the bar reads STOPPED and a push moves nothing; the one-second hold resumes and the same push moves the hand again." width="100%" /></td>
+  </tr>
+  <tr>
+    <td align="center"><b>Gripper</b>: Kinova's fingers close, then open.</td>
+    <td align="center"><b>STOP</b>: Explorer's controls go inert; a one-second hold resumes.</td>
+  </tr>
+</table>
+
 ## On every device
 
 - **Tablet**, for operating. The screen fills the display like a kiosk: there are no menus to wander into, and

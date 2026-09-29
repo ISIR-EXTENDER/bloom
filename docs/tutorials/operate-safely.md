@@ -88,6 +88,11 @@ A latched or stepped control lets go by itself after 15 seconds without input. F
 STOP is always live. It sits in the screen's reserved region, which no widget can occupy, and it stays above the
 maintenance scrim, Settings and the practice tour — over those last two it becomes a full-height rail on the right.
 
+![Explorer: after STOP the bar reads STOPPED and a push moves nothing; the one-second hold resumes and the same push moves the hand again.](../assets/demo/gifs/explorer-stop.gif)
+
+Explorer: after STOP the bar reads STOPPED and a push moves nothing; the one-second hold resumes, and the same push
+moves the hand again.
+
 - A press releases every control on this screen at once and engages the backend latch. Enter or Space engages it
   when the key goes down; holding the key never stops or resumes a second time. If the backend cannot be told, the
   controls stay held here, the screen shows the error, and **HOLD TO RESUME** is the way back.

@@ -243,6 +243,11 @@ configuration and app, but the tour remains available for repetition.
 
 ## Stop And Resume
 
+![Explorer: after STOP the bar reads STOPPED and a push moves nothing; the one-second hold resumes and the same push moves the hand again.](assets/demo/gifs/explorer-stop.gif)
+
+Explorer: after STOP the bar reads STOPPED and a push moves nothing; the one-second hold resumes, and the same push
+moves the hand again.
+
 - A pointer press on **STOP** releases every control on the screen at once and engages the backend runtime stop.
   Outside scan, Enter or Space on a focused STOP engages it on the key press, not the release; under scan those keys
   are the switch. A held key's auto-repeat never stops or resumes a second time; only a fresh press does.
@@ -358,6 +363,11 @@ manager's summed inputs without placing debug detail on the Drive screen.
 Both Manager apps let the operator save where the hand is commanded to be and send the arm back there later, from
 **Positions**, with no manager restart. **Positions · Bench** keeps the bench's tools for the same list.
 
+![Kinova: Go home from Positions; the translucent twin in the 3D view is the manager's seven-joint home target and the arm reaches it.](assets/demo/gifs/kinova-go-home.gif)
+
+Kinova: Go home from Positions; the translucent twin in the 3D view is the manager's seven-joint home target, and the
+arm reaches it.
+
 **What is saved.** `/ee_pose` comes from qontrol and is the tip pose it *commands*, computed from its commanded joint
 positions, not a measurement. **Save this pose** asks the server, which saves its own newest `/ee_pose` (never the
 tablet's numbers; a tablet whose view differs by more than 1 cm or 0.05 rad is told the hand moved while saving),
@@ -439,6 +449,11 @@ small named triads, the manager's confidence-weighted soft goal as the larger ri
 counts the rest as ignored. Both disappear when Assist ends or the soft goal stops arriving. The Widget Lab's Robot
 screen has both wired. Both feedback topics stream at 100 Hz while Assist is on; the socket forwards at most 30 samples
 a second per topic, and the bars and the view redraw only when a value moved, the last sample always included.
+
+![Explorer: two goals on /shared_control/goals; Assist to goals ON shows the confidence bars and draws the goals in the 3D view; a push toward one goal fills its bar; Reset assist forgets them.](assets/demo/gifs/explorer-assist-to-goals.gif)
+
+Explorer: two goals published on `/shared_control/goals`; Assist to goals ON shows the confidence bars and draws the
+goals in the 3D view, a push toward one goal fills its bar, and Reset assist forgets them.
 
 ## Joystick Lab
 
@@ -549,6 +564,11 @@ Settings has three columns:
   chosen input method is drawn dashed and reads, for example, **only for Scan**. A dead zone of zero reads **each
   control's own**, because each widget then keeps its authored dead zone.
 
+![Explorer: Settings from the maintenance menu; the Dark palette recolours the whole screen, then back to the app's own palette, Save and resume.](assets/demo/gifs/explorer-settings-palette.gif)
+
+Explorer: Settings from the maintenance menu; the Dark palette recolours the whole screen, STOP included, then back to
+the app's own palette and Save and resume.
+
 Each card shows the stored profile key (`font_scale`, `dwell_ms`, `deadzone`) for whoever edits a profile; it is
 hidden from screen readers, which read the card's label instead.
 
@@ -570,6 +590,11 @@ The scan set is read from the DOM, so it contains exactly the buttons a screen r
 because a click on it moves nothing. STOP opens every cycle, ahead of the screen's own controls, on every surface that
 draws it: the canvas, Settings, and the maintenance sheet. Under scan, dwelling on the full-width SWITCH bar activates
 the highlighted target without a firm press.
+
+![Explorer: input method Scan, Save and resume; the highlight steps through the Drive controls and the SWITCH bar activates the lit one.](assets/demo/gifs/explorer-settings-scan.gif)
+
+Explorer: input method Scan, then Save and resume; the pads become step buttons, the highlight steps through the Drive
+controls, and the SWITCH bar activates the lit one.
 
 Whenever the saved preset is scan, the scanner alone owns Enter and Space: a press goes to the active scanner (a
 dialog's first), never to the focused button, and the scanner does not move focus. A camera view never takes focus,
