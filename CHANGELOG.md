@@ -30,7 +30,8 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
   (cartesian_manager#12): shaping, behaviour, target and the enabled inputs arrive as **reported by the robot** on
   subscribe and on every change. A mode request reads **last asked** until the status takes it up, and returns to the
   reported mode after 1 s when the manager refused or ignored it. The feedback inference stays for a manager without
-  the status (ADR 0142 amendment).
+  the status (ADR 0142 amendment). The Manager seeds' mode label now reads **Shaping mode — reported by the
+  manager**, and the supervisor mirror names its mode **Mode reported by the manager** when the status is its source.
 - **Coverage with a floor.** `npm run coverage` measures each frontend package on its own (v8) and
   `make -C backend coverage` the backend with branches; both write lcov for CI, and each package fails below
   its floor (frontend 71 to 98 % lines per package, backend 90 % lines and branches together).

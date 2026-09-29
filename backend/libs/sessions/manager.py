@@ -304,8 +304,7 @@ class RuntimeSessionManager:
     ) -> None:
         """Remember what the controlling session last asked the manager for.
 
-        The manager publishes no mode feedback, so this is the last request,
-        never a confirmed controller state.
+        This is the session's request; what the manager holds is its status, in the command store.
         """
         try:
             request = parse_mode_request(mode)

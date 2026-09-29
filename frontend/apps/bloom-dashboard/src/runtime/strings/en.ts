@@ -202,6 +202,7 @@ export const enRuntimeStrings: RuntimeStrings = {
     driving: "Driving",
     holding: "Holding still",
     lastRequest: "Last requested mode",
+    reportedMode: "Mode reported by the manager",
     neverRequested: "No mode request observed in this browser session",
     noOperatorOwnsControl: "No operator currently has control",
     noModeRequested: "No mode request reported by the operating session",

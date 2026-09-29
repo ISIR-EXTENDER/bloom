@@ -128,13 +128,9 @@ const GLOSSARY: Record<string, { es: string; fr: string }> = {
     es: "MARCO DE COMANDO — en cada twist",
     fr: "REPÈRE DE COMMANDE — sur chaque twist",
   },
-  "SHAPING MODE — requested, never confirmed": {
-    es: "MODO DE MOVIMIENTO — solicitado, nunca confirmado",
-    fr: "MODE DE MOUVEMENT — demandé, jamais confirmé",
-  },
-  "SHAPING MODE — requested, the manager never confirms": {
-    es: "MODO DE MOVIMIENTO — solicitado, el gestor nunca lo confirma",
-    fr: "MODE DE MOUVEMENT — demandé, le gestionnaire ne le confirme jamais",
+  "SHAPING MODE — reported by the manager": {
+    es: "MODO DE MOVIMIENTO — informado por el gestor",
+    fr: "MODE DE MOUVEMENT — signalé par le gestionnaire",
   },
   "SPEED LIMITS — CONTINUOUS": { es: "LÍMITES DE VELOCIDAD — CONTINUOS", fr: "LIMITES DE VITESSE — CONTINUES" },
   "Max linear speed": { es: "Velocidad lineal máxima", fr: "Vitesse linéaire maximale" },

@@ -170,7 +170,7 @@
             {
               "id": "bench-mode-label",
               "kind": "label",
-              "title": "SHAPING MODE — requested, the manager never confirms",
+              "title": "SHAPING MODE — reported by the manager",
               "layout": {
                 "x": 14,
                 "y": 14,
@@ -178,7 +178,7 @@
                 "height": 24
               },
               "settings": {
-                "text": "SHAPING MODE — requested, the manager never confirms",
+                "text": "SHAPING MODE — reported by the manager",
                 "fontSize": 12,
                 "align": "left",
                 "show_details": false
@@ -1838,7 +1838,7 @@
             {
               "id": "lab-mode-label",
               "kind": "label",
-              "title": "SHAPING MODE — requested, never confirmed",
+              "title": "SHAPING MODE — reported by the manager",
               "layout": {
                 "x": 622,
                 "y": 14,
@@ -1846,7 +1846,7 @@
                 "height": 24
               },
               "settings": {
-                "text": "SHAPING MODE — requested, never confirmed",
+                "text": "SHAPING MODE — reported by the manager",
                 "fontSize": 12,
                 "align": "left"
               }

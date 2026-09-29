@@ -472,6 +472,7 @@ async function behavioursSession() {
 
     await check(page, behaviourChecks[1], async () => {
       let since = Date.now();
+      const switchedAt = since;
       await switchBehaviour(page, "Speed up with intent", "on");
       await ros.waitFor(MODE, (data) => data.data === "behaviour/intent_scaling", { since });
       const idle = await ros.waitFor(INTENT_SCALE, () => true, { since, timeoutMs: 5000 });
@@ -493,12 +494,13 @@ async function behavioursSession() {
       assert(shown >= 0.85, `the gauge read ${shown} at the end of the push`);
       const toggle = await toggleState(speedUp());
       assert(toggle.state === "on" && toggle.source === "measured", `toggle reads ${JSON.stringify(toggle)}`);
+      const status = await reportedBehaviour(speedUp(), "behaviour/intent_scaling", switchedAt);
       // Back where it was, before the next push.
       const back = await pressJoystick(page, translation(), { x: 0, y: -2 });
       await page.waitForTimeout(2200);
       await back();
       await ros.waitFor(TWIST, (data) => isZeroTwist(data), { since: Date.now(), timeoutMs: 2000 });
-      return `idle scale ${idle.data}; held push ${start.toFixed(2)} -> ${peak.toFixed(2)} over ${scales.length} samples; gauge ${shown.toFixed(2)}; toggle on, reported by the robot`;
+      return `idle scale ${idle.data}; held push ${start.toFixed(2)} -> ${peak.toFixed(2)} over ${scales.length} samples; gauge ${shown.toFixed(2)}; toggle on, reported by the robot (${status})`;
     });
 
     await check(page, behaviourChecks[2], async () => {
@@ -582,6 +584,7 @@ async function behavioursSession() {
         JSON.stringify({ header: { frame_id: "base_link" }, poses }),
       );
       let since = Date.now();
+      const switchedAt = since;
       await switchBehaviour(page, "Assist to goals", "on");
       await ros.waitFor(MODE, (data) => data.data === "behaviour/shared_control", { since });
       const idle = await ros.waitFor(CONFIDENCES, (data) => data.ids.length === 3, { since, timeoutMs: 8000 });
@@ -608,7 +611,8 @@ async function behavioursSession() {
       await ros.waitFor(TWIST, (data) => isZeroTwist(data), { since: Date.now(), timeoutMs: 2000 });
       const toggle = await toggleState(assist());
       assert(toggle.state === "on" && toggle.source === "measured", `toggle reads ${JSON.stringify(toggle)}`);
-      return `goals at ±0.25 m along ${fmtVector(direction)}; idle ${fmtArray(idle.data)}; while pushing ${fmtArray(aimedUp.data)} for ${aimedUp.ids.join(",")}; bar ${shownAimed}; soft goal on ${SOFT_GOAL}; toggle on, reported by the robot`;
+      const status = await reportedBehaviour(assist(), "behaviour/shared_control", switchedAt);
+      return `goals at ±0.25 m along ${fmtVector(direction)}; idle ${fmtArray(idle.data)}; while pushing ${fmtArray(aimedUp.data)} for ${aimedUp.ids.join(",")}; bar ${shownAimed}; soft goal on ${SOFT_GOAL}; toggle on, reported by the robot (${status})`;
     });
 
     await check(page, behaviourChecks[6], async () => {
@@ -703,6 +707,19 @@ async function behavioursSession() {
       await context.close();
     }
   }
+}
+
+/**
+ * A behaviour toggle says the robot reported it; with cartesian_manager#12 the manager's status names the behaviour
+ * too, and an older manager has only the liveness inference.
+ */
+async function reportedBehaviour(button, behaviour, since) {
+  await expect(button).toHaveAccessibleName(/, reported by the robot$/, { timeout: 5000 });
+  if (!ros.latest(MANAGER_STATUS)) {
+    return "no status, inferred";
+  }
+  await ros.waitFor(MANAGER_STATUS, (data) => data.behaviour === behaviour, { since });
+  return `status ${behaviour}`;
 }
 
 /** The single toggle button, or one of the two offered while its state is unknown or another mode holds. */

@@ -158,6 +158,7 @@ export type RuntimeStrings = {
     noModeRequested: string;
     controlOwnerUnknown: string;
     lastRequest: string;
+    reportedMode: string;
     neverRequested: string;
     notReported: string;
     noOperatorOwnsControl: string;

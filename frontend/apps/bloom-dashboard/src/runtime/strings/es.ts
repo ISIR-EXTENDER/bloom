@@ -205,6 +205,7 @@ export const esRuntimeStrings: RuntimeStrings = {
     driving: "En movimiento",
     holding: "Detenido",
     lastRequest: "Último modo solicitado",
+    reportedMode: "Modo informado por el gestor",
     neverRequested: "No se ha observado ninguna solicitud de modo en esta sesión del navegador",
     noOperatorOwnsControl: "Ningún operador tiene el control",
     noModeRequested: "La sesión operadora no ha solicitado ningún modo",

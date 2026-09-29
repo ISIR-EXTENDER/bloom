@@ -203,11 +203,10 @@ control, frontend/backend session state, and relevant ROS topic readiness. It re
 status every two seconds and also offers a manual status refresh.
 
 The frame and mode it reports come from the backend, not from the mirror's own browser. While an operator is driving,
-the backend reports the frame their commands are actually stamped with and the mode their session last requested, so a
-supervisor watching from another screen reads the operating session rather than a local copy of it. With no operator
-driving, the mirror falls back to the app's configured frame and says so. `cartesian_manager` publishes no
-authoritative active-mode feedback, so a requested mode is always reported as the last request, never as confirmed
-controller state.
+the backend reports the frame their commands are actually stamped with, so a supervisor watching from another screen
+reads the operating session rather than a local copy of it. With no operator driving, the mirror falls back to the
+app's configured frame and says so. The mode is the command store's: what `/cartesian_manager/status` reports, or,
+with a manager that has no status (before cartesian_manager#12), the last request.
 
 This surface is read-only twice over. It receives a projected client with connection observation and status-read
 methods only, and a deployment can give the mirror's machine a `BLOOM_OBSERVER_API_KEY` instead of the operator key.

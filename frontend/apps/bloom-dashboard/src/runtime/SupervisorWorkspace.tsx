@@ -123,7 +123,7 @@ export function SupervisorWorkspace({
           {stopState?.stopped && !stopState.asserted && stopState.detail ? <small>{stopState.detail}</small> : null}
         </div>
         <div>
-          <dt>{strings.supervisor.lastRequest}</dt>
+          <dt>{shaping?.source === "measured" ? strings.supervisor.reportedMode : strings.supervisor.lastRequest}</dt>
           <dd>
             {requestedMode ?? (controlState ? strings.supervisor.noModeRequested : strings.supervisor.neverRequested)}
           </dd>

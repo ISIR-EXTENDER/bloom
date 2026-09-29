@@ -16,8 +16,8 @@ describe("the operator glossary", () => {
   it("translates the Joystick Lab frame words, group labels, screen titles and role names", () => {
     expect(localizeOperatorText("Tool", "es")).toBe("Herramienta");
     expect(localizeOperatorText("Force sensor", "fr")).toBe("Capteur d'effort");
-    expect(localizeOperatorText("SHAPING MODE — requested, never confirmed", "fr")).toBe(
-      "MODE DE MOUVEMENT — demandé, jamais confirmé",
+    expect(localizeOperatorText("SHAPING MODE — reported by the manager", "fr")).toBe(
+      "MODE DE MOUVEMENT — signalé par le gestionnaire",
     );
     expect(localizeOperatorText("Drive · Operator", "es")).toBe("Conducción · Operador");
     expect(localizeOperatorText("One switch", "fr")).toBe("Un contacteur");

@@ -206,6 +206,7 @@ export const frRuntimeStrings: RuntimeStrings = {
     driving: "En mouvement",
     holding: "À l'arrêt",
     lastRequest: "Dernier mode demandé",
+    reportedMode: "Mode signalé par le gestionnaire",
     neverRequested: "Aucune demande de mode observée dans cette session du navigateur",
     noOperatorOwnsControl: "Aucun opérateur ne détient le contrôle",
     noModeRequested: "Aucun mode demandé par la session opératrice",

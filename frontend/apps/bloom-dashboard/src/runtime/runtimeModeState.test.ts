@@ -86,8 +86,8 @@ function createSandboxApp(): ApplicationConfig {
  * tracked which that was, so every button looked identical whatever the arm
  * had been asked to do.
  *
- * `cartesian_manager` publishes no mode feedback, so this is a record of what
- * was requested from this session, never a confirmation.
+ * This is a record of what was requested from this session; what the manager
+ * reports comes from its status, in the command store.
  */
 describe("cartesian_manager mode requests", () => {
   const modeButton = (id: string, command: string, extra: Record<string, unknown> = {}) => ({

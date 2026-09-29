@@ -190,8 +190,8 @@ runtime client down to connection observation plus `getRuntimeControlState`, `ge
 `listRosTopicStatus`. The mirror component cannot receive claim, release, publish, teleop, configured-action, STOP, or
 resume methods. Its `#/runtime/supervisor/:config/:app` route can open on a second display without transferring
 ownership from the operator session. The backend reports the owning session's frame, last mode request, and whether it
-is moving, and the mirror shows those; `cartesian_manager` publishes no authoritative mode, so the mode stays labelled
-as requested. The server enforces the same boundary with the observer role (ADR 0131).
+is moving, and the mirror shows those. The mode is labelled as reported by the manager when `/cartesian_manager/status`
+is its source, and as requested otherwise. The server enforces the same boundary with the observer role (ADR 0131).
 
 The current operator contract is maintained in `docs/operator-runtime.md`.
 
