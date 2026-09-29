@@ -195,6 +195,14 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Fixed
 
+- **A gripper control sends the running arm's own values.** Widget Lab, Sandbox and Petanque admin were written with
+  the Explorer's pair and sent close `[1.1]` (past the Robotiq's 0.8 limit) and open `[0.2]` (25% closed) on a Kinova.
+  A gripper toggle or preset carrying a shipped pair now sends the robot's own pair (Kinova 0.8/0.0, Explorer
+  1.1/0.2); values an author wrote by hand are kept.
+- **The simulation checks measure the hand the robot has, not only the one qontrol commands.** The drive check reads
+  the tip frame from `/tf` next to `/ee_pose` and the gripper check watches the finger in `/joint_states`: a hand or
+  finger moving against its word fails; the Explorer's Gazebo sag and lag (arm on the ground plane, qontrol open
+  loop) and its gripper ignoring commands while the arm is still are WARN lines with the numbers.
 - **A slider keeps its size and its centred knob whatever it is named** (lab report, Robin). A title with no spaces,
   such as a topic path, wrapped one character at a time: the card grew past its minimum and the knob left the centre
   it rests at, in the Builder and at runtime. A slider's title now stays on the one line its minimum budgets and

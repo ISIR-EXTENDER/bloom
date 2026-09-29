@@ -204,7 +204,7 @@ if [[ "${REUSE_STACK}" == "1" ]]; then
 else
   export ROS_DOMAIN_ID=${BLOOM_E2E_ROS_DOMAIN_ID:-42}
   # Gazebo transport ignores ROS_DOMAIN_ID, so a second Explorer simulation would share the first one's world.
-  if [[ "${ROBOT}" == "explorer" ]] && pgrep -f "[g]z sim" >/dev/null; then
+  if [[ "${ROBOT}" == "explorer" ]] && pgrep -f "^gz sim" >/dev/null; then
     echo "A Gazebo simulation is already running. Stop it, or drive that stack with --reuse-stack." >&2
     exit 1
   fi

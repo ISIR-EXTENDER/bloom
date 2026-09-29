@@ -1,3 +1,4 @@
+import type { ApplicationConfig, ScreenConfig } from "@bloom/api-client";
 import { type RobotFamily, robotFamily } from "./robot-family";
 import type { ToggleSettings } from "./settings";
 
@@ -44,4 +45,84 @@ export function gripperToggleSettings(robotName?: string): ToggleSettings {
     show_details: false,
     topic: GRIPPER_COMMAND_TOPIC,
   } as ToggleSettings;
+}
+
+const SHIPPED_PAYLOAD = /^\s*\{\s*data\s*:\s*\[\s*(-?\d+(?:\.\d+)?)\s*\]\s*\}\s*$/;
+
+/** The robot's own value for a value some shipped calibration sends; any other value is the author's and is kept. */
+function gripperValueFor(value: number, robotName: string | null | undefined): number {
+  const family = robotFamily(robotName);
+  if (!family) {
+    return value;
+  }
+  for (const calibration of Object.values(GRIPPER_CALIBRATIONS)) {
+    if (value === calibration.open) return GRIPPER_CALIBRATIONS[family].open;
+    if (value === calibration.closed) return GRIPPER_CALIBRATIONS[family].closed;
+  }
+  return value;
+}
+
+/** A `{data: [x]}` payload, as a toggle writes it or as a preset stores it, with x moved to the robot's value. */
+function gripperPayloadFor(payload: unknown, robotName: string | null | undefined): unknown {
+  if (typeof payload === "string") {
+    const match = SHIPPED_PAYLOAD.exec(payload);
+    if (!match) {
+      return payload;
+    }
+    const value = gripperValueFor(Number(match[1]), robotName);
+    // Written as the Manager seeds write it: 0.0, not 0.
+    return `{data: [${Number.isInteger(value) ? value.toFixed(1) : value}]}`;
+  }
+  const data = (payload as { data?: unknown } | null)?.data;
+  if (Array.isArray(data) && data.length === 1 && typeof data[0] === "number") {
+    return { ...(payload as object), data: [gripperValueFor(data[0], robotName)] };
+  }
+  return payload;
+}
+
+function gripperSettingsFor(settings: Record<string, unknown>, robotName: string | null | undefined) {
+  if (settings.topic !== GRIPPER_COMMAND_TOPIC) {
+    return settings;
+  }
+  return {
+    ...settings,
+    ...("onPayload" in settings ? { onPayload: gripperPayloadFor(settings.onPayload, robotName) } : {}),
+    ...("offPayload" in settings ? { offPayload: gripperPayloadFor(settings.offPayload, robotName) } : {}),
+    ...("payload" in settings ? { payload: gripperPayloadFor(settings.payload, robotName) } : {}),
+  };
+}
+
+/** One screen's gripper controls with the running robot's pair; the screen itself when nothing changes. */
+export function withRobotGripperScreen(screen: ScreenConfig, robotName: string | null | undefined): ScreenConfig {
+  if (!robotFamily(robotName) || !screen.widgets.some((widget) => widget.settings.topic === GRIPPER_COMMAND_TOPIC)) {
+    return screen;
+  }
+  return {
+    ...screen,
+    widgets: screen.widgets.map((widget) => ({ ...widget, settings: gripperSettingsFor(widget.settings, robotName) })),
+  };
+}
+
+/**
+ * An app written for one arm drives the gripper of the arm it runs on: a gripper toggle or preset that sends a
+ * shipped calibration (Explorer 1.1/0.2, Kinova 0.8/0.0) sends this robot's pair instead. Without a known robot,
+ * or with values of the author's own, nothing changes. The runtime renders its screen apart from its app: both
+ * need it (withRobotGripperScreen).
+ */
+export function withRobotGripper(
+  application: ApplicationConfig,
+  robotName: string | null | undefined,
+): ApplicationConfig {
+  if (!robotFamily(robotName)) {
+    return application;
+  }
+  return {
+    ...application,
+    action_presets: application.action_presets.map((preset) =>
+      preset.topic === GRIPPER_COMMAND_TOPIC && !preset.payload_text
+        ? { ...preset, payload: gripperPayloadFor(preset.payload, robotName) }
+        : preset,
+    ),
+    screens: application.screens.map((screen) => withRobotGripperScreen(screen, robotName)),
+  };
 }

@@ -18,6 +18,8 @@ import {
   behaviourAvailability as behaviourAvailabilityOf,
   MANAGER_NODE,
   type ManagerBehaviour,
+  withRobotGripper,
+  withRobotGripperScreen,
 } from "@bloom/widgets";
 import type { CSSProperties } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -125,7 +127,7 @@ export function RuntimeWorkspace({
   runtimeCapabilityReport,
   teleopActive,
   teleopNeutralRevision,
-  application,
+  application: storedApplication,
   onBackToRuntimeHome,
   onActionIntent,
   onEditApplication,
@@ -146,10 +148,14 @@ export function RuntimeWorkspace({
   profileOverrides,
   runtimeActionClient,
   runtimeActionFeedback,
-  screen,
+  screen: storedScreen,
   selection,
   openedFromBuilder = false,
 }: RuntimeWorkspaceProps) {
+  // An app written for one arm sends this arm's gripper values: the rendered screen as well as the app's presets.
+  const robotName = runtimeCapabilityReport?.robot_name;
+  const application = useMemo(() => withRobotGripper(storedApplication, robotName), [storedApplication, robotName]);
+  const screen = useMemo(() => withRobotGripperScreen(storedScreen, robotName), [storedScreen, robotName]);
   const canvasViewportRef = useRef<HTMLDivElement | null>(null);
   const artboardFrameRef = useRef<HTMLDivElement | null>(null);
   const runtimeControlsRef = useRef<HTMLDivElement | null>(null);
