@@ -87,6 +87,9 @@ const {
   sharedControlSoftGoal: SOFT_GOAL,
 } = STACK;
 const GESTURE = "/ui/widget_lab/gesture";
+/** cartesian_manager#12's latched status: the manager's own report of its shaping, behaviour and target. */
+const MANAGER_STATUS = "/cartesian_manager/status";
+const NO_STATUS = `no ${MANAGER_STATUS}: this manager predates cartesian_manager#12`;
 const MARKERS = "/widget_lab/markers";
 const TARGET = "/widget_lab/target";
 const MIN_DISPLACEMENT_M = 0.03;
@@ -196,6 +199,28 @@ async function operatorSession() {
         `mode requests ${modes.join(" -> ")}`,
       );
       return `held: geometric/snake, released: geometric/both (${modes.join(" -> ")})`;
+    });
+
+    await check(page, "manager-status-measures-shaping", async () => {
+      if (!ros.latest(MANAGER_STATUS)) {
+        skip(NO_STATUS);
+      }
+      const rows = [];
+      for (const [label, mode] of [
+        ["Jaco", "geometric/jaco"],
+        ["Both", "geometric/both"],
+      ]) {
+        const since = Date.now();
+        await page.getByRole("button", { name: new RegExp(`^${label}:`) }).click();
+        await ros.waitFor(MANAGER_STATUS, (data) => data.geometric === mode, { since });
+        const reported = page.getByRole("button", { name: `${label}: requested, reported by the robot` });
+        await reported.waitFor({ timeout: 5000 });
+        const source = await reported.locator("xpath=ancestor::*[@data-source][1]").getAttribute("data-source");
+        assert(source === "measured", `${label} reads data-source=${source}`);
+        rows.push(`${label}: status ${mode}, measured after ${Date.now() - since} ms`);
+      }
+      await shot(page, "shaping-reported");
+      return rows.join("; ");
     });
 
     await check(page, "speed-segment-publishes", async () => {
@@ -313,6 +338,47 @@ async function operatorSession() {
         await shot(page, "positions");
       }
       return `${homeDetail}; release sent behaviour/passthrough`;
+    });
+
+    await check(page, "manager-status-reverts-a-refused-request", async () => {
+      if (!ros.latest(MANAGER_STATUS)) {
+        skip(NO_STATUS);
+      }
+      const reported = "Cancel the pose: requested, reported by the robot";
+      const release = page.getByRole("button", { name: reported });
+      await release.waitFor({ timeout: 5000 });
+      await release.evaluate((button) => {
+        const labels = [];
+        window.__releaseLabels = labels;
+        new MutationObserver(() => labels.push({ label: button.getAttribute("aria-label"), t: Date.now() })).observe(
+          button,
+          { attributeFilter: ["aria-label"], attributes: true },
+        );
+      });
+      const since = Date.now();
+      const refused = "behaviour/pose_target/does_not_exist";
+      await rosPublishOnce(MODE, "std_msgs/msg/String", `{data: '${refused}'}`);
+      await ros.waitFor(MODE, (data) => data.data === refused, { since });
+      // Asked for, shown as asked; the manager ignores it, its status never moves, and the store returns to it.
+      await page.waitForFunction(
+        (wanted) => {
+          const labels = window.__releaseLabels ?? [];
+          return (
+            labels.some((item) => item.label.endsWith("not requested, last asked")) && labels.at(-1)?.label === wanted
+          );
+        },
+        reported,
+        { timeout: 8000 },
+      );
+      const labels = await page.evaluate(() => window.__releaseLabels);
+      const asked = labels.find((item) => item.label.endsWith("not requested, last asked"));
+      const back = labels.at(-1);
+      const moved = ros
+        .since(MANAGER_STATUS, since)
+        .filter((message) => message.data.behaviour !== "behaviour/passthrough");
+      assert(moved.length === 0, `the status moved: ${JSON.stringify(moved.map((message) => message.data))}`);
+      await shot(page, "refused-request-reverted");
+      return `${refused}: last asked, then reported passthrough ${back.t - asked.t} ms later; status unchanged`;
     });
 
     await check(page, "robot-feedback-plots", async () => {
@@ -1344,6 +1410,15 @@ def on_description(m):
     description["tool"] = links[-1] if links else None
     emit("/robot_description", dict(description))
 node.create_subscription(String, "/robot_description", on_description, QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL))
+
+# The manager's latched status, when it has one: reliable and transient local, so the last value arrives on subscribe.
+try:
+    from diagnostic_msgs.msg import DiagnosticStatus
+    from rclpy.qos import ReliabilityPolicy
+    latched = QoSProfile(depth=1, reliability=ReliabilityPolicy.RELIABLE, durability=DurabilityPolicy.TRANSIENT_LOCAL)
+    node.create_subscription(DiagnosticStatus, "${MANAGER_STATUS}", lambda m: emit("${MANAGER_STATUS}", {v.key: v.value for v in m.values}), latched)
+except ImportError:
+    pass
 
 # Markers of every kind the view draws: the shared-control rviz shapes, a coloured trajectory, a label on
 # the tool link, a cube list, and every six seconds the robot's own first mesh for three seconds.

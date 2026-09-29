@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+import re
 import threading
 from collections import deque
 from collections.abc import Callable, Collection, Iterable, Mapping
@@ -13,6 +14,8 @@ from time import monotonic
 from typing import Any, Literal
 
 from libs.ros_adapters.mode_request import (
+    BEHAVIOUR_PREFIX,
+    GEOMETRIC_MODES,
     GEOMETRIC_PREFIX,
     INTENT_SCALING_MODE,
     MODE_REQUEST_TOPIC,
@@ -53,6 +56,12 @@ DEFAULT_BEHAVIOUR_WINDOW_SEC = 0.5
 DEFAULT_BEHAVIOUR_SETTLE_SEC = 0.5
 #: A measurement that disagrees with a fresh command is the actuator still travelling.
 DEFAULT_GRIPPER_SETTLE_SEC = 2.0
+#: A request the manager's status has not taken up by then was refused or ignored: the status stands.
+DEFAULT_STATUS_CONFIRM_SEC = 1.0
+#: The `name` cartesian_manager gives its latched ~/status, whatever the node is called.
+MANAGER_STATUS_NAME = "cartesian_manager"
+_STATUS_BEHAVIOUR = re.compile(rf"{BEHAVIOUR_PREFIX}/[a-z0-9_]+")
+_STATUS_TARGET = re.compile(r"[^/\s]+")
 
 _FLOAT_TYPES = frozenset({"std_msgs/msg/Float32", "std_msgs/msg/Float64"})
 _INT_TYPES = frozenset({f"std_msgs/msg/{kind}{bits}" for kind in ("Int", "UInt") for bits in ("8", "16", "32", "64")})
@@ -79,6 +88,32 @@ def digital_output_key(pin: int) -> str:
 
 def is_mode_request_topic(topic: str) -> bool:
     return topic.endswith("mode_request")
+
+
+def parse_manager_status(name: Any, pairs: Iterable[tuple[Any, Any]]) -> dict[str, Any] | None:
+    """The manager's status as store values per state; an unreadable key is left out, a stranger's status is None."""
+    if name != MANAGER_STATUS_NAME:
+        return None
+    raw: dict[str, str] = {}
+    for key, value in pairs:
+        if isinstance(key, str) and isinstance(value, str):
+            raw.setdefault(key, value)
+    states: dict[str, Any] = {}
+    geometric = normalize_mode_request(raw.get("geometric", ""))
+    if geometric in {f"{GEOMETRIC_PREFIX}/{mode}" for mode in GEOMETRIC_MODES}:
+        states["shaping"] = geometric
+    behaviour = normalize_mode_request(raw.get("behaviour", ""))
+    if _STATUS_BEHAVIOUR.fullmatch(behaviour):
+        states["behaviour"] = behaviour
+        # The target reads as the request that starts it: joint_target + home is behaviour/joint_target/home.
+        target = normalize_mode_request(raw["target"]) if "target" in raw else None
+        if target == "":
+            states["target"] = None
+        elif target is not None and _STATUS_TARGET.fullmatch(target):
+            states["target"] = f"{behaviour}/{target}"
+    if "inputs" in raw:
+        states["inputs"] = [item.strip() for item in raw["inputs"].split(",") if item.strip()]
+    return states
 
 
 @dataclass(frozen=True)
@@ -265,6 +300,7 @@ class CommandStateTracker:
         own_echo_window_sec: float = OWN_ECHO_WINDOW_SEC,
         behaviour_window_sec: float = DEFAULT_BEHAVIOUR_WINDOW_SEC,
         behaviour_settle_sec: float = DEFAULT_BEHAVIOUR_SETTLE_SEC,
+        status_confirm_sec: float = DEFAULT_STATUS_CONFIRM_SEC,
         clock: Callable[[], float] = monotonic,
     ) -> None:
         self.store = store
@@ -274,6 +310,7 @@ class CommandStateTracker:
         self._gripper_settle_sec = gripper_settle_sec
         self._behaviour_window_sec = behaviour_window_sec
         self._behaviour_settle_sec = behaviour_settle_sec
+        self._status_confirm_sec = status_confirm_sec
         self._own_echo_window_sec = own_echo_window_sec
         self._clock = clock
         self._lock = threading.RLock()
@@ -285,6 +322,10 @@ class CommandStateTracker:
         self._servoing_last: float | None = None
         #: When each lasting behaviour's feedback last spoke, and on which mode topic it was requested.
         self._behaviour_last: dict[str, tuple[str, float]] = {}
+        #: The manager's last status per mode topic; while held it is the truth for that topic's manager keys.
+        self._status: dict[str, dict[str, Any]] = {}
+        #: Manager keys a request wrote that the status has not answered yet: key -> (topic, state, when).
+        self._status_pending: dict[str, tuple[str, str, float]] = {}
 
     # Writers: publishes
 
@@ -401,6 +442,8 @@ class CommandStateTracker:
             now = self._clock()
             self._behaviour_last[behaviour] = (topic, now)
             self.store.write(active_key, True, "measured", BY_ROBOT, keep_if_equal=("measured",))
+            if topic in self._status:
+                return
             key = manager_key("behaviour", topic)
             current = self.store.get(key)
             # A request just sent may not have reached the manager: its feedback still says the old behaviour.
@@ -408,6 +451,23 @@ class CommandStateTracker:
             if current is not None and current.value != behaviour and settling:
                 return
             self.store.write(key, behaviour, "measured", BY_ROBOT, keep_if_equal=("measured",))
+
+    def record_manager_status(self, states: Mapping[str, Any], topic: str = MODE_REQUEST_TOPIC) -> None:
+        """The manager's latched status: from now on the measurement for this mode topic's manager keys."""
+        with self._lock:
+            previous = self._status.get(topic, {})
+            self._status[topic] = dict(states)
+            # The status reports a pose target's end itself.
+            self._active_pose_targets.pop(topic, None)
+            for state, value in states.items():
+                key = manager_key(state, topic)
+                current = self.store.get(key)
+                # An unchanged report next to a newer request is the manager not having taken it up yet.
+                unchanged = state in previous and previous[state] == value
+                if key in self._status_pending and unchanged and current is not None and current.value != value:
+                    continue
+                self._status_pending.pop(key, None)
+                self.store.write(key, value, "measured", BY_ROBOT)
 
     def set_pose_targets(self, topic: str, targets: Mapping[str, PoseTargetSpec] | None) -> None:
         with self._lock:
@@ -454,8 +514,21 @@ class CommandStateTracker:
                 # Its feedback stopped: the manager left it, and only a request nobody saw says for what.
                 key = manager_key("behaviour", topic)
                 current = self.store.get(key)
-                if current is not None and current.value == behaviour and current.source == "measured":
+                if (
+                    topic not in self._status
+                    and current is not None
+                    and current.value == behaviour
+                    and current.source == "measured"
+                ):
                     self.store.mark_unknown((key,), BY_ROBOT)
+            for key, (topic, state, asked_at) in list(self._status_pending.items()):
+                if now - asked_at < self._status_confirm_sec:
+                    continue
+                # No status took the request up: the manager refused or ignored it, and still holds what it said.
+                del self._status_pending[key]
+                status = self._status.get(topic, {})
+                if state in status:
+                    self.store.write(key, status[state], "measured", BY_ROBOT)
             self._prune_own_publishes(now)
 
     # Writers: loss
@@ -467,11 +540,16 @@ class CommandStateTracker:
         with self._lock:
             self._active_pose_targets.pop(topic, None)
             self._behaviour_last.clear()
+            # Inference is the fallback again until the next manager's latched status arrives.
+            self._status.pop(topic, None)
+            for key in [key for key, pending in self._status_pending.items() if pending[0] == topic]:
+                del self._status_pending[key]
             self.store.mark_unknown(
                 (
                     manager_key("shaping", topic),
                     manager_key("behaviour", topic),
                     manager_key("target", topic),
+                    manager_key("inputs", topic),
                     topic,
                     *BEHAVIOUR_ACTIVE_KEYS.values(),
                 ),
@@ -522,38 +600,34 @@ class CommandStateTracker:
         except ModeRequestError:
             return
         mode = request.normalized
-        shaping, behaviour, target = (
-            manager_key("shaping", topic),
-            manager_key("behaviour", topic),
-            manager_key("target", topic),
-        )
+        states: dict[str, Any]
         if mode.startswith(f"{GEOMETRIC_PREFIX}/"):
-            self.store.write(shaping, mode, source, by, keep_if_equal=keep_if_equal)
-            return
-        if mode == PASSTHROUGH_MODE:
+            states = {"shaping": mode}
+        elif mode == PASSTHROUGH_MODE:
             self._active_pose_targets.pop(topic, None)
-            self.store.write_many(
-                ((behaviour, PASSTHROUGH_MODE), (target, None)), source, by, keep_if_equal=keep_if_equal
-            )
-            return
-        if mode.startswith(f"{POSE_TARGET_BEHAVIOUR}/"):
+            states = {"behaviour": PASSTHROUGH_MODE, "target": None}
+        elif mode.startswith(f"{POSE_TARGET_BEHAVIOUR}/"):
             now = self._clock()
-            self._active_pose_targets[topic] = _ActivePoseTarget(
-                topic=topic, name=mode.rsplit("/", 1)[1], started_at=now, last_determined_at=now
-            )
-            self.store.write_many(
-                ((behaviour, POSE_TARGET_BEHAVIOUR), (target, mode)), source, by, keep_if_equal=keep_if_equal
-            )
-            return
-        # Intent scaling and shared control last, and each replaces the other; the reset enters shared control.
-        lasting = next((name for name in BEHAVIOUR_ACTIVE_KEYS if mode == name or mode.startswith(f"{name}/")), None)
-        if lasting is not None:
+            if topic not in self._status:
+                self._active_pose_targets[topic] = _ActivePoseTarget(
+                    topic=topic, name=mode.rsplit("/", 1)[1], started_at=now, last_determined_at=now
+                )
+            states = {"behaviour": POSE_TARGET_BEHAVIOUR, "target": mode}
+        else:
             self._active_pose_targets.pop(topic, None)
-            self.store.write_many(((behaviour, lasting), (target, None)), source, by, keep_if_equal=keep_if_equal)
-            return
-        # A joint target is dispatched once; the manager is back in passthrough on its next cycle.
-        self._active_pose_targets.pop(topic, None)
-        self.store.write_many(((target, mode), (behaviour, PASSTHROUGH_MODE)), source, by, keep_if_equal=keep_if_equal)
+            # Intent scaling and shared control last, and each replaces the other; the reset enters shared control.
+            lasting = next(
+                (name for name in BEHAVIOUR_ACTIVE_KEYS if mode == name or mode.startswith(f"{name}/")), None
+            )
+            # A joint target is dispatched once; the manager is back in passthrough on its next cycle.
+            joint_target = {"target": mode, "behaviour": PASSTHROUGH_MODE}
+            states = {"behaviour": lasting, "target": None} if lasting else joint_target
+        items = [(manager_key(state, topic), value) for state, value in states.items()]
+        self.store.write_many(items, source, by, keep_if_equal=keep_if_equal)
+        if topic in self._status:
+            now = self._clock()
+            for state in states:
+                self._status_pending[manager_key(state, topic)] = (topic, state, now)
 
     def _consume_own_echo(self, topic: str, value: Any) -> bool:
         pending = self._own_publishes.get(topic)

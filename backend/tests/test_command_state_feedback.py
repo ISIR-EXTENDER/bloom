@@ -108,6 +108,7 @@ def build(kinova: bool = True, parameter_names: tuple[str, ...] | None = None):
         message_class=message_class,
         parameter_value_to_python=lambda value: value,
         subscription_factory=subscriptions,
+        latched_subscription_factory=lambda node, cls, topic, callback: subscriptions(node, cls, topic, callback, 1),
     )
     feedback.start(poll_in_background=False)
     return store, tracker, graph, subscriptions, parameters, feedback
@@ -131,6 +132,7 @@ def test_it_subscribes_to_its_own_topics_and_skips_a_missing_interface() -> None
         "/ee_pose",
         "/cartesian_manager/intent_scale",
         "/shared_control/confidences",
+        "/cartesian_manager/status",
     }
     feedback.stop()
     assert set(subscriptions.closed) == set(subscriptions.callbacks)

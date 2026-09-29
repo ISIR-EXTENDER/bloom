@@ -503,7 +503,7 @@ export type CommandStateEntry = {
 /**
  * The whole store, pushed on the runtime socket right after `session_connected`, on every change (at most 20 Hz)
  * and every 500 ms. Keys: a topic, `<topic>:<pin>` for `/hub/digital_output`, `param:<node>:<name>`,
- * `service:<name>`, `manager:shaping|behaviour|target` (suffixed `@<topic>` off `/mode_request`),
+ * `service:<name>`, `manager:shaping|behaviour|target|inputs` (suffixed `@<topic>` off `/mode_request`),
  * `servoing:active` and `petanque:state`.
  */
 export type RuntimeCommandStateMessage = {

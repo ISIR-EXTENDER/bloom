@@ -9,8 +9,13 @@ from typing import Any
 
 from libs.ros_adapters.messages import resolve_message_class
 from libs.ros_adapters.mode_request import INTENT_SCALING_MODE, SHARED_CONTROL_MODE
-from libs.ros_adapters.qos import AdaptiveSubscription
-from libs.sessions.command_state import PETANQUE_STATE_KEY, CommandStateTracker, PoseTargetSpec
+from libs.ros_adapters.qos import AdaptiveSubscription, LatchedSubscription
+from libs.sessions.command_state import (
+    PETANQUE_STATE_KEY,
+    CommandStateTracker,
+    PoseTargetSpec,
+    parse_manager_status,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +29,9 @@ INTENT_SCALE_TOPIC = "/cartesian_manager/intent_scale"
 SHARED_CONTROL_CONFIDENCES_TOPIC = "/shared_control/confidences"
 SHARED_CONTROL_GOALS_TOPIC = "/shared_control/goals"
 SHARED_CONTROL_SOFT_GOAL_TOPIC = "/shared_control/soft_goal"
+#: The manager's latched ~/status (cartesian_manager#12): its shaping, behaviour, target and enabled inputs.
+MANAGER_STATUS_SUFFIX = "/status"
+MANAGER_STATUS_TYPE = "diagnostic_msgs/msg/DiagnosticStatus"
 BEHAVIOUR_FEEDBACK_TOPICS: dict[str, tuple[str, str]] = {
     INTENT_SCALING_MODE: (INTENT_SCALE_TOPIC, "std_msgs/msg/Float64"),
     SHARED_CONTROL_MODE: (SHARED_CONTROL_CONFIDENCES_TOPIC, "std_msgs/msg/Float64MultiArray"),
@@ -58,6 +66,7 @@ class RclpyCommandStateFeedback:
         message_class: Callable[[str], type] | None = None,
         parameter_value_to_python: Callable[[Any], Any] | None = None,
         subscription_factory: Callable[..., Any] = AdaptiveSubscription,
+        latched_subscription_factory: Callable[..., Any] = LatchedSubscription,
         poll_period_sec: float = 1.0,
         qos_depth: int = 10,
     ) -> None:
@@ -77,6 +86,7 @@ class RclpyCommandStateFeedback:
         )
         self._to_python = parameter_value_to_python
         self._subscription_factory = subscription_factory
+        self._latched_subscription_factory = latched_subscription_factory
         self._poll_period_sec = poll_period_sec
         self._qos_depth = qos_depth
         self._subscriptions: list[Any] = []
@@ -84,6 +94,10 @@ class RclpyCommandStateFeedback:
         self._publishers_seen: dict[str, bool] = {}
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
+
+    @property
+    def manager_status_topic(self) -> str:
+        return f"{self._manager_node.rstrip('/')}{MANAGER_STATUS_SUFFIX}"
 
     @property
     def watched_nodes(self) -> tuple[str, ...]:
@@ -101,6 +115,7 @@ class RclpyCommandStateFeedback:
         self._subscribe(EE_POSE_TOPIC, "geometry_msgs/msg/PoseStamped", self._on_ee_pose)
         for behaviour, (topic, message_type) in BEHAVIOUR_FEEDBACK_TOPICS.items():
             self._subscribe(topic, message_type, self._behaviour_handler(behaviour))
+        self._subscribe(self.manager_status_topic, MANAGER_STATUS_TYPE, self._on_manager_status, latched=True)
         if poll_in_background and self._thread is None:
             self._thread = threading.Thread(target=self._run, name="command-state-feedback", daemon=True)
             self._thread.start()
@@ -178,10 +193,15 @@ class RclpyCommandStateFeedback:
         values = get_values(node, POSE_TARGET_PARAMETERS)
         return parse_pose_targets({name.removeprefix(POSE_TARGET_PREFIX): value for name, value in values.items()})
 
-    def _subscribe(self, topic: str, message_type: str, callback: Callable[[Any], None]) -> bool:
+    def _subscribe(
+        self, topic: str, message_type: str, callback: Callable[[Any], None], *, latched: bool = False
+    ) -> bool:
         try:
             message_cls = self._message_class(message_type)
-            subscription = self._subscription_factory(self._node, message_cls, topic, callback, self._qos_depth)
+            if latched:
+                subscription = self._latched_subscription_factory(self._node, message_cls, topic, callback)
+            else:
+                subscription = self._subscription_factory(self._node, message_cls, topic, callback, self._qos_depth)
         except Exception as exc:  # noqa: BLE001 - an interface package this machine lacks drops only its topic
             logger.info("Command state does not follow %s (%s): %s", topic, message_type, exc)
             return False
@@ -238,6 +258,12 @@ class RclpyCommandStateFeedback:
             self._tracker.record_behaviour_active(behaviour, self._mode_request_topic)
 
         return on_message
+
+    def _on_manager_status(self, message: Any) -> None:
+        pairs = ((getattr(pair, "key", None), getattr(pair, "value", None)) for pair in getattr(message, "values", ()))
+        states = parse_manager_status(getattr(message, "name", None), pairs)
+        if states is not None:
+            self._tracker.record_manager_status(states, self._mode_request_topic)
 
     def _on_ee_pose(self, message: Any) -> None:
         pose = message.pose

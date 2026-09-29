@@ -59,3 +59,18 @@ upstream. Speed limits and digital outputs stay `commanded` until their nodes re
   nothing when unknown.
 - The randomized invariant test moves to the backend store: any interleaving of publishes, replies, STOP, leaves and
   reconnects must leave every socket's snapshot equal to the store, and the store equal to the reference model.
+
+## Amendment 2026-09-29: the manager's status is the measurement
+
+cartesian_manager now publishes `~/status` (`/cartesian_manager/status`, `diagnostic_msgs/msg/DiagnosticStatus`,
+reliable, transient local, depth 1; cartesian_manager#12) at start and on every change: `geometric`, `behaviour`,
+`target` and the enabled `inputs`. The backend subscribes with the same QoS, so the latched value arrives on
+subscribe, and writes it as `measured` to `manager:shaping`, `manager:behaviour`, `manager:target` (in the request's
+own form, so `behaviour/joint_target` with target `home` reads `behaviour/joint_target/home`) and `manager:inputs`.
+
+Once a status has been seen from the running manager it is the truth for that mode topic's manager keys. A request
+still shows as `commanded` (or `reset`, for STOP and a leave) until a status takes it up; if none does within 1 s,
+the manager refused or ignored it, and the keys return to the last status, `measured`. The behaviour liveness
+inference and the pose-target reach and timeout apply only while no status has been seen, as the fallback for an
+older manager. A lost manager makes the keys unknown and forgets its status; the next manager's latched status
+seeds them again. Other mode topics, which the manager's status does not describe, keep their `commanded` records.

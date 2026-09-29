@@ -136,6 +136,52 @@ describe("mode buttons", () => {
   });
 });
 
+describe("the manager's status", () => {
+  it("reads as reported by the robot on the shaping, pose target and behaviour controls", () => {
+    renderWidgets([
+      modeButton("Both", "geometric/both"),
+      modeButton("Jaco", "geometric/jaco"),
+      modeButton("Ready", "behaviour/pose_target/ready"),
+      modeButton("Go home", "behaviour/joint_target/home"),
+      {
+        id: "speed-up",
+        kind: "toggle",
+        title: "Speed up with intent",
+        layout,
+        settings: {
+          topic: "/mode_request",
+          messageType: "std_msgs/msg/String",
+          onPayload: "{data: 'behaviour/intent_scaling'}",
+          offPayload: "{data: 'behaviour/passthrough'}",
+          onLabel: "Speeding up",
+          offLabel: "Plain speed",
+        },
+      },
+    ]);
+    // What the backend writes from /cartesian_manager/status (ADR 0142, 2026-09-29).
+    write(
+      {
+        "manager:shaping": "geometric/jaco",
+        "manager:behaviour": "behaviour/pose_target",
+        "manager:target": "behaviour/pose_target/ready",
+      },
+      "robot",
+      "measured",
+    );
+    expect(screen.getByRole("button", { name: "Jaco: requested, reported by the robot" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Both: not requested, reported by the robot" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Ready: requested, reported by the robot" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Speed up with intent: Plain speed, reported by the robot/ })).toBe(
+      screen.getByRole("button", { name: /^Speed up with intent/ }),
+    );
+    // A joint target is one-shot: never lit, so it states no source either way.
+    expect(screen.getByRole("button", { name: /^Go home/ }).closest("[data-source]")).toBeNull();
+
+    write({ "manager:shaping": "geometric/both" });
+    expect(screen.getByRole("button", { name: "Both: requested, last asked" })).toBeInTheDocument();
+  });
+});
+
 describe("a Snake hold", () => {
   const hold = {
     id: "snake",

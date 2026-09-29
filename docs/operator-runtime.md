@@ -124,12 +124,15 @@ a parameter switch renders that record and nothing else; the screen keeps no sta
 Each record says where its value came from:
 
 - **reported by the robot**: a parameter read back from `/parameter_events`, the Kinova gripper finger in
-  `/joint_states`, the Petanque state machine on `/fsm_viewer`, or visual servoing seen commanding on
-  `/visual_servoing/velocity_command`.
+  `/joint_states`, the Petanque state machine on `/fsm_viewer`, visual servoing seen commanding on
+  `/visual_servoing/velocity_command`, or the manager's shaping, behaviour and target from its latched
+  `/cartesian_manager/status`.
 - **last asked**: the last value published on the command topic, by this tablet, another tablet, the joystick mapper
   or the server's own STOP and leave resets. The backend subscribes to its own command topics, so a press from any
-  source shows up. `cartesian_manager` reports no mode, so shaping, behaviour and targets, the speed limits and the
-  digital outputs stay **last asked**.
+  source shows up. A mode request reads **last asked** until the manager's status takes it up; if the status has not
+  moved within 1 s, the manager refused or ignored it and the control returns to what the status reports. A manager
+  without `~/status` (before cartesian_manager#12) leaves shaping, behaviour and targets **last asked**; the speed
+  limits and the digital outputs always are.
 - **Unknown**: never seen, or lost (the manager restarted, a pose target that nobody saw end for 30 s). The control
   lights neither side and offers both actions, for example **Close gripper** and **Open gripper**; a known state
   offers one.
@@ -146,8 +149,8 @@ A press only sends the request:
   robot did not apply it. The control keeps showing the store, with the reason as its mark, and the kiosk bar raises
   **Command failed** or **Not sent** with the backend detail.
 - **Superseded** (409): a newer send on the same target already won; nothing to do.
-- A joint target sends once and is never lit. A pose target stays lit until the arm reaches it, when the store
-  returns the behaviour to passthrough.
+- A joint target sends once and is never lit. A pose target stays lit until the arm reaches it, when the manager's
+  status (or, without one, the arm's pose) returns the behaviour to passthrough.
 
 STOP and a leave publish their resets themselves (shaping to Both, visual servoing off, a target cancelled), and the
 store shows them on every screen; nothing is re-applied after Resume without a new press.

@@ -30,6 +30,10 @@ class QosChoice:
     depth: int
 
 
+#: What a latched topic needs for its last sample to arrive on subscribe.
+LATCHED_QOS = QosChoice(RELIABLE, TRANSIENT_LOCAL, 1)
+
+
 def compatible_qos(depth: int) -> QosChoice:
     """Matches every publisher, at the cost of reliability and latched samples."""
     return QosChoice(BEST_EFFORT, VOLATILE, depth)
@@ -158,3 +162,26 @@ class AdaptiveSubscription:
         if self._timer is not None:
             self._node.destroy_timer(self._timer)
             self._timer = None
+
+
+class LatchedSubscription:
+    """A fixed reliable, transient-local, depth-1 subscription: the publisher's latched sample arrives on subscribe."""
+
+    def __init__(
+        self,
+        node: Any,
+        message_cls: type,
+        topic: str,
+        callback: Callable[[Any], None],
+        *,
+        qos_factory: Callable[[QosChoice], Any] = build_qos_profile,
+    ) -> None:
+        self._node = node
+        self._subscription = node.create_subscription(message_cls, topic, callback, qos_factory(LATCHED_QOS))
+
+    @property
+    def qos(self) -> QosChoice:
+        return LATCHED_QOS
+
+    def close(self) -> None:
+        self._node.destroy_subscription(self._subscription)

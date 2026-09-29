@@ -153,6 +153,35 @@ describe("bindings", () => {
     expect(readSelection(binding, (key) => held[key] ?? null)?.state).toBe("unselected");
     expect(readSelection(modeCommandBinding("/mode_request", "behaviour/joint_target/home"), () => null)).toBeNull();
   });
+
+  it("reads the manager's status as the measurement, in the values its requests write", () => {
+    // What the backend writes from /cartesian_manager/status (ADR 0142, 2026-09-29): every key measured.
+    const held: Record<string, CommandStateEntry> = {
+      "manager:shaping": entry("geometric/jaco", 5, "robot", "measured"),
+      "manager:behaviour": entry("behaviour/pose_target", 6, "robot", "measured"),
+      "manager:target": entry("behaviour/pose_target/ready", 7, "robot", "measured"),
+    };
+    const of = (key: string) => held[key] ?? null;
+    const selection = (mode: string) => readSelection(modeCommandBinding("/mode_request", mode), of);
+    expect(selection("geometric/jaco")).toEqual({ source: "measured", state: "selected" });
+    expect(selection("geometric/both")).toEqual({ source: "measured", state: "unselected" });
+    expect(selection("behaviour/pose_target/ready")).toEqual({ source: "measured", state: "selected" });
+
+    // A joint target the manager reports answers the Go home press that asked for it.
+    held["manager:behaviour"] = entry("behaviour/joint_target", 8, "robot", "measured");
+    held["manager:target"] = entry("behaviour/joint_target/home", 9, "robot", "measured");
+    const home = modeCommandBinding("/mode_request", "behaviour/joint_target/home");
+    const press: PressRecord = { at: 0, id: 1, outcome: "pending", revision: 7, writes: home?.writes ?? [] };
+    expect(pressPhase(press, 100, of, "me")).toBe("idle");
+    expect(selection("behaviour/passthrough")).toEqual({ source: "measured", state: "unselected" });
+    const speedUp = topicToggleBinding(
+      "/mode_request",
+      "std_msgs/msg/String",
+      "{data: 'behaviour/intent_scaling'}",
+      "{data: 'behaviour/passthrough'}",
+    );
+    expect(readToggleState(speedUp, of)).toEqual({ source: "measured", state: "off" });
+  });
 });
 
 describe("a press's phase", () => {
