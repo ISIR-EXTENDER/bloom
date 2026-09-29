@@ -120,10 +120,13 @@ still held under the sheet does not resume motion when the zero goes out.
 The sheet opens on the app's **Screens** (**Drive**, **Positions**, **Robot feedback**, and so on), then six read-only
 facts — link, publish rate, command frame, profile and its layout, device class, and the application — and four
 actions: **Settings**, **Switch role**, **Reload this app**, **Exit to library**. A **More** group holds
-**Practice**, the supervisor mirror, the Builder shortcuts, Help, Home, and the EN/ES/FR selector. Only that group
-scrolls, so **Close** and **Resume operating** stay reachable.
+**Practice**, the supervisor mirror, the Builder shortcuts, Help, Home, and the EN/ES/FR selector. Only the middle of
+the sheet scrolls, so **Close** and **Resume operating** stay reachable.
 
-Nothing in the sheet changes what the app sends. Resuming closes it and publishing restarts at once.
+Nothing in the sheet changes what the app sends. Resuming closes it and lifts the hold; nothing moves until a new
+push. Maintenance does not cancel a Go home or Go to already running: STOP does.
+
+[Maintenance](maintenance.md) covers the menu step by step, per role, with troubleshooting.
 
 Screen switching lives in here on purpose: an accidental tap must not be able to replace the controls under a hand.
 

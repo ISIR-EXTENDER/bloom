@@ -81,10 +81,13 @@ The sheet opens over a scrim with a **Robot held at zeros** badge. While it is o
 joystick still held under the sheet does not resume motion when the zero goes out. It lists six read-only facts (link,
 publish rate, command frame, profile and its layout, device class, and **App**, which names the application) and four
 actions: **Settings**, **Switch role**, **Reload this app**, and **Exit to library**. **Switch role** appears only when
-the app offers more than one profile. Reloading returns to the same app, role and screen. Screen switching, the
-**Practice**, the supervisor mirror, Builder shortcuts, Help, Home, and the EN/ES/FR selector sit in a **More** group
-below them; only that group scrolls, so **Close** at the top and **Resume operating** at the bottom stay on screen.
-Resuming closes the sheet and publishing resumes at once. Nothing in the sheet changes what the app sends.
+the app offers more than one profile. Reloading returns to the same app, role and screen. The app's **Screens** come
+first, when it has more than one. **Practice**, the supervisor mirror, Builder shortcuts, Help, Home, and the EN/ES/FR
+selector sit in a **More** group below the actions. Only the middle of the sheet scrolls, so **Close** at the top and
+**Resume operating** at the bottom stay on screen. Resuming closes the sheet and lifts the hold; it sends nothing, and
+the arm moves again only on a new push. Nothing in the sheet changes what the app sends. Maintenance sends only teleop
+zeros: it does not engage STOP or cancel a pose target already running. The
+[maintenance tutorial](tutorials/maintenance.md) is the same material for operators and lab staff, step by step.
 
 Focus moves into the sheet when it opens and is trapped there while it is open: the artboard behind the scrim is
 hidden from screen readers by `aria-modal`, so Tab must not walk into it. **Close**, **Resume operating** and Escape all

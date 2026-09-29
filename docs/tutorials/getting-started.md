@@ -231,6 +231,7 @@ Then work from the [bench card](../bench-card.md), which is the one page to have
 
 - [Build your first app](build-your-first-app.md) — make your own screen instead of running a shipped one.
 - [Operate safely](operate-safely.md) — the operator's page: roles, STOP, maintenance, settings.
+- [Maintenance](maintenance.md) — the ⋯ menu per role, what the arm receives while it is open, and how to leave.
 - [The operator runtime guide](../operator-runtime.md) — the full behavioral contract behind both.
 - [Deployment and lab hardware](../deployment.md) — environment variables, the same-Wi-Fi recipe, the tablet.
 - [Extender and Petanque validation](../extender-petanque-validation.md) — what to run before a real arm.

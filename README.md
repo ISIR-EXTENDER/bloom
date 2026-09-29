@@ -143,6 +143,16 @@ role is one more, and becomes the new default for that device.
   </tr>
 </table>
 
+## Maintenance
+
+Everything that is not driving sits in one menu behind **⋯**, at the right of the top bar: other screens, Settings
+(text size, colours, language, input method), another role, practice, and the way back to the library. On
+**Operator** you hold **⋯** for 1.5 seconds; on **Bench** and **Lab** a tap is enough; under **One switch** the
+switch opens it when the highlight reaches it. While the menu is open the arm is held: Bloom sends one zero and
+refuses any new motion, and the bar reads **HELD FOR MAINTENANCE**. STOP stays live above it. Maintenance does not
+cancel a Go home or Go to already running; STOP does. **Resume operating** closes the menu and sends nothing.
+The [maintenance tutorial](docs/tutorials/maintenance.md) walks through it step by step.
+
 ## See the robot, not just the controls
 
 Bloom draws the robot as it moves, from the robot's own description, with the goals, paths and targets a program
@@ -243,7 +253,7 @@ have open during a session with hardware.
 
 ## Tutorials
 
-Three walkthroughs in [`docs/tutorials/`](docs/tutorials/), in the order a newcomer needs them:
+Four walkthroughs in [`docs/tutorials/`](docs/tutorials/), in the order a newcomer needs them:
 
 - **[Getting started](docs/tutorials/getting-started.md)** — from this clone to a simulated Explorer or Kinova arm
   moving under your hand, with the ROS commands that prove it.
@@ -251,6 +261,8 @@ Three walkthroughs in [`docs/tutorials/`](docs/tutorials/), in the order a newco
   and a command button, point it at a topic, pass the review checklist, open it as a role.
 - **[Operate safely](docs/tutorials/operate-safely.md)** — the operator's page: roles, the kiosk bar, STOP and resume,
   maintenance, settings, and what to check before touching a control.
+- **[Maintenance](docs/tutorials/maintenance.md)** — for operators and lab staff: how each role opens the menu, what
+  the arm receives while it is open, what you can change there, how to leave, and what to check when something is off.
 
 > [!CAUTION]
 > Start with simulation or fake hardware. Bloom's STOP latches the software command path, but it does not replace the
@@ -712,7 +724,7 @@ follow `SECURITY.md` instead of opening a public issue.
 
 ## Documentation
 
-[docs/README.md](docs/README.md) indexes everything and says what each page is for. The three tutorials are in
+[docs/README.md](docs/README.md) indexes everything and says what each page is for. The tutorials are in
 [docs/tutorials/](docs/tutorials/). The pages behind them:
 
 - [docs/operator-runtime.md](docs/operator-runtime.md) — the canonical runtime contract.
