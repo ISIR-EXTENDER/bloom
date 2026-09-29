@@ -6,7 +6,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
-SCHEMA_VERSION = 9
+SCHEMA_VERSION = 10
 
 #: How long a statement waits for another connection's write before giving up.
 #: The CLI holds a write for the length of a seed, which is longer than the
@@ -469,6 +469,13 @@ def _migrate_to_v8(connection: sqlite3.Connection) -> None:
     )
 
 
+def _migrate_to_v10(connection: sqlite3.Connection) -> None:
+    # The hand's pose beside the joints, so an operator can send the arm back to a saved pose.
+    columns = {str(row[1]) for row in connection.execute("PRAGMA table_info(saved_positions)").fetchall()}
+    if "ee_pose_json" not in columns:
+        connection.execute("ALTER TABLE saved_positions ADD COLUMN ee_pose_json TEXT")
+
+
 def _migrate_to_v9(connection: sqlite3.Connection) -> None:
     # The generic "button" kind only ever came from legacy navigation buttons; a command button navigates.
     for config_id, payload in _load_bundle_payloads(connection).items():
@@ -538,4 +545,5 @@ MIGRATIONS: tuple[tuple[int, Callable[[sqlite3.Connection], None]], ...] = (
     (7, _migrate_to_v7),
     (8, _migrate_to_v8),
     (9, _migrate_to_v9),
+    (10, _migrate_to_v10),
 )

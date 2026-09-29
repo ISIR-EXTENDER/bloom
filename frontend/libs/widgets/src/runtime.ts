@@ -110,14 +110,22 @@ export type WidgetActionIntent =
       widgetKind: WidgetKind;
     }
   | {
-      /** Position-library operations, handled by the runtime shell over HTTP. */
+      /**
+       * Position-library operations, handled by the runtime shell over HTTP. `go` sends a saved pose to the
+       * manager; `preview` names the pose an armed Go to would send (none to clear), and reaches no robot.
+       */
       type: "position-op";
-      op: "capture" | "delete" | "export";
+      op: "cancel" | "capture" | "delete" | "export" | "go" | "preview" | "rename";
       widgetId: string;
       widgetKind: WidgetKind;
       name?: string;
+      newName?: string;
       jointNames?: string[];
       positions?: number[];
+      /** The hand's pose when captured, as /ee_pose stamped it. */
+      eePose?: SavedHandPose;
+      /** Go to: the fingerprint of the pose the tablet showed and armed; a pose changed since is refused. */
+      fingerprint?: string;
     }
   | {
       eventType: WidgetActionEvent["type"];
@@ -126,6 +134,17 @@ export type WidgetActionIntent =
       widgetId: string;
       widgetKind: WidgetKind;
     };
+
+/** A hand pose as /ee_pose stamps it: metres, and a quaternion x, y, z, w. */
+export type SavedHandPose = {
+  frameId: string;
+  position: readonly [number, number, number];
+  orientation: readonly [number, number, number, number];
+  /** Saved: whether the measured tip (TF) agreed with the commanded /ee_pose then. */
+  verified?: boolean;
+  /** Saved: what a Go to names, so the server sends only the pose the tablet showed. */
+  fingerprint?: string;
+};
 
 export function createWidgetActionIntent(widget: WidgetConfig, event: WidgetActionEvent): WidgetActionIntent {
   const normalizedSettings = normalizeWidgetSettings(widget.kind, widget.settings);

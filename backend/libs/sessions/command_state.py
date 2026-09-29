@@ -20,6 +20,7 @@ from libs.ros_adapters.mode_request import (
     INTENT_SCALING_MODE,
     MODE_REQUEST_TOPIC,
     PASSTHROUGH_MODE,
+    POSE_TARGET_TOPIC,
     SHARED_CONTROL_MODE,
     ModeRequestError,
     normalize_mode_request,
@@ -49,6 +50,8 @@ DIGITAL_OUTPUT_TOPIC = "/hub/digital_output"
 #: How long Bloom's own publish may take to come back on its echo subscription.
 OWN_ECHO_WINDOW_SEC = 2.0
 DEFAULT_POSE_TARGET_TIMEOUT_SEC = 30.0
+#: cartesian_manager's own defaults for behaviours.pose_targets.*_tolerance, used until its parameters are read.
+DEFAULT_POSE_TARGET_TOLERANCE = (0.05, 0.05)
 DEFAULT_SERVOING_WINDOW_SEC = 0.5
 #: The intent scale arrives at about 20 Hz and the confidences at 100 Hz; either quiet this long has ended.
 DEFAULT_BEHAVIOUR_WINDOW_SEC = 0.5
@@ -284,6 +287,8 @@ class _ActivePoseTarget:
     name: str
     started_at: float
     last_determined_at: float
+    #: A pose published on the manager's pose_target topic has no name to look up; it carries its own.
+    spec: PoseTargetSpec | None = None
 
 
 class CommandStateTracker:
@@ -316,6 +321,9 @@ class CommandStateTracker:
         self._lock = threading.RLock()
         self._own_publishes: dict[str, deque[tuple[float, Any]]] = {}
         self._pose_targets: dict[str, dict[str, PoseTargetSpec]] = {}
+        #: The newest /ee_pose (qontrol's commanded tip) and /joint_states names, with when they arrived here.
+        self._hand: tuple[str, tuple[float, float, float], tuple[float, float, float, float], float] | None = None
+        self._joint_names: tuple[tuple[str, ...], float] | None = None
         self._active_pose_targets: dict[str, _ActivePoseTarget] = {}
         self._commanded_at: dict[str, float] = {}
         self._servoing_since: float | None = None
@@ -393,6 +401,9 @@ class CommandStateTracker:
     # Writers: measured feedback
 
     def record_joint_states(self, names: Iterable[str], positions: Iterable[float]) -> None:
+        names = tuple(str(name) for name in names)
+        with self._lock:
+            self._joint_names = (names, self._clock())
         gripper = self._gripper
         if gripper is None:
             return
@@ -469,6 +480,21 @@ class CommandStateTracker:
                 self._status_pending.pop(key, None)
                 self.store.write(key, value, "measured", BY_ROBOT)
 
+    def live_hand(
+        self, max_age_sec: float
+    ) -> tuple[str, tuple[float, float, float], tuple[float, float, float, float]] | None:
+        """The newest /ee_pose when it is fresh: frame, position, orientation."""
+        with self._lock:
+            if self._hand is None or self._clock() - self._hand[3] > max_age_sec:
+                return None
+            return self._hand[:3]
+
+    def live_joint_names(self, max_age_sec: float) -> tuple[str, ...] | None:
+        with self._lock:
+            if self._joint_names is None or self._clock() - self._joint_names[1] > max_age_sec:
+                return None
+            return self._joint_names[0]
+
     def set_pose_targets(self, topic: str, targets: Mapping[str, PoseTargetSpec] | None) -> None:
         with self._lock:
             if targets is None:
@@ -480,11 +506,12 @@ class CommandStateTracker:
         self, frame_id: str, position: tuple[float, float, float], orientation: tuple[float, float, float, float]
     ) -> None:
         with self._lock:
+            now = self._clock()
+            self._hand = (frame_id, tuple(position), tuple(orientation), now)
             if not self._active_pose_targets:
                 return
-            now = self._clock()
             for topic, active in list(self._active_pose_targets.items()):
-                spec = self._pose_targets.get(topic, {}).get(active.name)
+                spec = active.spec or self._pose_targets.get(topic, {}).get(active.name)
                 if spec is None or (spec.frame_id and frame_id and spec.frame_id != frame_id):
                     continue
                 active.last_determined_at = now
@@ -591,6 +618,49 @@ class CommandStateTracker:
         self.store.write(topic, value, source, by, keep_if_equal=keep_if_equal)
         if is_mode_request_topic(topic) and isinstance(data, str):
             self._apply_mode_request(topic, data, source, by, keep_if_equal)
+        elif topic == POSE_TARGET_TOPIC:
+            self._apply_pose_target(MODE_REQUEST_TOPIC, value, source, by, keep_if_equal)
+
+    def _apply_pose_target(
+        self, topic: str, value: Any, source: CommandSource, by: str, keep_if_equal: Collection[CommandSource]
+    ) -> None:
+        """A PoseStamped on the pose_target topic starts behaviour/pose_target with no target name."""
+        spec = self._dynamic_pose_spec(topic, value)
+        if spec is None:
+            return
+        if topic not in self._status:
+            now = self._clock()
+            self._active_pose_targets[topic] = _ActivePoseTarget(
+                topic=topic, name="", started_at=now, last_determined_at=now, spec=spec
+            )
+        self._write_manager_states(
+            topic, {"behaviour": POSE_TARGET_BEHAVIOUR, "target": None}, source, by, keep_if_equal
+        )
+
+    def _dynamic_pose_spec(self, topic: str, value: Any) -> PoseTargetSpec | None:
+        pose = value.get("pose") if isinstance(value, Mapping) else None
+        header = value.get("header") if isinstance(value, Mapping) else None
+        if not isinstance(pose, Mapping):
+            return None
+        position = pose.get("position") if isinstance(pose.get("position"), Mapping) else {}
+        orientation = pose.get("orientation") if isinstance(pose.get("orientation"), Mapping) else {}
+        numbers = [position.get(axis) for axis in "xyz"] + [orientation.get(axis) for axis in "xyzw"]
+        if not all(_is_number(number) and math.isfinite(number) for number in numbers):
+            return None
+        # The manager's configured tolerances apply to every pose target, a dynamic one included.
+        configured = next(iter(self._pose_targets.get(topic, {}).values()), None)
+        position_tolerance, orientation_tolerance = (
+            (configured.position_tolerance, configured.orientation_tolerance)
+            if configured is not None
+            else DEFAULT_POSE_TARGET_TOLERANCE
+        )
+        return PoseTargetSpec(
+            frame_id=str(header.get("frame_id", "")) if isinstance(header, Mapping) else "",
+            position=tuple(float(number) for number in numbers[:3]),
+            orientation=tuple(float(number) for number in numbers[3:]),
+            position_tolerance=position_tolerance,
+            orientation_tolerance=orientation_tolerance,
+        )
 
     def _apply_mode_request(
         self, topic: str, raw: str, source: CommandSource, by: str, keep_if_equal: Collection[CommandSource]
@@ -622,6 +692,16 @@ class CommandStateTracker:
             # A joint target is dispatched once; the manager is back in passthrough on its next cycle.
             joint_target = {"target": mode, "behaviour": PASSTHROUGH_MODE}
             states = {"behaviour": lasting, "target": None} if lasting else joint_target
+        self._write_manager_states(topic, states, source, by, keep_if_equal)
+
+    def _write_manager_states(
+        self,
+        topic: str,
+        states: Mapping[str, Any],
+        source: CommandSource,
+        by: str,
+        keep_if_equal: Collection[CommandSource],
+    ) -> None:
         items = [(manager_key(state, topic), value) for state, value in states.items()]
         self.store.write_many(items, source, by, keep_if_equal=keep_if_equal)
         if topic in self._status:

@@ -28,7 +28,10 @@ from libs.ros_adapters.camera_streams import (
     CameraStreamGateway,
     NoopCameraStreamGateway,
 )
+from libs.ros_adapters.mode_request import POSE_TARGET_TOPIC
 from libs.ros_adapters.safety import (
+    MAX_ANGULAR_SPEED_TOPIC,
+    MAX_LINEAR_SPEED_TOPIC,
     RuntimeCommandPolicy,
     robot_refused_mode_requests,
 )
@@ -44,8 +47,31 @@ from libs.sessions import (
     RuntimeTopicSubscriptionGateway,
     TeleopCommandGateway,
 )
+from libs.sessions.go_to import ManagerFacts, read_manager_facts
 
 logger = logging.getLogger(__name__)
+
+
+def manager_facts(connection: Any) -> ManagerFacts:
+    """What the running manager and controller say about their frames, topics and speeds (a request or the app)."""
+    state = getattr(connection, "app", connection).state
+    settings = state.settings
+    return read_manager_facts(
+        state.command_state_tracker.store,
+        settings.command_state_manager_node,
+        settings.ros_qontrol_node,
+        settings.ros_tip_frame_id,
+        (MAX_LINEAR_SPEED_TOPIC, MAX_ANGULAR_SPEED_TOPIC),
+    )
+
+
+def bare_topic(topic: str) -> str:
+    return "/" + topic.strip().strip("/")
+
+
+def reserved_pose_target_topics(connection: Request | WebSocket) -> set[str]:
+    """The manager's default pose target topic, and the one it reports, whichever it is."""
+    return {POSE_TARGET_TOPIC, bare_topic(manager_facts(connection).pose_target_topic)}
 
 
 def get_runtime_session_manager(websocket: WebSocket) -> RuntimeSessionManager:

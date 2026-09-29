@@ -154,7 +154,8 @@ export const DEFAULT_WIDGET_DEFINITIONS: readonly WidgetDefinition[] = [
     kind: "position-library",
     displayName: "Position library",
     category: "command",
-    description: "Capture the robot's pose, keep a named list, and export it for the manager's joint targets.",
+    description:
+      "Save where the hand is, keep a named list, go back to a saved pose, and export joint targets for the manager.",
     defaultTitle: "Positions",
     defaultSettings: wired("position-library"),
     defaultLayout: { width: 460, height: 380, minWidth: 420, minHeight: 300 },

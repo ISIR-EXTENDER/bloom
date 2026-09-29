@@ -407,6 +407,30 @@ export type SavedPosition = {
   joint_names: string[];
   positions: number[];
   description: string;
+  /** The hand's pose when saved, as /ee_pose stamped it; without it the pose cannot be gone to. */
+  ee_pose?: SavedEePose | null;
+};
+
+/** Metres, and a unit quaternion x, y, z, w. */
+export type SavedEePose = {
+  frame_id: string;
+  position: [number, number, number];
+  orientation: [number, number, number, number];
+  /** Listed: whether the measured tip (TF) agreed with the commanded /ee_pose when it was saved. */
+  verified?: boolean;
+  /** Listed: what a Go to names, so the server sends only the pose the tablet showed. */
+  fingerprint?: string;
+};
+
+/** A new pose: without a name the server picks the next free pose_N; a name already held is refused. */
+export type SavedPositionRequest = Omit<SavedPosition, "name"> & { name?: string };
+
+/** What Go to sent: the saved pose as a PoseStamped on cartesian_manager's pose_target topic. */
+export type PoseTargetResponse = {
+  name: string;
+  topic: string;
+  status: "published" | "simulated" | string;
+  detail: string;
 };
 
 /** Joint order belongs to one arm, so poses belong to one application. */

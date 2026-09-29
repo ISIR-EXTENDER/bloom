@@ -26,6 +26,27 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Added
 
+- **Save a pose and go back to it, from the operator's Positions screen.** **Save this pose** stores the server's own
+  newest `/ee_pose` (qontrol's *commanded* tip) beside the joints under a name the server picks (Pose 1, Pose 2…),
+  and never overwrites a name already held. When TF has the measured tip, a save where it is more than 2 cm or 0.1 rad
+  from the commanded pose is refused (contact or gross lag, not small tracking error;
+  `BLOOM_POSE_SAVE_MAX_OFFSET_M` / `_RAD`); without TF the pose is marked **not
+  verified**. A pose past `BLOOM_MAX_HAND_REACH_M` (1.2 m) is refused. Each saved pose offers **Go to**, armed like
+  Go home and deaf to a held key: the first press arms it (a 3D view on the screen draws the pose), the second sends
+  the saved commanded pose, with the fingerprint of what the tablet showed, as a `PoseStamped` on the manager's
+  `topics.pose_target` in its `frames.base_frame` (cartesian_manager#11). The server follows each Go to in the command
+  state: *Moving to Pose 1 · reported by the robot*, then *Within tolerance of Pose 1* or *Stopped before Pose 1*
+  with the distance left, measured on the TF tip when it can be and labelled as the commanded pose when not. A
+  watchdog sends passthrough when the tip stops closing in or the move takes three times too long (*Could not reach
+  Pose 1; the pad drives again*). **Cancel the pose** in the library, the Release button, STOP and a departing
+  session send passthrough; the kiosk bar shows **Going to a pose** on every screen while the pad is ignored. Only the
+  new route `POST /runtime/positions/{name}/go` sends a pose target: the generic publish refuses the topic for every
+  app, and the route refuses, audited, another app's pose, an app with no Go to library, a changed pose, a manager
+  that has not reported its base frame, another frame, and joints this arm does not report. Rename, delete and export
+  (now with a `pose_targets` block) move to a new **Positions · Bench** screen on both apps. The position library's
+  strings follow the profile's language. `npm run e2e:sim` saves, drives away, goes back and measures the commanded
+  and the TF tip pose on each arm (`positions-save-and-go-to`). Poses saved before this release must be saved again to
+  be gone to.
 - **The manager's mode is measured.** Bloom follows cartesian_manager's latched `/cartesian_manager/status`
   (cartesian_manager#12): shaping, behaviour, target and the enabled inputs arrive as **reported by the robot** on
   subscribe and on every change. A mode request reads **last asked** until the status takes it up, and returns to the
@@ -203,6 +224,8 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
   the tip frame from `/tf` next to `/ee_pose` and the gripper check watches the finger in `/joint_states`: a hand or
   finger moving against its word fails; the Explorer's Gazebo sag and lag (arm on the ground plane, qontrol open
   loop) and its gripper ignoring commands while the arm is still are WARN lines with the numbers.
+- **A lit Release reads in every palette.** Release lit while the manager is in passthrough drew error-red text on
+  the primary fill; it now draws the vetted error pair.
 - **A slider keeps its size and its centred knob whatever it is named** (lab report, Robin). A title with no spaces,
   such as a topic path, wrapped one character at a time: the card grew past its minimum and the knob left the centre
   it rests at, in the Builder and at runtime. A slider's title now stays on the one line its minimum budgets and

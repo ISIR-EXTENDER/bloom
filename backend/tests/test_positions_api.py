@@ -62,16 +62,25 @@ def test_saves_and_lists_positions() -> None:
     assert listed[0]["positions"] == HOME
 
 
-def test_saving_the_same_name_replaces_it_in_place() -> None:
+def test_saving_a_name_already_held_is_refused_and_keeps_the_saved_pose() -> None:
+    # A save creates: overwriting someone's `home` from another tablet would move the arm somewhere else later.
     client = make_client()
     save(client, "home", HOME)
     save(client, "boire", BOIRE)
-    save(client, "home", [9.0] * 6)
+    assert save(client, "home", [9.0] * 6).status_code == 409
 
     listed = client.get("/api/v1/runtime/positions").json()["positions"]
-    # order preserved, no duplicate target name for the manager to reject
     assert [item["name"] for item in listed] == ["home", "boire"]
-    assert listed[0]["positions"] == [9.0] * 6
+    assert listed[0]["positions"] == HOME
+
+
+def test_a_save_without_a_name_takes_the_next_free_one() -> None:
+    client = make_client()
+    save(client, "pose_1", HOME)
+    save(client, "pose_3", HOME)
+    response = client.post("/api/v1/runtime/positions", json={"joint_names": JOINTS, "positions": BOIRE})
+
+    assert response.json()["name"] == "pose_2"
 
 
 def test_rejects_a_length_mismatch() -> None:

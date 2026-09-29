@@ -2,6 +2,7 @@ import type { MotorAccessibilityPreset, RuntimeLanguage, WidgetKind } from "@blo
 import type {
   PlotSeriesConfig,
   PlotSeriesSample,
+  SavedHandPose,
   TopicMessage,
   TopicPlotSample,
   WidgetActionIntent,
@@ -15,6 +16,31 @@ export type SavedPositionEntry = {
   jointNames: readonly string[];
   positions: readonly number[];
   description?: string;
+  /** The hand's pose when saved; Go to sends it, and a pose saved without one cannot be gone to. */
+  eePose?: SavedHandPose | null;
+};
+
+/** What the library last did for this tablet, worded by the renderer in the operator's language. */
+export type PositionLibraryEvent = {
+  kind: "deleted" | "exported" | "renamed" | "saved";
+  name?: string;
+};
+
+/**
+ * A Go to this tablet sent, and the command-state revision it was pressed at: later reports answer it. Unconfirmed
+ * when no reply came; the server's record, if it sent, still arrives.
+ */
+export type SentPoseTarget = { name: string; revision: number; unconfirmed?: boolean };
+
+/** The server's record of the last Go to (`positions:go`), measured on the TF tip when it could be. */
+export type GoToRecord = {
+  name: string;
+  config_id: string;
+  app_id: string;
+  state: "going" | "moving" | "arrived" | "stopped" | "unreachable";
+  offset_mm?: number | null;
+  offset_deg?: number | null;
+  measured?: boolean;
 };
 
 export type PlotSeriesSnapshot = PlotSeriesConfig & { samples: readonly PlotSeriesSample[] };
@@ -40,10 +66,17 @@ export type WidgetDataSnapshot =
   | {
       type: "position-library";
       joints?: { names: readonly string[]; positions: readonly number[]; receivedAt: string };
+      /** The newest hand pose on the widget's hand pose topic. */
+      eePose?: SavedHandPose & { receivedAt: string };
       saved: readonly SavedPositionEntry[];
       exportYaml?: string;
+      /** A refusal or failure, as the backend worded it. */
       notice?: string;
+      event?: PositionLibraryEvent;
       busy?: boolean;
+      sent?: SentPoseTarget;
+      /** The app this library's poses belong to, to pick its Go to out of the server's record. */
+      scope?: { configId: string; appId: string };
     }
   | {
       receivedAt: string;
@@ -62,6 +95,8 @@ export type WidgetDataSnapshot =
       target?: unknown;
       /** The newest PoseStamped on the widget's pose topic. */
       pose?: unknown;
+      /** The pose an armed Go to on this screen would send, as a PoseStamped; absent when nothing is armed. */
+      previewPose?: unknown;
       /** The newest PoseArray on the widget's goals topic: the shared-control goals, and when it arrived. */
       goals?: unknown;
       goalsReceivedAt?: string;

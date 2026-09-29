@@ -13,9 +13,9 @@
       "action_presets": [
         {
           "id": "manager-release",
-          "name": "Release joint target",
+          "name": "Release joint or pose target",
           "kind": "topic-publish",
-          "description": "Cancel a running named position and return the manager to passthrough.",
+          "description": "Cancel a running joint or pose target and return the manager to passthrough.",
           "command": "behaviour/passthrough",
           "topic": "/mode_request",
           "message_type": "std_msgs/msg/String",
@@ -946,7 +946,7 @@
             {
               "id": "positions-poses-label",
               "kind": "label",
-              "title": "SAVED POSES — dispatched once; the manager reports no progress",
+              "title": "SAVED POSES — Go to arms, press again to move; Cancel the pose stops it",
               "layout": {
                 "x": 14,
                 "y": 14,
@@ -954,7 +954,7 @@
                 "height": 24
               },
               "settings": {
-                "text": "SAVED POSES — dispatched once; the manager reports no progress",
+                "text": "SAVED POSES — Go to arms, press again to move; Cancel the pose stops it",
                 "fontSize": 12,
                 "align": "left",
                 "show_details": false
@@ -963,7 +963,7 @@
             {
               "id": "positions-sent-label",
               "kind": "label",
-              "title": "WHAT WAS SENT — /joint_target_command",
+              "title": "GO HOME SENT — /joint_target_command",
               "layout": {
                 "x": 928,
                 "y": 14,
@@ -971,7 +971,7 @@
                 "height": 24
               },
               "settings": {
-                "text": "WHAT WAS SENT — /joint_target_command",
+                "text": "GO HOME SENT — /joint_target_command",
                 "fontSize": 12,
                 "align": "left",
                 "show_details": false
@@ -997,7 +997,10 @@
                   "joint_5",
                   "joint_6"
                 ],
-                "show_details": false
+                "show_details": false,
+                "eePoseTopic": "/ee_pose",
+                "go_to": true,
+                "editable": false
               }
             },
             {
@@ -1061,7 +1064,7 @@
               "settings": {
                 "action_feedback": "none",
                 "action_id": "positions-release",
-                "action_label": "Cancel the joint target",
+                "action_label": "Cancel the joint or pose target",
                 "button_label": "Cancel the pose",
                 "cancellable": false,
                 "command": "behaviour/passthrough",
@@ -1073,6 +1076,105 @@
                 "show_details": true,
                 "variant": "danger",
                 "hint": "returns the manager to passthrough"
+              }
+            }
+          ],
+          "reserved_regions": [
+            {
+              "id": "stop",
+              "owner": "runtime-chrome",
+              "x": 928,
+              "y": 410,
+              "width": 338,
+              "height": 252
+            }
+          ]
+        },
+        {
+          "id": "manager_positions_bench",
+          "title": "Positions · Bench",
+          "canvas": {
+            "preset_id": "native-1280x720",
+            "runtime_mode": "fit"
+          },
+          "widgets": [
+            {
+              "id": "positions-bench-label",
+              "kind": "label",
+              "title": "SAVED POSES — rename, delete, export joint and pose targets for the manager",
+              "layout": {
+                "x": 14,
+                "y": 14,
+                "width": 902,
+                "height": 24
+              },
+              "settings": {
+                "text": "SAVED POSES — rename, delete, export joint and pose targets for the manager",
+                "fontSize": 12,
+                "align": "left",
+                "show_details": false
+              }
+            },
+            {
+              "id": "positions-bench-hand-label",
+              "kind": "label",
+              "title": "SAVED WITH EACH POSE — /ee_pose",
+              "layout": {
+                "x": 928,
+                "y": 14,
+                "width": 338,
+                "height": 24
+              },
+              "settings": {
+                "text": "SAVED WITH EACH POSE — /ee_pose",
+                "fontSize": 12,
+                "align": "left",
+                "show_details": false
+              }
+            },
+            {
+              "id": "positions-bench-library",
+              "kind": "position-library",
+              "title": "Saved poses",
+              "layout": {
+                "x": 14,
+                "y": 50,
+                "width": 902,
+                "height": 612
+              },
+              "settings": {
+                "jointStateTopic": "/joint_states",
+                "jointNames": [
+                  "joint_1",
+                  "joint_2",
+                  "joint_3",
+                  "joint_4",
+                  "joint_5",
+                  "joint_6"
+                ],
+                "show_details": false,
+                "eePoseTopic": "/ee_pose",
+                "go_to": false,
+                "editable": true
+              }
+            },
+            {
+              "id": "positions-bench-hand",
+              "kind": "topic-echo",
+              "title": "Hand pose",
+              "layout": {
+                "x": 928,
+                "y": 50,
+                "width": 338,
+                "height": 348
+              },
+              "settings": {
+                "fieldPath": "",
+                "maxMessages": 1,
+                "messageType": "geometry_msgs/msg/PoseStamped",
+                "prettyPrint": true,
+                "show_details": false,
+                "topic": "/ee_pose"
               }
             }
           ],

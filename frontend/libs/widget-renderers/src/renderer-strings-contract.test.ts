@@ -6,10 +6,13 @@ const LANGUAGES = ["en", "fr", "es"] as const;
 /** Sample arguments by parameter name, so a function string is checked with what it will be given. */
 const SAMPLE = {
   count: 1,
+  degrees: 12,
   detail: "not a valid name",
   driven: 2,
   label: "Open",
   live: "2 live joints",
+  millimetres: 34,
+  name: "Pose 3",
   seconds: 7,
   step: 3,
   time: "10:42",

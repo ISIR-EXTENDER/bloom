@@ -41,6 +41,10 @@ export function isRuntimeMotionHeld(views: {
 }
 
 function isReleaseIntent(intent: WidgetActionIntent): boolean {
+  // Cancelling a Go to returns the manager to passthrough: a way out, never a move.
+  if (intent.type === "position-op" && intent.op === "cancel") {
+    return true;
+  }
   if (intent.type === "topic-publish") {
     return intent.release === true;
   }

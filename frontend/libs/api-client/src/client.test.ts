@@ -176,6 +176,27 @@ describe("saved positions", () => {
     expect(received.at(-1)?.url).toBe("http://api/api/v1/runtime/positions");
   });
 
+  it("renames a pose with PUT and sends a Go to as an ordered robot command naming only the pose", async () => {
+    const { client, received } = fakeApi({
+      "PUT http://api/api/v1/runtime/positions/pose_1/name": () => json({ positions: [{ ...home, name: "pick" }] }),
+      "POST http://api/api/v1/runtime/positions/pose_1/go": () =>
+        json({ name: "pose_1", topic: "/pose_target", status: "published", detail: "ok" }),
+      "POST http://api/api/v1/runtime/positions/cancel": () => json({ detail: "passthrough" }),
+    });
+    const scope = { appId: "explorer", configId: "lab" };
+    await expect(client.renameSavedPosition("pose_1", "pick", scope)).resolves.toEqual([{ ...home, name: "pick" }]);
+    await expect(client.goToSavedPosition("pose_1", "abc123", scope)).resolves.toMatchObject({ topic: "/pose_target" });
+    await expect(client.cancelGoTo()).resolves.toEqual({ detail: "passthrough" });
+    expect(received.map((entry) => [entry.method, entry.url.split("?")[1]])).toEqual([
+      ["PUT", "app_id=explorer&config_id=lab"],
+      ["POST", "app_id=explorer&config_id=lab"],
+      ["POST", undefined],
+    ]);
+    expect(received[0]?.body).toEqual({ name: "pick" });
+    expect(received[1]?.body).toEqual({ fingerprint: "abc123" });
+    expect(received[1]?.headers.get("X-Bloom-Publish-Seq")).toMatch(/^\d+$/);
+  });
+
   it("encodes a pose name with a slash rather than losing it in the path", async () => {
     const { client, received } = fakeApi({
       "DELETE http://api/api/v1/runtime/positions/left%2Fhigh": () => json({ positions: [] }),

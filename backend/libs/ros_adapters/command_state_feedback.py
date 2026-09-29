@@ -107,8 +107,8 @@ class RclpyCommandStateFeedback:
         for topic, message_type in self._echo_topics.items():
             self._subscribe(topic, message_type, self._echo_handler(topic, message_type))
         self._subscribe(PARAMETER_EVENTS_TOPIC, "rcl_interfaces/msg/ParameterEvent", self._on_parameter_event)
-        if self._gripper_topic is not None:
-            self._subscribe(JOINT_STATES_TOPIC, "sensor_msgs/msg/JointState", self._on_joint_states)
+        # Always: a saved pose is gone to only when the live joint names are the ones it was saved with.
+        self._subscribe(JOINT_STATES_TOPIC, "sensor_msgs/msg/JointState", self._on_joint_states)
         self._subscribe(FSM_VIEWER_TOPIC, "yasmin_msgs/msg/StateMachine", self._on_fsm_viewer)
         if self._subscribe(SERVOING_VELOCITY_TOPIC, "geometry_msgs/msg/TwistStamped", self._on_servoing_velocity):
             self._tracker.start_servoing_liveness()

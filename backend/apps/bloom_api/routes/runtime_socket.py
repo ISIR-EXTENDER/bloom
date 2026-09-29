@@ -572,6 +572,7 @@ def apply_runtime_app_context(
 
     socket_policy.application = application
     socket_policy.current(websocket)
+    get_runtime_session_manager(websocket).record_app_context(session.id, message.config_id, message.app_id)
     return RuntimeServerMessage(
         type="app_context_ack",
         detail=f"Runtime commands are now limited to what '{application.name}' allows.",

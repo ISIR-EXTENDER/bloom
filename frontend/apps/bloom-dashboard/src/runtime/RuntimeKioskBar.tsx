@@ -54,7 +54,8 @@ export type RuntimeKioskBarProps = {
   /** Every profile the app offers; a role switch picks one. */
   profiles?: readonly RuntimeProfileSummary[];
   /** The manager's lasting behaviour reported on, or null: it lasts across screens, so every screen says so. */
-  activeBehaviour?: "intent_scaling" | "shared_control" | null;
+  /** A lasting behaviour, or a pose target the manager is moving to: either way the pad is not what drives. */
+  activeBehaviour?: "intent_scaling" | "pose_target" | "shared_control" | null;
   /** The frame operator commands are stamped with, or null while unknown. */
   commandFrameId: string | null;
   gamepadName?: string | null;
@@ -350,9 +351,12 @@ export function RuntimeKioskBar(props: RuntimeKioskBarProps) {
 }
 
 function behaviourWord(
-  behaviour: "intent_scaling" | "shared_control",
+  behaviour: "intent_scaling" | "pose_target" | "shared_control",
   strings: ReturnType<typeof useRuntimeStrings>,
 ): string {
+  if (behaviour === "pose_target") {
+    return strings.kiosk.behaviourPoseTarget;
+  }
   return behaviour === "intent_scaling" ? strings.kiosk.behaviourSpeedUp : strings.kiosk.behaviourAssist;
 }
 

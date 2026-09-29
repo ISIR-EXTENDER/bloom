@@ -179,7 +179,7 @@ describe("reusable presets on a command button", () => {
 
     expect([...picker.options].map((option) => option.textContent)).toEqual([
       "No preset",
-      "Release joint target",
+      "Release joint or pose target",
       "Neutral shaping",
     ]);
     expect(picker.closest("details")).toBeNull();

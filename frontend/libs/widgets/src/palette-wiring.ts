@@ -54,6 +54,11 @@ export const PALETTE_WIRING: Readonly<Record<string, { title: string; settings: 
   },
   "plot-board": { title: "Hand position", settings: { series: HAND_AXES } },
   "value-strip": { title: "Hand position", settings: { series: HAND_AXES } },
+  // Saves the hand's pose with the joints and offers Go to on each: cartesian_manager's pose_target, on both arms.
+  "position-library": {
+    title: "Saved poses",
+    settings: { jointStateTopic: "/joint_states", eePoseTopic: EE_POSE.topic, go_to: true },
+  },
   // The manager's goal confidences, published only while behaviour/shared_control is active.
   "confidence-bars": {
     title: "Goal confidence",
@@ -65,7 +70,6 @@ const ARRIVES_AS_EXTRA: Readonly<Record<string, string>> = {
   joystick: "Translation pad",
   toggle: "Gripper open and close",
   "plot-picker": "Linked to this screen's plot board",
-  "position-library": "Saved poses; going to one needs its export in the manager",
 };
 
 /** What a palette entry becomes when placed, in a few words, so the palette says it before the click does. */

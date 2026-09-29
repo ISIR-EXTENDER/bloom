@@ -136,10 +136,15 @@ const GLOSSARY: Record<string, { es: string; fr: string }> = {
   "Max linear speed": { es: "Velocidad lineal máxima", fr: "Vitesse linéaire maximale" },
   "Max angular speed": { es: "Velocidad angular máxima", fr: "Vitesse angulaire maximale" },
   "Saved poses": { es: "Poses guardadas", fr: "Poses enregistrées" },
-  "SAVED POSES — dispatched once; the manager reports no progress": {
-    es: "POSES GUARDADAS — enviadas una vez; el gestor no informa el progreso",
-    fr: "POSES ENREGISTRÉES — envoyées une fois ; le gestionnaire ne signale aucune progression",
+  "SAVED POSES — Go to arms, press again to move; Cancel the pose stops it": {
+    es: "POSES GUARDADAS — Ir a se arma, pulse otra vez para mover; Cancelar la pose lo detiene",
+    fr: "POSES ENREGISTRÉES — Aller à s’arme, appuyez encore pour bouger ; Annuler la pose l’arrête",
   },
+  "SAVED POSES — rename, delete, export joint and pose targets for the manager": {
+    es: "POSES GUARDADAS — renombrar, eliminar, exportar objetivos articulares y de pose para el gestor",
+    fr: "POSES ENREGISTRÉES — renommer, supprimer, exporter les cibles articulaires et de pose pour le gestionnaire",
+  },
+  "Hand pose": { es: "Pose de la mano", fr: "Pose de la main" },
   "Joint target": { es: "Objetivo articular", fr: "Cible articulaire" },
   "Current values": { es: "Valores actuales", fr: "Valeurs actuelles" },
   "Mode requests": { es: "Solicitudes de modo", fr: "Demandes de mode" },
@@ -166,6 +171,7 @@ const GLOSSARY: Record<string, { es: string; fr: string }> = {
   "Drive · Bench": { es: "Conducción · Banco", fr: "Conduite · Banc" },
   "Drive · Operator": { es: "Conducción · Operador", fr: "Conduite · Opérateur" },
   Positions: { es: "Posiciones", fr: "Positions" },
+  "Positions · Bench": { es: "Posiciones · Banco", fr: "Positions · Banc" },
   Behaviours: { es: "Comportamientos", fr: "Comportements" },
   "Robot feedback": { es: "Estado del robot", fr: "Retour du robot" },
   "Command sources": { es: "Fuentes de comando", fr: "Sources de commande" },
@@ -180,6 +186,8 @@ const GLOSSARY: Record<string, { es: string; fr: string }> = {
 const TOPIC_LABEL_PREFIXES: Record<string, { es: string; fr: string }> = {
   "SENT — ": { es: "ENVIADO — ", fr: "ENVOYÉ — " },
   "WHAT WAS SENT — ": { es: "LO QUE SE ENVIÓ — ", fr: "CE QUI A ÉTÉ ENVOYÉ — " },
+  "GO HOME SENT — ": { es: "INICIO ENVIADO — ", fr: "RETOUR À L’ORIGINE ENVOYÉ — " },
+  "SAVED WITH EACH POSE — ": { es: "GUARDADO CON CADA POSE — ", fr: "ENREGISTRÉ AVEC CHAQUE POSE — " },
 };
 
 const ARROWS = /^([▲▼◀▶↶↷]\s*)?(.*?)(\s*[▲▼◀▶↶↷])?$/u;

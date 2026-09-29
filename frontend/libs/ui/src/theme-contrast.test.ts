@@ -112,6 +112,7 @@ describe.each(presets)("$name palette meets WCAG", (preset) => {
       ["primaryContainer", "onPrimaryContainer"],
       ["secondary", "onSecondary"],
       ["secondaryContainer", "onSecondaryContainer"],
+      // A lit destructive button (Release in passthrough) draws onError on error, never on primary.
       ["error", "onError"],
       ["errorContainer", "onErrorContainer"],
       ["stop", "onStop"],
@@ -194,6 +195,8 @@ describe.each(presets)("$name palette meets WCAG", (preset) => {
     }
     // The kiosk bar's HELD chip is ink on pollen; DEBUG is ink on lilac (design 5b).
     expect(contrastRatio(tokens.pollen, tokens.ink), `${preset.id}: HELD chip`).toBeGreaterThanOrEqual(floor);
+    // An armed row (Go to, Go home) draws its name and saved values in onSurface on pollen, at full strength.
+    expect(contrastRatio(tokens.pollen, tokens.onSurface), `${preset.id}: armed row`).toBeGreaterThanOrEqual(floor);
     expect(contrastRatio(tokens.lilac, tokens.ink), `${preset.id}: DEBUG chip`).toBeGreaterThanOrEqual(floor);
   });
 

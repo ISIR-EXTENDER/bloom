@@ -10,7 +10,9 @@ Two storage layers exist and they are not the same thing.
 
 A pose saved here cannot be replayed through `behaviour/joint_target/<name>`
 until the manager knows the name, so the bridge is an export: render the exact
-YAML block to paste into the manager config.
+YAML block to paste into the manager config. A pose saved with the hand's
+Cartesian pose can be replayed live, as a PoseStamped on the manager's
+`pose_target` topic (cartesian_manager#11).
 
 The export has to be generated rather than hand-written because `positions` is a
 single flattened array across every entry in `target_names`, and the manager
@@ -20,7 +22,9 @@ refuses to start unless
 
 from __future__ import annotations
 
+import hashlib
 import json
+import math
 import re
 import threading
 from collections.abc import Callable, Iterable
@@ -34,6 +38,9 @@ from libs.db.sqlite import apply_sqlite_migrations, sqlite_connection
 POSITION_NAME_PATTERN = re.compile(r"^[a-z0-9_]{1,64}$")
 #: URDF joint names keep their case and may hold hyphens (the Explorer's joint-tool).
 JOINT_NAME_PATTERN = re.compile(r"^[A-Za-z0-9_-]{1,128}$")
+#: A TF frame id as /ee_pose stamps it; the manager compares it to its base frame as a string.
+FRAME_ID_PATTERN = re.compile(r"^[A-Za-z0-9_/-]{1,128}$")
+_MIN_QUATERNION_NORM = 1.0e-9
 
 
 def normalize_pose_name(name: str) -> str:
@@ -43,6 +50,10 @@ def normalize_pose_name(name: str) -> str:
 
 class PositionLibraryError(ValueError):
     """Raised when a pose would produce a configuration the manager rejects."""
+
+
+class PositionExistsError(PositionLibraryError):
+    """A create that would silently replace a pose someone saved under the same name."""
 
 
 def with_normalized_names(poses: Iterable[JointPose]) -> list[JointPose]:
@@ -60,13 +71,62 @@ def with_normalized_names(poses: Iterable[JointPose]) -> list[JointPose]:
 
 
 @dataclass(frozen=True)
+class CartesianPose:
+    """The hand's pose from /ee_pose, in the frame it was stamped in; orientation is x, y, z, w, unit length."""
+
+    frame_id: str
+    position: tuple[float, float, float]
+    orientation: tuple[float, float, float, float]
+    #: /ee_pose is qontrol's commanded pose; True when the tip measured through TF agreed with it at save time.
+    verified: bool = False
+
+    def __post_init__(self) -> None:
+        if not FRAME_ID_PATTERN.fullmatch(self.frame_id):
+            raise PositionLibraryError(f"'{self.frame_id}' is not a frame id")
+        if len(self.position) != 3 or len(self.orientation) != 4:
+            raise PositionLibraryError("a hand pose needs three position values and four quaternion values")
+        values = (*self.position, *self.orientation)
+        if not all(isinstance(value, (int, float)) and math.isfinite(value) for value in values):
+            raise PositionLibraryError("a hand pose must be finite")
+        norm = math.sqrt(sum(value * value for value in self.orientation))
+        if norm <= _MIN_QUATERNION_NORM:
+            raise PositionLibraryError("a hand pose needs a non-zero quaternion")
+        # The manager normalizes too; storing it unit-length keeps the export and the replay identical.
+        object.__setattr__(self, "position", tuple(float(value) for value in self.position))
+        object.__setattr__(self, "orientation", tuple(float(value) / norm for value in self.orientation))
+
+    def to_json(self) -> dict[str, object]:
+        return {
+            "frame_id": self.frame_id,
+            "position": list(self.position),
+            "orientation": list(self.orientation),
+            "verified": self.verified,
+        }
+
+    @classmethod
+    def from_json(cls, value: object) -> CartesianPose | None:
+        if not isinstance(value, dict):
+            return None
+        try:
+            return cls(
+                frame_id=str(value["frame_id"]),
+                position=tuple(float(item) for item in value["position"]),
+                orientation=tuple(float(item) for item in value["orientation"]),
+                verified=value.get("verified") is True,
+            )
+        except (KeyError, TypeError, ValueError):
+            return None
+
+
+@dataclass(frozen=True)
 class JointPose:
-    """A pose captured from the robot, ordered to match ``joint_names``."""
+    """A pose captured from the robot, ordered to match ``joint_names``; ``ee_pose`` is the hand's, when captured."""
 
     name: str
     joint_names: tuple[str, ...]
     positions: tuple[float, ...]
     description: str = ""
+    ee_pose: CartesianPose | None = None
 
     def __post_init__(self) -> None:
         if not self.name.strip():
@@ -113,6 +173,27 @@ class PositionLibrary:
             else:
                 poses.append(pose)
             self._commit(poses)
+            return pose
+
+    def create(self, pose: JointPose) -> JointPose:
+        """Add a pose under a name nobody holds; never replaces one."""
+        with self._lock:
+            if any(normalize_pose_name(existing.name) == normalize_pose_name(pose.name) for existing in self.poses):
+                raise PositionExistsError(f"'{pose.name}' already exists")
+            self._ensure_consistent_joints(pose)
+            self._commit([*self.poses, pose])
+            return pose
+
+    def create_numbered(self, make: Callable[[str], JointPose]) -> JointPose:
+        """Add a pose under the next free `pose_N`, chosen under the lock so two saves never pick the same one."""
+        with self._lock:
+            taken = {normalize_pose_name(pose.name) for pose in self.poses}
+            index = 1
+            while f"pose_{index}" in taken:
+                index += 1
+            pose = make(f"pose_{index}")
+            self._ensure_consistent_joints(pose)
+            self._commit([*self.poses, pose])
             return pose
 
     def remove(self, name: str) -> bool:
@@ -182,7 +263,7 @@ class SQLitePositionStore:
     def load(self, config_id: str, app_id: str) -> list[JointPose]:
         with sqlite_connection(self.database_path) as connection:
             rows = connection.execute(
-                "SELECT name, joint_names_json, positions_json, description FROM saved_positions"
+                "SELECT name, joint_names_json, positions_json, description, ee_pose_json FROM saved_positions"
                 " WHERE config_id = ? AND app_id = ? ORDER BY position",
                 (config_id, app_id),
             ).fetchall()
@@ -192,6 +273,7 @@ class SQLitePositionStore:
                 joint_names=tuple(str(joint) for joint in json.loads(row["joint_names_json"])),
                 positions=tuple(float(value) for value in json.loads(row["positions_json"])),
                 description=str(row["description"]),
+                ee_pose=CartesianPose.from_json(json.loads(row["ee_pose_json"])) if row["ee_pose_json"] else None,
             )
             for row in rows
         )
@@ -202,8 +284,8 @@ class SQLitePositionStore:
             connection.execute("DELETE FROM saved_positions WHERE config_id = ? AND app_id = ?", (config_id, app_id))
             connection.executemany(
                 "INSERT INTO saved_positions"
-                " (config_id, app_id, position, name, joint_names_json, positions_json, description)"
-                " VALUES (?, ?, ?, ?, ?, ?, ?)",
+                " (config_id, app_id, position, name, joint_names_json, positions_json, description, ee_pose_json)"
+                " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                 [
                     (
                         config_id,
@@ -213,6 +295,7 @@ class SQLitePositionStore:
                         json.dumps(list(pose.joint_names)),
                         json.dumps(list(pose.positions)),
                         pose.description,
+                        json.dumps(pose.ee_pose.to_json()) if pose.ee_pose is not None else None,
                     )
                     for index, pose in enumerate(poses)
                 ],
@@ -309,14 +392,72 @@ def pose_from_joint_state(
     )
 
 
+def pose_offset(target: CartesianPose, current: CartesianPose) -> tuple[float, float]:
+    """Metres and radians between two poses in one frame; q and -q are the same orientation."""
+    metres = math.dist(target.position, current.position)
+    dot = abs(sum(a * b for a, b in zip(target.orientation, current.orientation, strict=True)))
+    return metres, 2 * math.acos(min(1.0, dot))
+
+
+def hand_pose_fingerprint(pose: CartesianPose) -> str:
+    """What a tablet previewed: a Go to naming another fingerprint was armed on a pose that has since changed."""
+    values = ",".join(f"{value:.6f}" for value in (*pose.position, *pose.orientation))
+    return hashlib.sha256(f"{bare_frame(pose.frame_id)}|{values}".encode()).hexdigest()[:16]
+
+
+def bare_frame(frame_id: str) -> str:
+    """tf2 names a frame without a leading slash; a stamp with one is the same frame."""
+    return frame_id.strip().lstrip("/")
+
+
+def render_pose_targets_yaml(poses: Iterable[JointPose], indent: str = "      ") -> str:
+    """The `pose_targets` block for the manager's params: names, frames, positions and orientations only.
+
+    Gains, speed caps and tolerances stay as the manager config has them, so the block is merged by hand.
+    """
+    reachable = [pose for pose in poses if pose.ee_pose is not None]
+    if not reachable:
+        return ""
+    lines = [
+        f"{indent}pose_targets:",
+        f"{indent}  # Keep linear_kp, angular_kp, max_*_velocity and *_tolerance from the manager config.",
+        f"{indent}  target_names: [{', '.join(pose.name for pose in reachable)}]",
+        f"{indent}  frame_ids: [{', '.join(bare_frame(pose.ee_pose.frame_id) for pose in reachable)}]",
+        f"{indent}  positions: [{', '.join(f'{v:.4f}' for pose in reachable for v in pose.ee_pose.position)}]",
+        f"{indent}  orientations: [{', '.join(f'{v:.4f}' for pose in reachable for v in pose.ee_pose.orientation)}]",
+    ]
+    return "\n".join(lines)
+
+
+def pose_target_payload(pose: CartesianPose) -> dict[str, object]:
+    """The PoseStamped the manager's pose_target topic takes; the stamp stays zero, the manager reads none."""
+    x, y, z = pose.position
+    qx, qy, qz, qw = pose.orientation
+    return {
+        "header": {"frame_id": pose.frame_id},
+        "pose": {
+            "position": {"x": x, "y": y, "z": z},
+            "orientation": {"x": qx, "y": qy, "z": qz, "w": qw},
+        },
+    }
+
+
 __all__ = [
+    "FRAME_ID_PATTERN",
+    "CartesianPose",
     "JointPose",
     "PositionLibrary",
+    "PositionExistsError",
     "PositionLibraryError",
     "pose_from_joint_state",
     "JOINT_NAME_PATTERN",
     "POSITION_NAME_PATTERN",
+    "bare_frame",
+    "hand_pose_fingerprint",
     "normalize_pose_name",
+    "pose_offset",
+    "pose_target_payload",
+    "render_pose_targets_yaml",
     "render_joint_targets_yaml",
     "with_normalized_names",
 ]

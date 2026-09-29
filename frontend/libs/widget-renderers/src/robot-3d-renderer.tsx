@@ -30,6 +30,7 @@ export function Robot3dWidget({ data, descriptor, language, robotModel }: Widget
     meshes: 0,
     model: "loading",
     pose: false,
+    preview: false,
     softGoal: false,
     target: false,
     unplaced: 0,
@@ -86,6 +87,7 @@ export function Robot3dWidget({ data, descriptor, language, robotModel }: Widget
         data-joints={`${status.joints.driven}/${status.joints.total}`}
         data-joint-updates={status.updates}
         data-pose={status.pose ? "shown" : "none"}
+        data-preview={status.preview ? "shown" : "none"}
         data-goals={status.goals}
         data-goals-ignored={status.goalsIgnored}
         data-soft-goal={status.softGoal ? "shown" : "none"}
@@ -109,6 +111,7 @@ export function Robot3dWidget({ data, descriptor, language, robotModel }: Widget
               onStatus={setStatus}
               goals={goals}
               pose={asSample<{ header?: unknown; pose?: unknown }>(snapshot?.pose)}
+              previewPose={asSample<{ header?: unknown; pose?: unknown }>(snapshot?.previewPose)}
               robotModel={robotModel}
               showAxes={showAxes}
               softGoal={softGoal}

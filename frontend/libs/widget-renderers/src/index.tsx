@@ -20,6 +20,7 @@ export {
   type CommandStateMessage,
   clearCommandState,
   getCommandStateEntry,
+  getCommandStateRevision,
   INTENT_SCALING_ACTIVE_KEY,
   knownValue,
   MODE_REQUEST_TOPIC,

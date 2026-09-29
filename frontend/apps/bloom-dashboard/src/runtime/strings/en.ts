@@ -116,6 +116,7 @@ export const enRuntimeStrings: RuntimeStrings = {
       `Nothing on this robot takes a joystick on ${topic}: the robot's manager does not listen there.`,
     frameUnavailableOnRobot: "Unavailable on this robot.",
     behaviourAssist: "Assist on",
+    behaviourPoseTarget: "Going to a pose",
     behaviourChipTitle: "A manager behaviour is on; STOP, Cancel or leaving the app returns to passthrough",
     behaviourMissing: (parameters) =>
       `The running cartesian_manager does not declare ${parameters}: start a manager built with this behaviour.`,

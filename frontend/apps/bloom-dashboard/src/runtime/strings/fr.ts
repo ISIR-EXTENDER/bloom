@@ -116,6 +116,7 @@ export const frRuntimeStrings: RuntimeStrings = {
       `Rien sur ce robot ne reçoit de joystick sur ${topic} : le manager du robot n'écoute pas ce topic.`,
     frameUnavailableOnRobot: "Indisponible sur ce robot.",
     behaviourAssist: "Assistance active",
+    behaviourPoseTarget: "Vers une pose",
     behaviourChipTitle:
       "Un comportement du gestionnaire est actif ; STOP, Annuler ou quitter l'app ramène au passage direct",
     behaviourMissing: (parameters) =>

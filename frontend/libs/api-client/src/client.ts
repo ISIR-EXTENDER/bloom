@@ -3,6 +3,7 @@ import type {
   ApplicationListResponse,
   ConfigurationBundle,
   ConfigurationListResponse,
+  PoseTargetResponse,
   PublishResponse,
   ReusableScreen,
   ReusableScreensResponse,
@@ -31,6 +32,7 @@ import type {
   SavedPosition,
   SavedPositionExportResponse,
   SavedPositionListResponse,
+  SavedPositionRequest,
   SavedPositionScope,
   ScreenConfig,
   ShareStatus,
@@ -290,7 +292,7 @@ export class BloomApiClient {
     return response.positions;
   }
 
-  saveSavedPosition(request: SavedPosition, scope?: SavedPositionScope): Promise<SavedPosition> {
+  saveSavedPosition(request: SavedPositionRequest, scope?: SavedPositionScope): Promise<SavedPosition> {
     return this.request<SavedPosition>(`/api/v1/runtime/positions${savedPositionQuery(scope)}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -304,6 +306,32 @@ export class BloomApiClient {
       { method: "DELETE" },
     );
     return response.positions;
+  }
+
+  async renameSavedPosition(name: string, newName: string, scope?: SavedPositionScope): Promise<SavedPosition[]> {
+    const response = await this.request<SavedPositionListResponse>(
+      `/api/v1/runtime/positions/${encodeURIComponent(name)}/name${savedPositionQuery(scope)}`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newName }),
+      },
+    );
+    return response.positions;
+  }
+
+  /** A robot command: owner-only and refused while stopped, like any publish, and given up on like one. */
+  goToSavedPosition(name: string, fingerprint: string, scope?: SavedPositionScope): Promise<PoseTargetResponse> {
+    return this.requestWithTimeout<PoseTargetResponse>(
+      `/api/v1/runtime/positions/${encodeURIComponent(name)}/go${savedPositionQuery(scope)}`,
+      { fingerprint },
+      `Go to ${name}`,
+    );
+  }
+
+  /** Passthrough on the manager's mode topic: the library's own way out of a Go to. */
+  cancelGoTo(): Promise<{ detail: string }> {
+    return this.requestWithTimeout<{ detail: string }>("/api/v1/runtime/positions/cancel", {}, "Cancel the pose");
   }
 
   exportSavedPositions(scope?: SavedPositionScope): Promise<SavedPositionExportResponse> {

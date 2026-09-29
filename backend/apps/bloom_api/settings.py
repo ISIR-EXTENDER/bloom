@@ -104,6 +104,16 @@ class Settings(BaseModel):
     # frames.ee_frame: effector_frame on both arms since cartesian_manager d9a1fa5.
     # Empty means nobody has said, and Bloom then offers no tool frame at all.
     ros_ee_frame_id: str = ""
+    # The controller whose tip_frame and speed limits Go to reads; qontrol runs as this node on both arms.
+    ros_qontrol_node: str = "/qontrol_explorer"
+    # The TF frame of the measured tip; empty reads the controller's tip_frame parameter.
+    ros_tip_frame_id: str = ""
+    # A save is refused when the measured tip is farther than this from qontrol's commanded /ee_pose: the band that
+    # catches contact and gross lag, not small tracking error. The same band judges arrival.
+    pose_save_max_offset_m: float = Field(default=0.02, gt=0, allow_inf_nan=False)
+    pose_save_max_offset_rad: float = Field(default=0.1, gt=0, allow_inf_nan=False)
+    # A saved hand pose farther than this from the base is refused: neither arm reaches past it.
+    max_hand_reach_m: float = Field(default=1.2, gt=0, allow_inf_nan=False)
     # The node whose robot_description parameter the 3D robot view draws.
     ros_robot_description_node: str = "/robot_state_publisher"
     # The frames cartesian_manager accepts as rotation references. base_link and
@@ -379,6 +389,15 @@ class Settings(BaseModel):
                 "BLOOM_ROS_EE_FRAME_ID",
                 cls.model_fields["ros_ee_frame_id"].default,
             ),
+            ros_qontrol_node=os.getenv("BLOOM_ROS_QONTROL_NODE", cls.model_fields["ros_qontrol_node"].default),
+            ros_tip_frame_id=os.getenv("BLOOM_ROS_TIP_FRAME_ID", cls.model_fields["ros_tip_frame_id"].default),
+            pose_save_max_offset_m=_read_float_env(
+                "BLOOM_POSE_SAVE_MAX_OFFSET_M", cls.model_fields["pose_save_max_offset_m"].default
+            ),
+            pose_save_max_offset_rad=_read_float_env(
+                "BLOOM_POSE_SAVE_MAX_OFFSET_RAD", cls.model_fields["pose_save_max_offset_rad"].default
+            ),
+            max_hand_reach_m=_read_float_env("BLOOM_MAX_HAND_REACH_M", cls.model_fields["max_hand_reach_m"].default),
             ros_robot_description_node=os.getenv(
                 "BLOOM_ROS_ROBOT_DESCRIPTION_NODE",
                 cls.model_fields["ros_robot_description_node"].default,

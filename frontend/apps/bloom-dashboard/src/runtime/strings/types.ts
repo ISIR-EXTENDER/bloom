@@ -80,6 +80,7 @@ export type RuntimeStrings = {
     teleopTargetRefusedByServer: (topic: string) => string;
     frameUnavailableOnRobot: string;
     behaviourAssist: string;
+    behaviourPoseTarget: string;
     behaviourChipTitle: string;
     behaviourMissing: (parameters: string) => string;
     behaviourSpeedUp: string;

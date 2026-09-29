@@ -706,17 +706,18 @@ def test_sharing_an_app_with_uploaded_theme_images_says_they_stay_here(tmp_path:
     assert outcome.warnings and "theme images" in outcome.warnings[0]
 
 
-#: explorer-manager as main stamped it on import (its fingerprint under the model before the palette catalog).
-EXPLORER_MANAGER_STAMP_FROM_MAIN = "addc58f271dbba55afd08a19d3197cbfaee9c1aa78ff26f1c413c14bafac3f13"
+#: The fingerprint of the explorer-manager seed as it ships in this tree, pinned: a change to how fingerprints are
+#: computed shows up here. A deliberate seed edit changes it too; recompute it from the shipped file then.
+EXPLORER_MANAGER_SHIPPED_STAMP = "fff5732e6a87a6676658efc0520e43c9f1d8b1a949603445bed62ac1da921a05"
 
 
-def test_a_copy_stamped_by_main_still_reads_as_an_unedited_seed() -> None:
+def test_a_copy_stamped_with_the_shipped_fingerprint_still_reads_as_an_unedited_seed() -> None:
     # The fingerprint excludes model defaults, so changing a default (the four-colour palette summary, the
     # palette id) would make every store seeded before the change read "Edited here" and never take an update.
     stored = shipped_explorer_manager()
     stored = stored.model_copy(
-        update={"metadata": stored.metadata.model_copy(update={"seed_fingerprint": EXPLORER_MANAGER_STAMP_FROM_MAIN})}
+        update={"metadata": stored.metadata.model_copy(update={"seed_fingerprint": EXPLORER_MANAGER_SHIPPED_STAMP})}
     )
 
-    assert configuration_fingerprint(stored) == EXPLORER_MANAGER_STAMP_FROM_MAIN
+    assert configuration_fingerprint(stored) == EXPLORER_MANAGER_SHIPPED_STAMP
     assert is_unedited_seed_copy(stored)

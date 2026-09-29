@@ -312,6 +312,27 @@ describe("the 3D stage", () => {
     expect(triad.visible).toBe(false);
   });
 
+  it("draws an armed Go to as its own, larger triad beside the live pose, and hides it on disarm", async () => {
+    const at = (x: number) => ({
+      header: { frame_id: "" },
+      pose: { position: { x, y: 0, z: 0.2 }, orientation: { w: 1 } },
+    });
+    const view = mountScene({ pose: at(0.1), previewPose: at(0.3) });
+    await settle();
+    const triads = robotRoot().children.filter((child) => child instanceof AxesHelper) as AxesHelper[];
+    const preview = triads.find((triad) => triad.position.x === 0.3);
+    expect(view.last().preview).toBe(true);
+    expect(view.last().pose).toBe(true);
+    expect(preview?.visible).toBe(true);
+    expect(triads.find((triad) => triad.position.x === 0.1)).not.toBe(preview);
+
+    view.update({ previewPose: undefined });
+    await settle();
+    expect(view.last().preview).toBe(false);
+    expect(preview?.visible).toBe(false);
+    expect(view.last().pose).toBe(true);
+  });
+
   it("draws the shared-control goals and soft goal, and says how many goals the manager would ignore", async () => {
     const at = (x: number) => ({ position: { x, y: 0, z: 0.3 }, orientation: { w: 1 } });
     const view = mountScene({

@@ -37,7 +37,7 @@ import type { WidgetActionOutcome, WidgetRendererProps } from "./types";
 import { useLatchCountdown } from "./use-latch-countdown";
 
 /** A confirming press closer than this to the arming one is the same gesture, not a second decision. */
-const CONFIRM_SETTLE_MS = 600;
+export const CONFIRM_SETTLE_MS = 600;
 
 /** The visual servoing switch: while on, the servo node moves the arm, so a suspend or STOP turns it off. */
 export { VISUAL_SERVOING_SWITCH_TOPIC };
@@ -448,7 +448,7 @@ export function LabelWidget({ descriptor }: WidgetRendererProps) {
 }
 
 /** Drops a repeat activation of the same control inside the guard window. */
-function useRepeatGuard(repeatGuardMs: number | undefined) {
+export function useRepeatGuard(repeatGuardMs: number | undefined) {
   const lastFiredRef = useRef(0);
   return () => {
     if (!repeatGuardMs) {

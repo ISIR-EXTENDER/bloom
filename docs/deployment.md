@@ -190,6 +190,15 @@ runtime marks such a joystick unavailable, with the reason, before anyone presse
 ```bash
 export BLOOM_ALLOWED_ROS_PUBLISH_TOPICS='/explorer_user_interfaces/rqt_armcontrol/max_angular_speed,/explorer_user_interfaces/rqt_armcontrol/max_linear_speed,/gripper_controller/commands,/mode_request'
 export BLOOM_ALLOWED_ROS_MESSAGE_TYPES='std_msgs/msg/Float64,std_msgs/msg/Float64MultiArray,std_msgs/msg/String'
+# Go to a saved pose: the manager's pose target is reserved to that route, never in an allowlist. The measured tip
+# comes from TF, base frame to qontrol's tip_frame (read from BLOOM_ROS_QONTROL_NODE) unless named here.
+export BLOOM_ROS_QONTROL_NODE='/qontrol_explorer'
+export BLOOM_ROS_TIP_FRAME_ID=''
+export BLOOM_MAX_HAND_REACH_M=1.2
+# A save is refused when the measured tip is farther than this from the commanded /ee_pose: contact or gross lag,
+# not small tracking error. Every robot, the same band that judges a Go to's arrival.
+export BLOOM_POSE_SAVE_MAX_OFFSET_M=0.02
+export BLOOM_POSE_SAVE_MAX_OFFSET_RAD=0.1
 export BLOOM_ALLOWED_TELEOP_TARGETS='/joystick_cartesian_command'
 export BLOOM_ROBOT_NAME='Explorer'
 export BLOOM_ROS_COMMAND_FRAME_ID='base_link'

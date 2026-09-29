@@ -8,6 +8,7 @@ import {
 import {
   INTENT_SCALING_ACTIVE_KEY,
   knownValue,
+  managerKey,
   SHARED_CONTROL_ACTIVE_KEY,
   useCommandState,
   useCommandStateConnected,
@@ -284,11 +285,15 @@ export function RuntimeWorkspace({
   // The behaviour the manager's own feedback reports on, shown on every screen: it outlives a screen change.
   const intentActive = knownValue(useCommandState(INTENT_SCALING_ACTIVE_KEY))?.value === true;
   const assistActive = knownValue(useCommandState(SHARED_CONTROL_ACTIVE_KEY))?.value === true;
-  const activeBehaviour: ManagerBehaviour | null = intentActive
+  // A pose target (Go to, or a named one) ignores the pad until it arrives; the bar says so on every screen.
+  const poseTargetActive = knownValue(useCommandState(managerKey("behaviour")))?.value === "behaviour/pose_target";
+  const activeBehaviour: ManagerBehaviour | "pose_target" | null = intentActive
     ? "intent_scaling"
     : assistActive
       ? "shared_control"
-      : null;
+      : poseTargetActive
+        ? "pose_target"
+        : null;
   const baseControlStateByWidgetId = useMemo(
     () =>
       createRuntimeControlStateByWidgetId(screen, {
@@ -341,11 +346,17 @@ export function RuntimeWorkspace({
     runtimeLink,
     screen,
   });
+  const runtimeStop = useRuntimeStop(runtimeActionClient);
+  const runtimeControl = useRuntimeControl(runtimeActionClient, onSuspendTeleop);
+  const ownsRuntimeControl = !runtimeControl.supported || runtimeControl.state?.is_owner === true;
   const screenHasPositionLibrary = screen.widgets.some((widget) => widget.kind === "position-library");
-  const positionLibrary = usePositionLibrary(runtimeActionClient, screenHasPositionLibrary, {
-    appId: selection.appId,
-    configId: selection.configId,
-  });
+  // Control changing hands reloads the list: whoever held it may have saved or deleted meanwhile.
+  const positionLibrary = usePositionLibrary(
+    runtimeActionClient,
+    screenHasPositionLibrary,
+    { appId: selection.appId, configId: selection.configId },
+    ownsRuntimeControl,
+  );
   const plotSelections = usePlotSelections(screen, profileOverrideKey);
   // Camera frames arrive on their own socket, never on the one the operator steers by.
   const cameraTargets = useMemo(() => resolveCameraStreamTargets(screen), [screen]);
@@ -371,9 +382,6 @@ export function RuntimeWorkspace({
     positionLibrary: screenHasPositionLibrary ? positionLibrary.state : null,
     screen,
   });
-  const runtimeStop = useRuntimeStop(runtimeActionClient);
-  const runtimeControl = useRuntimeControl(runtimeActionClient, onSuspendTeleop);
-  const ownsRuntimeControl = !runtimeControl.supported || runtimeControl.state?.is_owner === true;
   const runtimeControlBlocked = runtimeControl.supported && !ownsRuntimeControl;
   const stopped = runtimeStop.state?.stopped === true || runtimeStop.stopRequested;
   // Not asserted, or the engage failed: STOP must be resendable. Not while a normal STOP is in flight.
@@ -438,6 +446,15 @@ export function RuntimeWorkspace({
     revision: `${screen.id}:${runtimeProfile.motorAccessibilityPreset}:${runtimeControlBlocked}:${stopped}:${stopNeedsReassert}`,
   });
   useStoppedControls(canvasViewportRef, stopped);
+  // A "stopped" refusal in the library outlives nothing: Resume clears it.
+  const wasStoppedRef = useRef(stopped);
+  const setPositionNotice = positionLibrary.setNotice;
+  useEffect(() => {
+    if (wasStoppedRef.current && !stopped) {
+      setPositionNotice("");
+    }
+    wasStoppedRef.current = stopped;
+  }, [setPositionNotice, stopped]);
   useDwellActivation({
     dwellMs: runtimeProfile.dwellMs,
     enabled: runtimeProfile.dwellEnabled && !maintenanceOpen && !settingsOpen && !tourOpen,
@@ -473,6 +490,10 @@ export function RuntimeWorkspace({
       plotSelections.toggle(intent.plotId, intent.seriesKey);
       return { accepted: true };
     }
+    // So is previewing what an armed Go to would send; its disarm on STOP must still clear the preview.
+    if (intent.type === "position-op" && intent.op === "preview") {
+      return current ? (positionLibrary.handleIntent(intent) ?? { accepted: false }) : { accepted: false };
+    }
     const refusal = resolveRuntimeIntentRefusal(intent, {
       held: motionHeldRef.current,
       ownsControl: ownsRuntimeControl,
@@ -486,6 +507,9 @@ export function RuntimeWorkspace({
       };
     }
     if (refusal === "stopped") {
+      if (intent.type === "position-op") {
+        positionLibrary.setNotice(strings.kiosk.stoppedBadge);
+      }
       return { accepted: false, detail: strings.kiosk.stoppedBadge };
     }
     if (refusal === "held") {
@@ -494,9 +518,10 @@ export function RuntimeWorkspace({
     if (refusal === "unavailable") {
       return { accepted: false, detail: controlStateByWidgetId[intent.widgetId]?.disabledReason };
     }
-    // Position ops are runtime-shell HTTP work, not robot commands.
-    if (current && positionLibrary.handleIntent(intent)) {
-      return { accepted: true };
+    // Position ops are runtime-shell HTTP work; Go to is a robot command, gated above like any other.
+    const positionOutcome = current ? positionLibrary.handleIntent(intent) : null;
+    if (positionOutcome) {
+      return positionOutcome;
     }
     return onActionIntent(intent, {
       action_presets: scoped.application.action_presets,

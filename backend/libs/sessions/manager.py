@@ -8,6 +8,7 @@ from uuid import uuid4
 from libs.ros_adapters.mode_request import (
     DEFAULT_GEOMETRIC_MODE,
     GEOMETRIC_PREFIX,
+    MODE_REQUEST_TOPIC,
     ModeRequestError,
     parse_mode_request,
 )
@@ -94,6 +95,8 @@ class RuntimeSessionManager:
         self._frame_ids: dict[str, str] = {}
         #: The mode-request topic a session sent a joint target on, until something cancels it.
         self._joint_target_topics: dict[str, str] = {}
+        #: The app each socket said it runs (app_context): a Go to names a saved pose of that app only.
+        self._app_contexts: dict[str, tuple[str, str]] = {}
         #: The mode-request topic a session left a shaping mode other than geometric/both on.
         self._shaping_topics: dict[str, str] = {}
         #: Sessions that last switched visual servoing on, until someone switches it off.
@@ -145,8 +148,18 @@ class RuntimeSessionManager:
             if session_id in self._sessions:
                 self._last_seen[session_id] = self._clock()
 
+    def record_app_context(self, session_id: str, config_id: str, app_id: str) -> None:
+        with self._lock:
+            if session_id in self._sessions:
+                self._app_contexts[session_id] = (config_id, app_id)
+
+    def app_context(self, session_id: str) -> tuple[str, str] | None:
+        with self._lock:
+            return self._app_contexts.get(session_id)
+
     def disconnect(self, session: RuntimeSession) -> None:
         with self._lock:
+            self._app_contexts.pop(session.id, None)
             self._sessions.discard(session.id)
             self._read_only_sessions.discard(session.id)
             self._last_seen.pop(session.id, None)
@@ -327,6 +340,14 @@ class RuntimeSessionManager:
                     self._shaping_topics[session_id] = topic
             if request.normalized == STOP_MODE_REQUEST:
                 self._joint_target_topics.pop(session_id, None)
+
+    def record_pose_target(
+        self, session_id: str, mode_topic: str = MODE_REQUEST_TOPIC, *, require_owner: bool = False
+    ) -> None:
+        """A pose target runs on after its sender leaves; like a joint target, passthrough ends it then."""
+        with self._lock:
+            if self._may_record(session_id, require_owner):
+                self._joint_target_topics[session_id] = mode_topic
 
     def record_published_mode_request(
         self, session_id: str, topic: str, payload: object, *, require_owner: bool = False

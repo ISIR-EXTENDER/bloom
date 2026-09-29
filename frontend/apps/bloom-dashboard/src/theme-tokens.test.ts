@@ -142,3 +142,14 @@ describe("the states a palette must keep apart", () => {
     );
   });
 });
+
+describe("a lit destructive button", () => {
+  it("draws the error pair the palettes vet, not error text on the primary fill", async () => {
+    const { css } = (await readStylesheets()).find(({ name }) => name === "runtime-widgets.css") ?? { css: "" };
+    const rule = stripComments(css).match(
+      /\.bloom-action-widget\[data-variant="danger"\] \.bloom-command-button\[data-selected="true"\] \{([^}]*)\}/,
+    )?.[1];
+    expect(rule).toContain("background: var(--bloom-error);");
+    expect(rule).toContain("color: var(--bloom-on-error);");
+  });
+});

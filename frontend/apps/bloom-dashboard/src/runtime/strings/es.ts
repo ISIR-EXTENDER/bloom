@@ -116,6 +116,7 @@ export const esRuntimeStrings: RuntimeStrings = {
       `Nada en este robot recibe un joystick en ${topic}: el manager del robot no escucha ahí.`,
     frameUnavailableOnRobot: "No disponible en este robot.",
     behaviourAssist: "Asistencia activa",
+    behaviourPoseTarget: "Hacia una pose",
     behaviourChipTitle:
       "Un comportamiento del gestor está activo; STOP, Cancelar o salir de la app vuelven al paso directo",
     behaviourMissing: (parameters) =>

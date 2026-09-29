@@ -264,7 +264,13 @@ const READ_KEYS = [
   "poseTopic",
   "goalsTopic",
   "softGoalTopic",
+  "eePoseTopic",
 ];
+/**
+ * A position library with Go to: only the server's Go to route sends a saved hand pose to the manager's pose
+ * target, and the generic publish refuses the topic, so no allowlist names it.
+ */
+const POSE_TARGET = { topic: "/pose_target", messageType: "geometry_msgs/msg/PoseStamped" };
 
 /** What each shipped app touches: publishes, teleop targets, parameters, reads, services and mode strings. */
 export function loadSeeds(src) {
@@ -300,6 +306,9 @@ export function loadSeeds(src) {
             } else if (kind === "camera") {
               if (s.source === "ros-topic") ref("read", str(s.topic), { kind });
             } else {
+              if (kind === "position-library" && s.go_to === true) {
+                ref("go-to", POSE_TARGET.topic, { kind, messageType: POSE_TARGET.messageType });
+              }
               for (const key of READ_KEYS) ref("read", str(s[key]), { kind });
               for (const series of Array.isArray(s.series) ? s.series : []) ref("read", str(series?.topic), { kind });
             }
@@ -927,6 +936,19 @@ export function runPipelineWiringCheck({ root = process.cwd(), overrides = {}, m
         "backend-target",
         (allowed(policy.teleopTargets, ref.topic) && F.backendSettings) || live,
         `${ref.topic} is neither a static teleop target nor a manager input (${apps})`,
+      );
+    } else if (ref.role === "go-to") {
+      link(
+        item,
+        "backend-route",
+        routeHas(["runtime_positions.py", '"/positions/{name}/go"']),
+        `no Go to route sends ${ref.topic} (${apps})`,
+      );
+      link(
+        item,
+        "reserved",
+        routeHas(["ros.py", "reserved_pose_target_topics"]),
+        `the generic publish does not refuse ${ref.topic} (${apps})`,
       );
     } else if (ref.role === "service") {
       link(

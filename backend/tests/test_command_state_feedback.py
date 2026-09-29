@@ -9,6 +9,7 @@ from typing import Any
 import pytest
 
 from apps.bloom_api.main import command_state_echo_topics, create_app, create_command_state_feedback
+from apps.bloom_api.routes.runtime_common import manager_facts
 from apps.bloom_api.settings import Settings
 from libs.config import InMemoryConfigurationRepository
 from libs.ros_adapters.command_state_feedback import (
@@ -18,6 +19,7 @@ from libs.ros_adapters.command_state_feedback import (
 )
 from libs.ros_adapters.parameters import RosParameterReading
 from libs.sessions.command_state import CommandStateStore, CommandStateTracker, GripperFeedback, manager_key
+from libs.sessions.go_to import CONTROLLER_FACT_PARAMETERS, MANAGER_FACT_PARAMETERS
 
 MANAGER = "/cartesian_manager"
 GRIPPER = "/gripper_controller/commands"
@@ -138,10 +140,15 @@ def test_it_subscribes_to_its_own_topics_and_skips_a_missing_interface() -> None
     assert set(subscriptions.closed) == set(subscriptions.callbacks)
 
 
-def test_an_explorer_does_not_follow_joint_states() -> None:
-    _store, _tracker, _graph, subscriptions, _parameters, _feedback = build(kinova=False)
+def test_an_explorer_follows_joint_names_but_measures_no_gripper() -> None:
+    # A saved pose is gone to only on an arm reporting the joints it was saved with; the Explorer's gripper
+    # stays what was last commanded.
+    store, tracker, _graph, subscriptions, _parameters, _feedback = build(kinova=False)
 
-    assert "/joint_states" not in subscriptions.callbacks
+    subscriptions.callbacks["/joint_states"](SimpleNamespace(name=["joint_1"], position=array("d", [0.8])))
+
+    assert tracker.live_joint_names(1.0) == ("joint_1",)
+    assert store.get(GRIPPER) is None
 
 
 def test_echoes_reach_the_store_as_commanded() -> None:
@@ -372,5 +379,43 @@ def test_the_app_reads_the_manager_inputs_but_cannot_set_them() -> None:
 
     feedback = create_command_state_feedback(app, Graph())
 
-    assert feedback._read_only == {"/cartesian_manager": ("inputs.sources",)}
+    assert feedback._read_only == {
+        "/cartesian_manager": MANAGER_FACT_PARAMETERS,
+        "/qontrol_explorer": CONTROLLER_FACT_PARAMETERS,
+    }
     assert "/cartesian_manager:inputs.sources" not in app.state.runtime_command_policy.allowed_parameters
+
+
+def test_the_managers_base_frame_and_pose_topic_are_read_and_forgotten_with_the_manager() -> None:
+    app = create_app(Settings(environment="test"), InMemoryConfigurationRepository())
+    graph, subscriptions, parameters = Graph(), Subscriptions(), Parameters()
+    parameters.values[MANAGER].update({"frames.base_frame": "/robot_base", "topics.pose_target": "/go_here"})
+    parameters.values["/qontrol_explorer"] = {"tip_frame": "ft_frame", "command_max_linear_velocity": 0.03}
+    graph.nodes.add(("qontrol_explorer", "/"))
+    feedback = RclpyCommandStateFeedback(
+        graph,
+        app.state.command_state_tracker,
+        parameters,
+        echo_topics={},
+        read_only_parameters=(
+            *(f"{MANAGER}:{name}" for name in MANAGER_FACT_PARAMETERS),
+            *(f"/qontrol_explorer:{name}" for name in CONTROLLER_FACT_PARAMETERS),
+        ),
+        manager_node=MANAGER,
+        message_class=message_class,
+        parameter_value_to_python=lambda value: value,
+        subscription_factory=subscriptions,
+        latched_subscription_factory=lambda node, cls, topic, callback: subscriptions(node, cls, topic, callback, 1),
+    )
+    assert manager_facts(app).base_frame is None
+
+    feedback.poll_once()
+    facts = manager_facts(app)
+    assert (facts.base_frame, facts.pose_target_topic, facts.tip_frame) == ("robot_base", "/go_here", "ft_frame")
+    # The manager's cap is unknown here, so the controller's limit is the speed.
+    assert facts.linear_speed == 0.03
+
+    graph.nodes.discard(("cartesian_manager", "/"))
+    feedback.poll_once()
+    assert manager_facts(app).base_frame is None
+    assert manager_facts(app).pose_target_topic == "/pose_target"

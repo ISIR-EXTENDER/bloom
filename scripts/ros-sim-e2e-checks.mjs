@@ -18,7 +18,7 @@ import {
   ROS_TOGGLE,
   saveScreenDraft,
 } from "./lib/builder-authoring.mjs";
-import { driveVerdict } from "./lib/drive-verdict.mjs";
+import { BLOCKED_JOINT_RAD, driveVerdict } from "./lib/drive-verdict.mjs";
 import {
   assert,
   createChecks,
@@ -109,6 +109,7 @@ const {
   maxLinearSpeed: MAX_LINEAR,
   mode: MODE,
   jointTarget: JOINT_TARGET,
+  poseTarget: POSE_TARGET,
   cameraImage: CAMERA,
   intentScale: INTENT_SCALE,
   sharedControlConfidences: CONFIDENCES,
@@ -122,6 +123,12 @@ const NO_STATUS = `no ${MANAGER_STATUS}: this manager predates cartesian_manager
 const MARKERS = "/widget_lab/markers";
 const TARGET = "/widget_lab/target";
 const MIN_DISPLACEMENT_M = 0.03;
+/** Go to is back when inside twice the manager's shipped tolerances (1 cm, 0.05 rad), as the widget reads it. */
+const GO_TO_POSITION_M = 0.02;
+const GO_TO_ANGLE_RAD = 0.1;
+/** The backend's default save band (BLOOM_POSE_SAVE_MAX_OFFSET_M / _RAD): a refusal is right only beyond it. */
+const SAVE_BAND_M = 0.02;
+const SAVE_BAND_RAD = 0.1;
 const MIN_ROTATION_RAD = 0.05;
 /**
  * The hand the robot really has: robot_state_publisher's transform from its joint states, the same kinematics the
@@ -440,6 +447,8 @@ async function operatorSession() {
       await shot(page, "refused-request-reverted");
       return `${refused}: last asked, then reported passthrough ${back.t - asked.t} ms later; status unchanged`;
     });
+
+    await check(page, "positions-save-and-go-to", async () => saveMoveAwayAndGoBack(page));
 
     await check(page, "robot-feedback-plots", async () => {
       await openScreen(page, "Robot feedback", "manager_feedback");
@@ -1111,15 +1120,30 @@ async function labSession() {
 
     await check(page, "lab-positions-and-camera", async () => {
       await openScreen(page, "Robot", "lab-robot");
-      const capture = page.getByRole("button", { name: "Capture the robot's current pose" });
+      const capture = page.getByRole("button", { name: "Save the robot's current pose" });
       await capture.waitFor({ timeout: 10000 });
       await expect(capture).toBeEnabled({ timeout: 10000 });
+      const before = await page.getByRole("list", { name: "Saved poses" }).locator("li").count();
+      const divergence = commandedVersusMeasured();
       await capture.click();
-      const saved = page.getByRole("list", { name: "Saved poses" }).locator("li");
-      await saved.first().waitFor({ timeout: 10000 });
+      const notice = page.locator(".bloom-position-notice");
+      await expect(notice).toHaveText(/^Saved as |^The arm is not where it was commanded/, { timeout: 10000 });
+      let saveDetail;
+      if ((await notice.textContent())?.startsWith("Saved as ")) {
+        const saved = page.getByRole("list", { name: "Saved poses" }).locator("li");
+        await expect(saved).toHaveCount(before + 1, { timeout: 10000 });
+        saveDetail = `${await saved.count()} pose saved (${divergence.text})`;
+      } else {
+        // The gate refused: it must be right that the arm is not where qontrol commands it.
+        assert(
+          divergence.metres > SAVE_BAND_M || divergence.radians > SAVE_BAND_RAD,
+          `the save was refused as not where commanded, but the TF tip is ${divergence.text}`,
+        );
+        saveDetail = `save refused, rightly: after the lab's driving the ${divergence.text}`;
+      }
       await page.locator("img.bloom-camera-image").waitFor({ timeout: 15000 });
       await shot(page, "lab-robot");
-      return `${await saved.count()} pose captured; camera shows a frame from ${CAMERA}`;
+      return `${saveDetail}; camera shows a frame from ${CAMERA}`;
     });
 
     await check(page, "lab-robot-3d-draws-the-running-model", async () => {
@@ -1198,6 +1222,162 @@ async function offerGripper(page, action) {
     await wanted.waitFor({ timeout: 15000 });
   }
   return wanted;
+}
+
+/**
+ * The operator's save-a-pose flow on the wire: save where the hand is, drive it away with the pad, then Go to
+ * the saved pose. The first press only arms; the second publishes the saved PoseStamped on the manager's pose
+ * target, the manager reports behaviour/pose_target and returns to passthrough, and both the commanded /ee_pose
+ * and the tip measured through TF are back. Passthrough goes out at the end whatever happened.
+ */
+async function saveMoveAwayAndGoBack(page) {
+  try {
+    return await saveMoveAwayAndGoBackOnce(page);
+  } finally {
+    await rosPublishOnce(MODE, "std_msgs/msg/String", "{data: 'behaviour/passthrough'}").catch(() => undefined);
+  }
+}
+
+async function saveMoveAwayAndGoBackOnce(page) {
+  await openScreen(page, "Positions", "manager_positions");
+  const save = page.getByRole("button", { name: "Save the robot's current pose" });
+  await expect(save).toBeEnabled({ timeout: 10000 });
+  await page.waitForTimeout(500);
+  const notice = page.locator(".bloom-position-notice");
+  // The save gate refuses while the measured tip is off the commanded one (a lagging arm settles, so ask again).
+  let saved;
+  for (let attempt = 1; ; attempt += 1) {
+    saved = await ros.waitFor(POSE, () => true, { since: Date.now() });
+    await save.click();
+    await expect(notice).toHaveText(/^Saved as Pose \d+\.$|^The arm is not where it was commanded/, { timeout: 10000 });
+    if ((await notice.textContent())?.startsWith("Saved as ") || attempt === 3) {
+      break;
+    }
+    await page.waitForTimeout(2000);
+  }
+  if (!(await notice.textContent())?.startsWith("Saved as ")) {
+    // Refused three times: right only if the tip is off its command, and a WARN only where joints may lag and one
+    // is blocked (scripts/lib/drive-verdict.mjs); anything else fails.
+    const divergence = commandedVersusMeasured();
+    const gaps = jointGaps();
+    const short = gaps
+      .slice(0, 3)
+      .map((row) => `${row.name} ${row.gap >= 0 ? "+" : ""}${row.gap.toFixed(2)} rad`)
+      .join(", ");
+    assert(
+      (divergence.metres > SAVE_BAND_M || divergence.radians > SAVE_BAND_RAD) &&
+        robot.jointsMayLag &&
+        gaps.some((row) => Math.abs(row.gap) > BLOCKED_JOINT_RAD),
+      `the save was refused as not where commanded; ${divergence.text}; joints short of their command: ${short || "none measured"}`,
+    );
+    await shot(page, "positions-save-refused");
+    return `WARN save refused, rightly, so Go to was not exercised this run: ${divergence.text}; joints short of their command: ${short} (${robot.jointsMayLag})`;
+  }
+  const label = /Saved as (Pose \d+)/.exec((await notice.textContent()) ?? "")?.[1];
+  assert(label, "no saved pose name");
+  const verified = (await page.getByText("not verified").count()) === 0;
+  await shot(page, "positions-saved");
+
+  await openScreen(page, "Drive · Operator", "manager_drive_operator");
+  const translation = page.getByRole("application", { name: "Translation" });
+  const release = await pressJoystick(page, translation, { x: 0, y: 2 });
+  await page.waitForTimeout(robot.driveHoldMs * 1.5);
+  const releasedAt = Date.now();
+  await release();
+  await ros.waitFor(TWIST, (data) => isZeroTwist(data), { since: releasedAt, timeoutMs: 2000 });
+  await page.waitForTimeout(800);
+  const away = ros.latest(POSE).data;
+  const moved = distance(saved.position, away.position);
+  assert(moved > MIN_DISPLACEMENT_M, `the pad moved the hand ${(moved * 100).toFixed(1)} cm, expected > 3 cm`);
+
+  await openScreen(page, "Positions", "manager_positions");
+  const since = Date.now();
+  await page.getByRole("button", { name: `Go to ${label}` }).click();
+  const armed = page.getByRole("button", { name: `Press again to send the arm to ${label}` });
+  await armed.waitFor();
+  await shot(page, "positions-go-to-armed");
+  await page.waitForTimeout(700);
+  assert(ros.since(POSE_TARGET, since).length === 0, `the first press already published on ${POSE_TARGET}`);
+  await armed.click();
+  const target = await ros.waitFor(POSE_TARGET, () => true, { since, timeoutMs: 8000 });
+  assert(
+    target.frame_id === saved.frame_id && distance(target.position, saved.position) < 0.002,
+    `${POSE_TARGET} carried ${target.frame_id} ${fmtVector(target.position)}, saved ${saved.frame_id} ${fmtVector(saved.position)}`,
+  );
+  const sentAt = Date.now();
+  const back = () => {
+    const hand = ros.latest(POSE).data;
+    return {
+      error: distance(hand.position, target.position),
+      angle: quaternionAngle(hand.orientation, target.orientation),
+    };
+  };
+  let reported;
+  if (ros.latest(MANAGER_STATUS)) {
+    await ros.waitFor(MANAGER_STATUS, (data) => data.behaviour === "behaviour/pose_target", { since, timeoutMs: 5000 });
+    await page.getByText(`Moving to ${label}`, { exact: false }).waitFor({ timeout: 5000 });
+    await page.getByRole("status", { name: "Going to a pose" }).waitFor({ timeout: 5000 });
+    await shot(page, "positions-go-to-moving");
+    await ros.waitFor(MANAGER_STATUS, (data) => data.behaviour === "behaviour/passthrough", {
+      since: sentAt,
+      timeoutMs: 45000,
+    });
+    reported = `status behaviour/pose_target, then passthrough ${((Date.now() - sentAt) / 1000).toFixed(1)} s after the send`;
+  } else {
+    // No status to wait on: wait for the commanded pose itself to come back, or say the check cannot run.
+    const deadline = Date.now() + 45000;
+    while (Date.now() < deadline && (back().error > GO_TO_POSITION_M || back().angle > GO_TO_ANGLE_RAD)) {
+      await page.waitForTimeout(200);
+    }
+    reported = `${NO_STATUS}; the commanded pose came back after ${((Date.now() - sentAt) / 1000).toFixed(1)} s`;
+  }
+  await page.waitForTimeout(500);
+  const { error, angle } = back();
+  assert(
+    error <= GO_TO_POSITION_M && angle <= GO_TO_ANGLE_RAD,
+    `the commanded hand came back ${(error * 1000).toFixed(0)} mm and ${angle.toFixed(3)} rad from ${label}`,
+  );
+  // qontrol's /ee_pose is the pose it commands; the tip through TF is where the arm is. Give it 5 s to settle.
+  const settleFrom = Date.now();
+  const tipMiss = (sample) => ({
+    metres: distance(sample.position, target.position),
+    radians: quaternionAngle(sample.orientation, target.orientation),
+  });
+  const tipOff = (sample) => {
+    const miss = tipMiss(sample);
+    return miss.metres > GO_TO_POSITION_M || miss.radians > GO_TO_ANGLE_RAD;
+  };
+  while (ros.latest(HAND) && tipOff(ros.latest(HAND).data) && Date.now() - settleFrom < 5000) {
+    await page.waitForTimeout(100);
+  }
+  const tip = ros.latest(HAND)?.data;
+  assert(tip, `no measured hand on ${HAND}`);
+  const miss = tipMiss(tip);
+  const tipText = `measured tip ${robot.tipFrame} ${(miss.metres * 1000).toFixed(0)} mm and ${((miss.radians * 180) / Math.PI).toFixed(1)} deg from ${label}`;
+  let measured = tipText;
+  let expectedRow = "arrived";
+  if (tipOff(tip)) {
+    // Strict on mock hardware; on a robot naming why its joints may not follow, a miss is a WARN only while a
+    // joint is blocked short of its command (scripts/lib/drive-verdict.mjs), and a failure otherwise.
+    const gaps = jointGaps();
+    const blocked = gaps.filter((row) => Math.abs(row.gap) > BLOCKED_JOINT_RAD);
+    const short = gaps
+      .slice(0, 3)
+      .map((row) => `${row.name} ${row.gap >= 0 ? "+" : ""}${row.gap.toFixed(2)} rad`)
+      .join(", ");
+    assert(
+      robot.jointsMayLag && blocked.length > 0,
+      `the ${tipText} after ${((Date.now() - settleFrom) / 1000).toFixed(1)} s; joints short of their command: ${short || "none measured"}`,
+    );
+    measured = `WARN ${tipText}, joints short of their command: ${short} (${robot.jointsMayLag})`;
+    // The row says what the arm did: the server judged it on the measured tip.
+    expectedRow = "stopped";
+  }
+  await expect(page.locator(".bloom-position-progress")).toHaveAttribute("data-state", expectedRow, { timeout: 5000 });
+  await expect(page.getByRole("status", { name: "Going to a pose" })).toHaveCount(0);
+  await shot(page, "positions-go-to-arrived");
+  const summary = `saved ${label} at ${fmtVector(saved.position)} (${verified ? "verified on the TF tip" : "not verified"}); the pad moved it ${(moved * 100).toFixed(1)} cm; the second press sent ${POSE_TARGET} (${target.frame_id}); ${reported}; commanded pose within ${(error * 1000).toFixed(0)} mm and ${((angle * 180) / Math.PI).toFixed(1)} deg`;
+  return measured.startsWith("WARN ") ? `${measured}; ${summary}` : `${summary}; ${measured}`;
 }
 
 async function driveAndMeasure(page, label) {
@@ -1561,7 +1741,8 @@ def vector(v):
 def quaternion(q):
     return {"x": q.x, "y": q.y, "z": q.z, "w": q.w}
 
-node.create_subscription(PoseStamped, "${POSE}", lambda m: emit("${POSE}", {"position": vector(m.pose.position), "orientation": quaternion(m.pose.orientation)}, 0.05), 10)
+node.create_subscription(PoseStamped, "${POSE}", lambda m: emit("${POSE}", {"frame_id": m.header.frame_id, "position": vector(m.pose.position), "orientation": quaternion(m.pose.orientation)}, 0.05), 10)
+node.create_subscription(PoseStamped, "${POSE_TARGET}", lambda m: emit("${POSE_TARGET}", {"frame_id": m.header.frame_id, "position": vector(m.pose.position), "orientation": quaternion(m.pose.orientation)}), 10)
 node.create_subscription(TwistStamped, "${TWIST}", lambda m: emit("${TWIST}", {"frame_id": m.header.frame_id, "linear": vector(m.twist.linear), "angular": vector(m.twist.angular)}), 50)
 node.create_subscription(Float64MultiArray, "${GRIPPER}", lambda m: emit("${GRIPPER}", {"data": list(m.data)}), 10)
 node.create_subscription(Float64, "${MAX_LINEAR}", lambda m: emit("${MAX_LINEAR}", {"data": m.data}), 10)
@@ -1721,6 +1902,29 @@ function twistDifference(a, b) {
 
 function distance(a, b) {
   return Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
+}
+
+/** How far the tip measured through TF is from the pose qontrol commands (/ee_pose), as the save gate sees it. */
+function commandedVersusMeasured() {
+  const commanded = ros.latest(POSE)?.data;
+  const tip = ros.latest(HAND)?.data;
+  if (!commanded || !tip) {
+    return { metres: 0, radians: 0, text: "TF tip not available" };
+  }
+  const metres = distance(commanded.position, tip.position);
+  const radians = quaternionAngle(commanded.orientation, tip.orientation);
+  return {
+    metres,
+    radians,
+    text: `measured tip ${robot.tipFrame} is ${(metres * 1000).toFixed(0)} mm and ${((radians * 180) / Math.PI).toFixed(1)} deg from /ee_pose`,
+  };
+}
+
+/** The rotation between two orientations, in radians; q and -q are the same one. */
+function quaternionAngle(a, b) {
+  const dot = Math.abs(a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w);
+  const norms = Math.hypot(a.x, a.y, a.z, a.w) * Math.hypot(b.x, b.y, b.z, b.w);
+  return 2 * Math.acos(Math.min(1, dot / norms));
 }
 
 function near(a, b) {

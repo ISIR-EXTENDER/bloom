@@ -1,6 +1,6 @@
 # Bloom Operator Runtime
 
-Current behavior as of 2026-09-28. This is the canonical operating contract for Bloom runtime. It documents what the
+Current behavior as of 2026-09-29. This is the canonical operating contract for Bloom runtime. It documents what the
 merged product does; live robot acceptance is tracked separately in
 [Extender and Petanque end-to-end validation](extender-petanque-validation.md).
 
@@ -337,21 +337,77 @@ and discard any queued movement; the backend's default 60 commands/s ceiling rem
 The speed slider readouts are therefore downstream limits, not a second scale in Bloom. Maintenance diagnostics list
 their topics explicitly; **No subscriber** means the controller is not ready and the corresponding slider stays inert.
 
-Saved positions belong to one application. A pose is a joint vector in one arm's joint order, so Explorer's poses never
-appear in Kinova's export, where the same numbers would mean different angles.
+Saved positions belong to one application. A pose is a joint vector in one arm's joint order, with the hand's
+Cartesian pose beside it, so Explorer's poses never appear in Kinova's list or export, where the same numbers would
+mean different angles. They live in the configuration database and survive an API restart.
 
-The Positions screen supports confirmed named targets, explicit release/cancel, saving the current joint state, deleting
-a saved pose, and export of a `joint_targets` configuration block. Explorer offers **Go home**, which arms on the first
-press and publishes on the second, on both arms: the Kinova has its own seven-joint home since cartesian_manager#11,
-and `npm run e2e:sim --robot kinova` checks that its press reaches `/joint_target_command` with seven joints. Pose
-targets (`behaviour/pose_target/*`) stay refused when `BLOOM_ROBOT_NAME` names a Kinova or gen3, because its manager
-still loads the Explorer's Cartesian poses, unless `BLOOM_ALLOW_KINOVA_POSE_TARGETS=true`. Both offer **Release**.
-The Kinova Manager app no longer carries a Reset fault button: the manager no longer spawns `fault_controller`.
-Faults: reset from the arm's web page, or turn it off and on. A saved pose cannot be replayed or renamed from Bloom:
-the manager moves only to targets it loaded at start, so a new pose reaches the robot through the export and a manager
-restart. Saved poses live in the API process and are lost when it restarts, so export them before stopping it. Robot
-Feedback and Command Sources expose measured state and the manager's summed inputs without placing debug detail on the
-Drive screen.
+The Positions screen offers **Go home**, which arms on the first press and publishes on the second, on both arms: the
+Kinova has its own seven-joint home since cartesian_manager#11, and `npm run e2e:sim --robot kinova` checks that its
+press reaches `/joint_target_command` with seven joints. Named pose targets (`behaviour/pose_target/*`) stay refused
+when `BLOOM_ROBOT_NAME` names a Kinova or gen3, because its manager still loads the Explorer's Cartesian poses, unless
+`BLOOM_ALLOW_KINOVA_POSE_TARGETS=true`. Both offer **Cancel the pose**, which sends `behaviour/passthrough`. The Kinova
+Manager app no longer carries a Reset fault button: the manager no longer spawns `fault_controller`. Faults: reset
+from the arm's web page, or turn it off and on. Robot Feedback and Command Sources expose measured state and the
+manager's summed inputs without placing debug detail on the Drive screen.
+
+## Save A Pose And Go Back To It
+
+Both Manager apps let the operator save where the hand is commanded to be and send the arm back there later, from
+**Positions**, with no manager restart. **Positions · Bench** keeps the bench's tools for the same list.
+
+**What is saved.** `/ee_pose` comes from qontrol and is the tip pose it *commands*, computed from its commanded joint
+positions, not a measurement. **Save this pose** asks the server, which saves its own newest `/ee_pose` (never the
+tablet's numbers; a tablet whose view differs by more than 1 cm or 0.05 rad is told the hand moved while saving),
+refuses a pose farther from the base than `BLOOM_MAX_HAND_REACH_M` (1.2 m), and stores `/joint_states` in the
+manager's joint order beside it. When TF has the measured tip (robot_state_publisher from the measured
+`/joint_states`, base frame to qontrol's `tip_frame` or `BLOOM_ROS_TIP_FRAME_ID`), the server compares the two and
+refuses beyond 2 cm or 0.1 rad (`BLOOM_POSE_SAVE_MAX_OFFSET_M` / `_RAD`, the same band that judges arrival): **The arm
+is not where it was commanded (in contact or lagging): move it free and save again.** The band catches contact and
+gross lag, not small tracking error: an arm a few millimetres and degrees behind its command still saves, and it is
+the commanded pose that is saved. Without TF the pose is saved and its row says **not verified**. The server names it: the next free
+**Pose 1**, **Pose 2** (stored `pose_1`), and a name already held is never overwritten.
+
+**Go to Pose N** is a one-shot like Go home. The first press arms it for five seconds and the button reads **Press
+again to go**; a 3D robot view on the same screen draws the saved pose as a large triad while it is armed. A second
+press closer than 600 ms to the first, or a held Enter or Space, is the same gesture and is ignored. The second press
+names the pose and the fingerprint of what the tablet showed; the server sends the saved commanded pose as a
+`geometry_msgs/msg/PoseStamped` on the manager's `topics.pose_target` (`/pose_target`, cartesian_manager#11), stamped
+with the manager's `frames.base_frame`. The manager starts `behaviour/pose_target` at once, drives toward it with its
+`behaviours.pose_targets` gains and speed caps, and returns to passthrough within `position_tolerance` and
+`orientation_tolerance` (1 cm and 0.05 rad in both shipped configs), judged on the commanded pose. While it moves the
+manager ignores the pad, so the row reads **Moving to Pose N · reported by the robot** and the kiosk bar shows **Going
+to a pose** on every screen.
+
+The server follows every Go to and writes what it sees in the command state (`positions:go`), so every tablet shows
+the same thing. When the status is back in passthrough the row reads **Within tolerance of Pose N** within 2 cm and
+0.1 rad, or **Stopped before Pose N**, with the distance and angle left. That distance is the measured tip's when TF
+has it (**measured tip … from it**) and the commanded pose's otherwise (**commanded pose … from it, tip not
+measured**): nothing on the screen claims a measured accuracy Bloom did not measure.
+
+What ends it:
+
+- **Cancel the pose**, in the library while a Go to runs and as the Release button below it, sends passthrough on the
+  manager's mode topic, even while stopped.
+- STOP sends passthrough and refuses a Go to until Resume. STOP, losing control, a control going inert, the
+  five-second timeout and leaving the screen all disarm an armed Go to; Resume clears the refusal.
+- A session that leaves the app, or drops, while its pose target runs has the server send passthrough.
+- The server's watchdog sends passthrough, audited, when the tip has not come 2 mm or 0.02 rad closer in 3 s, or
+  after three times the time the move should take at the slower of the manager's speed cap and the controller's
+  limit, plus 5 s. The row reads **Could not reach Pose N; the pad drives again**.
+
+**Only Go to sends a pose target.** The generic publish refuses the manager's pose target topic for every app, and no
+allowlist names it. The Go to route (`POST /runtime/positions/{name}/go`) is owner-only, refused while stopped, rate
+limited, and refuses, audited and with the reason: another app than the session runs; an app with no position
+library offering Go to; a pose changed since the tablet showed it; a manager that has not reported its base frame
+yet; a pose saved in another frame; a pose past the reach; a pose saved with joints this arm does not report, or no
+live joint state at all. A pose saved before this release has no hand pose and cannot be gone to; save it again.
+The pose being gone to cannot be renamed or deleted until the move ends.
+
+**Positions · Bench** lists the stored names and keeps the bench's tools: save, **Rename** (a–z, 0–9 and `_`, as the
+manager can name a target), **Delete** on a second tap within four seconds, and **Export YAML**: the `joint_targets`
+block, and a `pose_targets` block with the saved hand poses (names, frames, positions, orientations; the gains, speed
+caps and tolerances stay as the manager config has them). A configured target reaches the manager only through that
+export and a manager restart; Go to needs neither. The rail shows the live `/ee_pose` that the next save records.
 
 ## Manager Behaviours: Speed Up And Assist
 

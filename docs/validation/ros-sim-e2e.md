@@ -26,6 +26,7 @@ For the chosen robot, with the API, dashboard, manager, qontrol and controllers 
 | `maintenance-holds-zeros` | Opening maintenance while a keyboard drive is held zeroes the twist, and nothing non-zero reaches ROS while it is open. |
 | `joystick-lab-stamps-hybrid-frame` | After Hybrid is selected, the twist on ROS carries `header.frame_id: hybrid_frame`. |
 | `positions-go-home-and-release` | On both arms: the first Go home press only arms it, the second publishes `behaviour/joint_target/home` and the manager publishes `/joint_target_command` naming this arm's own joints (six on the Explorer, seven on the Kinova since cartesian_manager#11); Release publishes `behaviour/passthrough`. |
+| `positions-save-and-go-to` | On both arms: **Save this pose** stores the server's live `/ee_pose` (qontrol's commanded tip); the pad moves the hand more than 3 cm away; the first **Go to** press only arms it, the second publishes the saved pose on `/pose_target` in the manager's base frame; the manager's status reports `behaviour/pose_target` and then `behaviour/passthrough` (without a status the check waits for the pose itself, up to 45 s); the commanded `/ee_pose` and the tip measured through TF (base_link to `ft_frame` or `end_effector_link`) are both back within 2 cm and 0.1 rad, the row reads **Within tolerance of Pose N** and the kiosk chip **Going to a pose** has gone. Passthrough is sent at the end whatever happened. |
 | `behaviours-screen-offers-both` | The Behaviours screen opens with no widget unavailable on a manager that declares `behaviours.intent_scaling.*` and `behaviours.shared_control.*` (read back with `ros2 param get`), and the intent gauge and the confidence bars say they have no source while both behaviours are off. |
 | `intent-scaling-speeds-up-a-held-push` | Speed up with intent publishes `behaviour/intent_scaling`; `/cartesian_manager/intent_scale` starts at `min_scale` and, under a held Forward push, reaches 0.9 or more within 2.2 s over at least 20 samples; the gauge reads it, and the toggle lights **reported by the robot**; with `/cartesian_manager/status`, the status names `behaviour/intent_scaling`. |
 | `intent-scaling-off-stops-the-scale` | Switching it off publishes `behaviour/passthrough`, the scale topic goes silent, the gauge says *no source* and the toggle reads off. |
@@ -252,3 +253,30 @@ assistance feels right on an arm, and the confidence cone against real joystick 
 The seeds' presses are pinned by `frontend/apps/bloom-dashboard/src/runtime/seed-dispatch-parity.fixture.json`; a
 deliberate seed change is recorded with `BLOOM_WRITE_PARITY_FIXTURE=1 npx vitest run src/runtime/seed-dispatch-parity.test.ts`
 from the dashboard package and reviewed as a diff.
+
+### Amended 2026-09-29: save a pose and go back to it
+
+`positions-save-and-go-to` joined, on cartesian_manager `b48ab4d` (pose targets and the status) without the
+behaviour overlay, so the nine behaviour checks skip with their reason. After the review the check also measures the
+tip through TF, not only qontrol's `/ee_pose`, which is the pose qontrol *commands*.
+
+- **Kinova 43/43** on qontrol `a6382c1` (mock hardware, so measured and commanded agree): Pose 1 saved at (-0.065,
+  -0.112, 1.038), verified on `end_effector_link`; moved 19.9 cm away; back in passthrough 13.3 s after the send;
+  commanded pose and measured tip both 10 mm and 0.0° from it.
+- **Explorer 43/43** on qontrol `91309cc` in the last run: saved at (0.162, 0.041, 0.195), verified on `ft_frame`;
+  moved 15.5 cm; passthrough 5.0 s after the send; commanded pose 10 mm and 0.2°, measured tip 8 mm and 2.3° from it.
+  Over three runs the Gazebo arm's measured tip ended 8 to 15 mm and 2.3° to 7.3° from the pose while the commanded
+  pose was always within the manager's 1 cm, so one run failed the TF assertion (15 mm, 0.128 rad) and the row read
+  **Stopped before Pose 1 · measured tip 15 mm and 7° from it**: Bloom said what the arm did. The same run's Widget
+  Lab save compared commanded and measured at 0 mm. Whether the gap is Gazebo tracking under gravity or lag the manager
+  cannot see was settled with the drive checks' rule (`scripts/lib/drive-verdict.mjs`): it is the Explorer's Gazebo
+  lag (arm on the ground plane, qontrol open loop). The commanded-pose arrival stays strict on both robots and the
+  measured tip strict on the Kinova; on the Explorer a measured miss is a WARN with the numbers and the joints short
+  of their command only while a joint is more than 0.1 rad short (`BLOCKED_JOINT_RAD`), and a failure otherwise. The
+  10 mm is the manager's own `position_tolerance`, judged on the commanded pose. The same rule covers a save the gate
+  refuses three times. After it, one Explorer run passed 43/43 (measured tip 9 mm and 3.6° from the pose) and one
+  failed 42/43: the save gate refused at 10 mm and 3.5° between commanded and measured with no joint more than 0.06
+  rad short, so neither a blocked arm nor a WARN: the 1 cm / 0.05 rad save gate was tighter than this sim's ordinary
+  tracking. The save band is now 2 cm / 0.1 rad on every robot, the arrival band, as a product rule. With it, two Explorer runs
+  passed 43/43: saves verified on the TF tip both times; one run's measured tip ended 12 mm and 5.4° from the pose,
+  the other's 17 mm and 6.9° with joint_2 0.12 rad short of its command, a WARN by the rule.

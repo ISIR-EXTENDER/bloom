@@ -1,10 +1,10 @@
-import type { ScreenConfig } from "@bloom/api-client";
+import type { SavedEePose, ScreenConfig } from "@bloom/api-client";
 import type { WidgetDataSnapshot } from "@bloom/widget-renderers";
 import { useMemo, useRef } from "react";
 
 import { applyPlotSelections, type PlotSelections } from "./plot-series-data";
 import type { RuntimeTeleopCommandRequest } from "./runtime-protocol";
-import { withRobotCommand } from "./runtime-topic-data";
+import { withPosePreview, withRobotCommand } from "./runtime-topic-data";
 import type { PositionLibraryState } from "./use-position-library";
 
 type WidgetData = Record<string, WidgetDataSnapshot>;
@@ -42,25 +42,35 @@ export function useEffectiveWidgetData({
         continue;
       }
       const existing = dataByWidgetId[widget.id];
+      const live = existing?.type === "position-library" ? existing : undefined;
       entries[widget.id] = {
         type: "position-library",
-        joints: existing?.type === "position-library" ? existing.joints : undefined,
+        joints: live?.joints,
+        eePose: live?.eePose,
         saved: positionLibrary.saved.map((pose) => ({
           name: pose.name,
           jointNames: pose.joint_names,
           positions: pose.positions,
           description: pose.description,
+          eePose: pose.ee_pose ? toHandPose(pose.ee_pose) : null,
         })),
         exportYaml: positionLibrary.exportYaml || undefined,
         notice: positionLibrary.notice || undefined,
+        event: positionLibrary.event ?? undefined,
         busy: positionLibrary.busy,
+        sent: positionLibrary.sent ?? undefined,
+        scope: positionLibrary.scope,
       };
     }
     return entries;
   }, [dataByWidgetId, positionLibrary, screen]);
+  const armedPose = positionLibrary?.armed?.ee_pose ?? null;
   const merged = useMemo(
-    () => ({ ...withRobotCommand({ ...plotData, ...cameraFrames }, screen, commandTwist), ...positionData }),
-    [cameraFrames, commandTwist, plotData, positionData, screen],
+    () => ({
+      ...withPosePreview(withRobotCommand({ ...plotData, ...cameraFrames }, screen, commandTwist), screen, armedPose),
+      ...positionData,
+    }),
+    [armedPose, cameraFrames, commandTwist, plotData, positionData, screen],
   );
 
   const previousRef = useRef<Readonly<WidgetData>>({});
@@ -76,6 +86,16 @@ export function useEffectiveWidgetData({
   const result = unchanged ? previous : stable;
   previousRef.current = result;
   return result;
+}
+
+function toHandPose(pose: SavedEePose) {
+  return {
+    frameId: pose.frame_id,
+    position: pose.position,
+    orientation: pose.orientation,
+    verified: pose.verified === true,
+    fingerprint: pose.fingerprint,
+  };
 }
 
 /** Structural equality down to `depth`, then by reference: sample arrays are rebuilt, never mutated. */

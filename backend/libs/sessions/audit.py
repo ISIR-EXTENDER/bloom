@@ -9,6 +9,7 @@ RuntimeAuditStatus = Literal["accepted", "rejected"]
 RuntimeAuditChannel = Literal[
     "http_ros_publish",
     "http_ros_service",
+    "runtime_positions",
     "runtime_action",
     "runtime_control",
     "runtime_recording",

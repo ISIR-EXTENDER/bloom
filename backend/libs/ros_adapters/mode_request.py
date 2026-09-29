@@ -37,6 +37,10 @@ LASTING_BEHAVIOURS = (INTENT_SCALING_MODE, SHARED_CONTROL_MODE)
 
 MODE_REQUEST_TOPIC = "/mode_request"
 MODE_REQUEST_MESSAGE_TYPE = "std_msgs/msg/String"
+#: cartesian_manager's dynamic pose target (topics.pose_target): a PoseStamped in its base frame starts
+#: behaviour/pose_target at once; it ends within tolerance, or on behaviour/passthrough.
+POSE_TARGET_TOPIC = "/pose_target"
+POSE_TARGET_MESSAGE_TYPE = "geometry_msgs/msg/PoseStamped"
 
 
 class ModeRequestError(ValueError):
@@ -156,6 +160,8 @@ __all__ = [
     "MODE_REQUEST_MESSAGE_TYPE",
     "MODE_REQUEST_TOPIC",
     "PASSTHROUGH_MODE",
+    "POSE_TARGET_MESSAGE_TYPE",
+    "POSE_TARGET_TOPIC",
     "SHARED_CONTROL_MODE",
     "SHARED_CONTROL_RESET_MODE",
     "SNAKE_MODE",

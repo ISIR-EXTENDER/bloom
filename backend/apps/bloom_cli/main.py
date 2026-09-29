@@ -11,6 +11,7 @@ from apps.bloom_api.main import (
     create_camera_stream_gateway,
     create_command_state_feedback,
     create_teleop_command_gateway,
+    create_tip_pose_source,
 )
 from apps.bloom_api.settings import get_settings
 from libs.config import (
@@ -134,6 +135,7 @@ def run_ros_api(
         )
         app.state.camera_frame_gateway = create_camera_frame_gateway(node)
         app.state.camera_stream_gateway = create_camera_stream_gateway(node)
+        app.state.tip_pose_source = create_tip_pose_source(node)
         app.state.teleop_target_directory.start()
         command_state_feedback = create_command_state_feedback(app, node)
         command_state_feedback.start()

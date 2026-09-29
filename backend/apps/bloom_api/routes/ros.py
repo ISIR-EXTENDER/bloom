@@ -7,11 +7,13 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from apps.bloom_api.routes.runtime_common import (
+    bare_topic,
     find_runtime_application,
     get_runtime_audit_log,
     get_runtime_command_policy,
     get_runtime_command_rate_limiter,
     narrow_policy_to_application,
+    reserved_pose_target_topics,
     run_blocking_ros_read,
 )
 from apps.bloom_api.security import (
@@ -254,6 +256,43 @@ def publish_ros_topic(
     publish_request: RosTopicPublishRequest,
     _principal: BloomPrincipal = Depends(require_runtime_owner),
 ) -> RosTopicPublishResponse:
+    # The manager's pose target moves the arm to whatever pose it names: only Go to a saved pose sends one.
+    if bare_topic(publish_request.topic) in reserved_pose_target_topics(request):
+        detail = f"{publish_request.topic} is reserved: only Go to a saved pose publishes a pose target."
+        get_runtime_audit_log(request).record(
+            RuntimeAuditRecord(
+                channel="http_ros_publish",
+                detail=detail,
+                message_type=publish_request.message_type,
+                status="rejected",
+                topic=publish_request.topic,
+            )
+        )
+        raise HTTPException(status_code=403, detail=detail)
+    return _to_response(
+        publish_as_runtime_owner(
+            request,
+            publish_request.topic,
+            publish_request.message_type,
+            publish_request.to_payload,
+            lambda: policy_for(request, publish_request),
+        )
+    )
+
+
+def publish_as_runtime_owner(
+    request: Request,
+    topic: str,
+    message_type: str,
+    build_payload: Callable[[], dict[str, Any]],
+    resolve_policy: Callable[[], RuntimeCommandPolicy],
+    on_published: Callable[[str], None] | None = None,
+) -> RosPublishReceipt:
+    """One robot publish: STOP gate, then the payload, lease, publish order, allowlists, rate limit and audit.
+
+    The generic topic publish and Go to a saved pose both come through here, so neither can skip a gate. The
+    payload is read after the STOP gate, so a latched STOP answers 409, audited, whatever the body holds.
+    """
     seq = publish_seq(request)
     audit_log = get_runtime_audit_log(request)
     # One robot, one latch: the generic publish path is refused too.
@@ -264,21 +303,17 @@ def publish_ros_topic(
             RuntimeAuditRecord(
                 channel="http_ros_publish",
                 detail=stop_reason,
-                message_type=publish_request.message_type,
+                message_type=message_type,
                 status="rejected",
-                topic=publish_request.topic,
+                topic=topic,
             )
         )
         raise HTTPException(status_code=409, detail=stop_reason)
 
     gateway = get_ros_publisher_gateway(request)
-    policy = policy_for(request, publish_request)
+    policy = resolve_policy()
     rate_limiter = get_runtime_command_rate_limiter(request)
-    ros_publish_request = RosPublishRequest(
-        topic=publish_request.topic,
-        message_type=publish_request.message_type,
-        payload=publish_request.to_payload(),
-    )
+    ros_publish_request = RosPublishRequest(topic=topic, message_type=message_type, payload=build_payload())
     manager = request.app.state.runtime_session_manager
     session_id = request.headers.get(RUNTIME_SESSION_HEADER, "").strip()
 
@@ -303,21 +338,23 @@ def publish_ros_topic(
             request.app.state.command_state_tracker.record_publish(
                 ros_publish_request.topic, ros_publish_request.message_type, ros_publish_request.payload, session_id
             )
+            if on_published is not None:
+                on_published(session_id)
             return receipt
 
         return stop_controller.execute_if_running(publish)
 
     try:
-        receipt = execute_ordered_as_runtime_owner(request, publish_request.topic, seq, publish_and_record)
+        return execute_ordered_as_runtime_owner(request, ros_publish_request.topic, seq, publish_and_record)
     except PublishSupersededError as exc:
         audit_log.record(
             RuntimeAuditRecord(
                 channel="http_ros_publish",
                 detail=str(exc),
-                message_type=publish_request.message_type,
+                message_type=ros_publish_request.message_type,
                 payload_summary={"reason": "superseded", "publish_seq": seq},
                 status="rejected",
-                topic=publish_request.topic,
+                topic=ros_publish_request.topic,
             )
         )
         raise superseded_error(exc) from exc
@@ -326,15 +363,14 @@ def publish_ros_topic(
             RuntimeAuditRecord(
                 channel="http_ros_publish",
                 detail=str(exc),
-                message_type=publish_request.message_type,
+                message_type=ros_publish_request.message_type,
                 status="rejected",
-                topic=publish_request.topic,
+                topic=ros_publish_request.topic,
             )
         )
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     except SafeRosPublishError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
-    return _to_response(receipt)
 
 
 def get_ros_service_gateway(request: Request) -> RosServiceGateway:

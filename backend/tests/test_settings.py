@@ -174,3 +174,12 @@ def test_the_default_allowlists_carry_the_lasting_behaviours_and_no_fault_reset(
     assert "/shared_control/goals" in settings.allowed_recording_topics
     # The manager no longer spawns the Kinova's fault_controller; a lab that has one allows it explicitly.
     assert settings.allowed_ros_service_calls == ()
+
+
+def test_the_pose_save_band_reads_from_the_environment(monkeypatch) -> None:
+    monkeypatch.setenv("BLOOM_POSE_SAVE_MAX_OFFSET_M", "0.03")
+    monkeypatch.setenv("BLOOM_POSE_SAVE_MAX_OFFSET_RAD", "0.15")
+    settings = Settings.from_environment()
+
+    assert (settings.pose_save_max_offset_m, settings.pose_save_max_offset_rad) == (0.03, 0.15)
+    assert (Settings().pose_save_max_offset_m, Settings().pose_save_max_offset_rad) == (0.02, 0.1)

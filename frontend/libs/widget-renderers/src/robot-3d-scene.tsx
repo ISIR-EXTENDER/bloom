@@ -53,6 +53,8 @@ type RobotSceneProps = {
   onStatus: (status: SceneStatus) => void;
   /** A PoseStamped drawn as a triad in its frame. */
   pose?: PoseSample;
+  /** The pose an armed Go to would send, drawn as a larger triad until it is sent or disarmed. */
+  previewPose?: PoseSample;
   robotModel: RobotModelSource;
   showAxes: boolean;
   /** A PoseStamped drawn as the larger ringed marker: the manager's confidence-weighted soft goal. */
@@ -76,6 +78,8 @@ export type SceneStatus = {
   model: "loading" | "ready" | "unavailable";
   /** Whether a pose is drawn right now. */
   pose: boolean;
+  /** Whether an armed Go to's pose is drawn right now. */
+  preview: boolean;
   /** Whether the soft goal is drawn right now. */
   softGoal: boolean;
   /** Whether a joint target is drawn right now. */
@@ -101,6 +105,7 @@ type Stage = {
   indicator: CommandIndicator;
   invalidate: () => void;
   poseAxes: AxesHelper;
+  previewAxes: AxesHelper;
   refit: () => void;
   report: () => void;
   robotRoot: Group;
@@ -110,6 +115,7 @@ type Stage = {
     goalsIgnored: number;
     joints: SceneStatus["joints"];
     pose: boolean;
+    preview: boolean;
     softGoal: boolean;
     target: boolean;
     updates: number;
@@ -128,6 +134,7 @@ export default function RobotScene({
   markers,
   onStatus,
   pose,
+  previewPose,
   robotModel,
   showAxes,
   softGoal,
@@ -177,6 +184,9 @@ export default function RobotScene({
     const poseAxes = new AxesHelper(0.1);
     poseAxes.visible = false;
     robotRoot.add(poseAxes);
+    const previewAxes = new AxesHelper(0.18);
+    previewAxes.visible = false;
+    robotRoot.add(previewAxes);
     const goalMarkers = new GoalMarkers(robotRoot, SHARED_CONTROL_GOAL_FRAME, palette);
 
     let disposed = false;
@@ -205,6 +215,7 @@ export default function RobotScene({
       goalsIgnored: 0,
       joints: { driven: 0, total: 0 },
       pose: false,
+      preview: false,
       softGoal: false,
       target: false,
       updates: 0,
@@ -225,6 +236,7 @@ export default function RobotScene({
         meshError: meshes.firstError,
         model,
         pose: shown.pose,
+        preview: shown.preview,
         softGoal: shown.softGoal,
         target: shown.target,
         unplaced: drawn.unplaced,
@@ -275,6 +287,7 @@ export default function RobotScene({
       indicator,
       invalidate,
       poseAxes,
+      previewAxes,
       refit,
       report,
       robotRoot,
@@ -518,34 +531,27 @@ export default function RobotScene({
     if (!robot || !live) {
       return;
     }
-    const axes = live.poseAxes;
-    const body = asRecord(pose?.pose);
-    const position = pose ? vector(body.position, 0) : null;
-    if (!position) {
-      axes.visible = false;
-    } else {
-      const frameId = String(asRecord(pose?.header).frame_id ?? "").replace(/^\//, "");
-      const parent = (frameId && resolveRobotFrame(robot, frameId)) || live.robotRoot;
-      if (axes.parent !== parent) {
-        parent.add(axes);
-      }
-      const orientation = asRecord(body.orientation);
-      const quaternion = new Quaternion(
-        numberOf(orientation.x),
-        numberOf(orientation.y),
-        numberOf(orientation.z),
-        numberOf(orientation.w),
-      );
-      axes.position.copy(position);
-      axes.quaternion.copy(quaternion.lengthSq() > 0 ? quaternion.normalize() : new Quaternion());
-      axes.visible = true;
-    }
-    if (live.shown.pose !== axes.visible) {
-      live.shown.pose = axes.visible;
+    const visible = placeAxes(live.poseAxes, pose, robot, live.robotRoot);
+    if (live.shown.pose !== visible) {
+      live.shown.pose = visible;
       live.report();
     }
     live.invalidate();
   }, [robot, pose]);
+
+  // An armed Go to: where the second press would send the hand.
+  useEffect(() => {
+    const live = stage.current;
+    if (!robot || !live) {
+      return;
+    }
+    const visible = placeAxes(live.previewAxes, previewPose, robot, live.robotRoot);
+    if (live.shown.preview !== visible) {
+      live.shown.preview = visible;
+      live.report();
+    }
+    live.invalidate();
+  }, [robot, previewPose]);
 
   // Shared control: the goals a PoseArray holds, and the soft goal, in the frames their headers name.
   useEffect(() => {
@@ -612,6 +618,32 @@ export default function RobotScene({
   }, [robot, markers]);
 
   return <div className="bloom-robot-3d-canvas" ref={mount} />;
+}
+
+/** A triad where a PoseStamped says, in the frame it names; hidden without one. Returns whether it is drawn. */
+function placeAxes(axes: AxesHelper, sample: PoseSample | undefined, robot: URDFRobot, robotRoot: Group): boolean {
+  const body = asRecord(sample?.pose);
+  const position = sample ? vector(body.position, 0) : null;
+  if (!position) {
+    axes.visible = false;
+    return false;
+  }
+  const frameId = String(asRecord(sample?.header).frame_id ?? "").replace(/^\//, "");
+  const parent = (frameId && resolveRobotFrame(robot, frameId)) || robotRoot;
+  if (axes.parent !== parent) {
+    parent.add(axes);
+  }
+  const orientation = asRecord(body.orientation);
+  const quaternion = new Quaternion(
+    numberOf(orientation.x),
+    numberOf(orientation.y),
+    numberOf(orientation.z),
+    numberOf(orientation.w),
+  );
+  axes.position.copy(position);
+  axes.quaternion.copy(quaternion.lengthSq() > 0 ? quaternion.normalize() : new Quaternion());
+  axes.visible = true;
+  return true;
 }
 
 /**

@@ -19,6 +19,8 @@ export const STACK = {
   maxAngularSpeed: "/explorer_user_interfaces/rqt_armcontrol/max_angular_speed",
   maxLinearSpeed: "/explorer_user_interfaces/rqt_armcontrol/max_linear_speed",
   mode: "/mode_request",
+  // cartesian_manager's dynamic pose target: Go to a saved pose.
+  poseTarget: "/pose_target",
   petanqueResultImage: "/petanque/measure/result_image/compressed",
   petanqueState: "/petanque_state_machine/change_state",
   // The QP controller names its command topic in code (qontrol_velocity_controller.cpp), not under its

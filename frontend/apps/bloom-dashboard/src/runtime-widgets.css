@@ -898,6 +898,17 @@
   opacity: 0.85;
 }
 
+/* Lit (Release while the manager is in passthrough): the error pair, never error text on the primary fill. */
+.bloom-action-widget[data-variant="danger"] .bloom-command-button[data-selected="true"] {
+  border-color: var(--bloom-error);
+  background: var(--bloom-error);
+  color: var(--bloom-on-error);
+}
+
+.bloom-action-widget[data-variant="danger"] .bloom-command-button[data-selected="true"] .bloom-action-hint {
+  opacity: 1;
+}
+
 /* ADR 0141: the control shows what was asked for; the mark says the robot has not confirmed it. */
 .bloom-confirm-mark {
   align-self: flex-start;
@@ -1245,17 +1256,26 @@ button.bloom-toggle-segment {
   background: var(--bloom-surface-container);
 }
 
+/* A narrow library keeps its buttons whole: the name and the values shorten, and say so with an ellipsis. */
 .bloom-position-name {
   flex: 1 1 auto;
-  min-width: 0;
+  min-width: 4em;
+  overflow: hidden;
   font-size: 18px;
   font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .bloom-position-meta {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
   color: var(--bloom-ink);
   font-family: var(--bloom-font-mono);
   font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   opacity: 0.75;
 }
 
@@ -1279,7 +1299,9 @@ button.bloom-toggle-segment {
 
 .bloom-position-capture,
 .bloom-position-export,
-.bloom-position-delete {
+.bloom-position-delete,
+.bloom-position-rename,
+.bloom-position-go {
   min-height: var(--bloom-touch-target);
   padding: 0 14px;
   border: 2px solid var(--bloom-hairline);
@@ -1304,6 +1326,127 @@ button.bloom-toggle-segment {
   background: var(--bloom-surface-container-high);
   color: var(--bloom-ink-soft);
   cursor: not-allowed;
+}
+
+/* Go to arms like Go home: pollen until the second press or the timeout. */
+/* 56 px, like every operator target: 45 px of glass on a 1280 canvas fitted to 1024x600. */
+.bloom-position-go,
+.bloom-position-library[data-go-to="true"] .bloom-position-capture {
+  min-height: 56px;
+}
+
+.bloom-position-go {
+  flex: 0 0 auto;
+  min-width: 160px;
+  border-color: var(--bloom-primary);
+  white-space: nowrap;
+}
+
+.bloom-position-go[data-armed="true"],
+.bloom-position-list li[data-armed="true"] {
+  border-color: var(--bloom-primary);
+  background: var(--bloom-pollen);
+  color: var(--bloom-ink);
+}
+
+/* Full strength on pollen: the muted values were 4.1:1 on the dark palette's pollen. */
+.bloom-position-list li[data-armed="true"] .bloom-position-meta {
+  color: var(--bloom-ink);
+  opacity: 1;
+}
+
+.bloom-position-unverified {
+  flex: 0 0 auto;
+  padding: 2px 8px;
+  border: 1px dashed var(--bloom-hairline-strong);
+  border-radius: var(--bloom-radius-control);
+  color: var(--bloom-ink-soft);
+  font-size: 13px;
+}
+
+.bloom-position-go:disabled,
+.bloom-position-rename:disabled,
+.bloom-position-delete:disabled {
+  border: 2px dashed var(--bloom-hairline-strong);
+  background: var(--bloom-surface-container-high);
+  color: var(--bloom-ink-soft);
+  cursor: not-allowed;
+}
+
+.bloom-position-rename-form {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.bloom-position-rename-input {
+  flex: 1 1 200px;
+  min-width: 0;
+  min-height: var(--bloom-touch-target);
+  padding: 0 12px;
+  border: 2px solid var(--bloom-primary);
+  border-radius: var(--bloom-radius-control);
+  background: var(--bloom-surface);
+  color: var(--bloom-ink);
+  font-family: var(--bloom-font-mono);
+  font-size: 16px;
+}
+
+.bloom-position-rename-error {
+  flex: 1 0 100%;
+  color: var(--bloom-error);
+  font-size: 13px;
+}
+
+.bloom-position-progress {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin: 0;
+  padding: 8px 12px;
+  border-left: 4px solid var(--bloom-primary);
+  border-radius: var(--bloom-radius-control);
+  background: var(--bloom-surface-container);
+  color: var(--bloom-ink);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.bloom-position-progress[data-state="stopped"],
+.bloom-position-progress[data-state="unreachable"] {
+  border-left-color: var(--bloom-error);
+}
+
+.bloom-position-progress-text {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  margin: 0;
+}
+
+/* The library's own way out of a Go to: destructive, like Release. */
+.bloom-position-cancel {
+  flex: 0 0 auto;
+  min-height: 56px;
+  padding: 0 16px;
+  border: 2px solid var(--bloom-error);
+  border-radius: var(--bloom-radius-control);
+  background: var(--bloom-error-container);
+  color: var(--bloom-on-error-container);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.bloom-position-hint {
+  color: var(--bloom-ink-soft);
+  font-size: 14px;
+  font-weight: 400;
 }
 
 .bloom-position-delete[data-armed="true"] {

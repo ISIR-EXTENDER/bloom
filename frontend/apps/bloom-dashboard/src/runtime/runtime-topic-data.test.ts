@@ -4,6 +4,7 @@ import { resolvePackageAsset } from "./robot-model-source";
 import {
   appendRuntimeTopicSample,
   createRuntimeTopicSubscriptionRequests,
+  withPosePreview,
   withRobotCommand,
 } from "./runtime-topic-data";
 
@@ -284,5 +285,70 @@ describe("shared control on the wire", () => {
     expect(appendRuntimeTopicSample(first, assisted, later).bars).not.toBe(first.bars);
     const changed = sample("/shared_control/confidences", confidences([0.9, 0.1, 0]), "2026-09-28T10:00:00.020Z");
     expect(appendRuntimeTopicSample(first, assisted, changed).bars).not.toBe(first.bars);
+  });
+});
+
+describe("a position library that saves the hand pose", () => {
+  const libraryScreen: ScreenConfig = {
+    id: "positions",
+    title: "Positions",
+    canvas: { preset_id: "hd", runtime_mode: "fit" },
+    widgets: [
+      {
+        id: "library",
+        kind: "position-library",
+        title: "Saved poses",
+        layout: { x: 0, y: 0, width: 902, height: 420 },
+        settings: { jointStateTopic: "/joint_states", eePoseTopic: "/ee_pose", go_to: true, show_details: false },
+      },
+      { ...screen.widgets[0], id: "view" } as never,
+    ],
+  };
+  const hand = {
+    header: { frame_id: "base_link" },
+    pose: { position: { x: 0.6, y: 0.27, z: 0.22 }, orientation: { x: 0, y: 0, z: 0, w: 1 } },
+  };
+
+  it("subscribes to the hand pose beside the joint states", () => {
+    const requests = createRuntimeTopicSubscriptionRequests(libraryScreen).filter(
+      (request) => request.widget_id === "library",
+    );
+    expect(requests.map((request) => [request.topic, request.message_type])).toEqual([
+      ["/joint_states", "sensor_msgs/msg/JointState"],
+      ["/ee_pose", "geometry_msgs/msg/PoseStamped"],
+    ]);
+  });
+
+  it("keeps the newest hand pose beside the joints, and ignores a sample that is not a pose", () => {
+    const withJoints = appendRuntimeTopicSample({}, libraryScreen, {
+      type: "topic_sample",
+      payload: { received_at: "t1", topic: "/joint_states", value: { name: ["j1"], position: [0.5] } },
+    } as never);
+    const withHand = appendRuntimeTopicSample(withJoints, libraryScreen, {
+      type: "topic_sample",
+      payload: { received_at: "t2", topic: "/ee_pose", value: hand },
+    } as never);
+    expect(withHand.library).toMatchObject({
+      joints: { names: ["j1"], positions: [0.5] },
+      eePose: { frameId: "base_link", position: [0.6, 0.27, 0.22], orientation: [0, 0, 0, 1], receivedAt: "t2" },
+    });
+    const junk = appendRuntimeTopicSample(withHand, libraryScreen, {
+      type: "topic_sample",
+      payload: { received_at: "t3", topic: "/ee_pose", value: { pose: { position: { x: "far" } } } },
+    } as never);
+    expect(junk.library).toBe(withHand.library);
+  });
+
+  it("previews an armed Go to on the screen's 3D view, and clears it", () => {
+    const base = withRobotCommand({}, libraryScreen, null);
+    const armed = withPosePreview(base, libraryScreen, {
+      frame_id: "base_link",
+      position: [0.6, 0.27, 0.22],
+      orientation: [0, 0, 0, 1],
+    });
+    expect(armed.view).toMatchObject({
+      previewPose: { header: { frame_id: "base_link" }, pose: { position: { x: 0.6, y: 0.27, z: 0.22 } } },
+    });
+    expect(withPosePreview(armed, libraryScreen, null).view).toMatchObject({ previewPose: undefined });
   });
 });

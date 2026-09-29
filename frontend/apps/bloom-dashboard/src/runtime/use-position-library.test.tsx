@@ -1,7 +1,8 @@
 import { BloomApiError, type SavedPosition, type SavedPositionScope } from "@bloom/api-client";
+import { applyCommandStateMessage, resetCommandStateForTests } from "@bloom/widget-renderers";
 import type { WidgetActionIntent } from "@bloom/widgets";
 import { act, renderHook, waitFor } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { type PositionLibraryClient, usePositionLibrary } from "./use-position-library";
 
 const pose = (name: string): SavedPosition => ({ name, joint_names: ["j1"], positions: [0.1], description: "" });
@@ -9,22 +10,51 @@ const pose = (name: string): SavedPosition => ({ name, joint_names: ["j1"], posi
 /** A backend that keeps its poses in memory, per scope, the way the real one keys them by application. */
 function fakeBackend(initial: SavedPosition[] = []) {
   const byScope = new Map<string, SavedPosition[]>();
+  const sent: { name: string; fingerprint: string; scope?: SavedPositionScope }[] = [];
+  let cancels = 0;
   const key = (scope?: SavedPositionScope) => `${scope?.configId ?? ""}:${scope?.appId ?? ""}`;
   const list = (scope?: SavedPositionScope) => byScope.get(key(scope)) ?? initial;
   const client: Required<PositionLibraryClient> = {
     listSavedPositions: async (scope) => [...list(scope)],
+    // Like the server: a name given is create-only, none given takes the next free pose_N.
     saveSavedPosition: async (request, scope) => {
       const current = list(scope);
       if (current.some((saved) => saved.name === request.name)) {
         throw new BloomApiError("Conflict", 409, JSON.stringify({ detail: `${request.name} already exists.` }));
       }
-      byScope.set(key(scope), [...current, request]);
-      return request;
+      let index = 1;
+      while (current.some((saved) => saved.name === `pose_${index}`)) {
+        index += 1;
+      }
+      const pose = { ...request, name: request.name ?? `pose_${index}` };
+      byScope.set(key(scope), [...current, pose]);
+      return pose;
+    },
+    cancelGoTo: async () => {
+      cancels += 1;
+      return { detail: "passthrough" };
     },
     deleteSavedPosition: async (name, scope) => {
       const next = list(scope).filter((saved) => saved.name !== name);
       byScope.set(key(scope), next);
       return next;
+    },
+    renameSavedPosition: async (name, newName, scope) => {
+      const current = list(scope);
+      if (current.some((saved) => saved.name === newName)) {
+        throw new BloomApiError("Conflict", 409, JSON.stringify({ detail: `'${newName}' already exists` }));
+      }
+      const next = current.map((saved) => (saved.name === name ? { ...saved, name: newName } : saved));
+      byScope.set(key(scope), next);
+      return next;
+    },
+    goToSavedPosition: async (name, fingerprint, scope) => {
+      const target = list(scope).find((saved) => saved.name === name);
+      if (!target?.ee_pose) {
+        throw new BloomApiError("Unprocessable", 422, JSON.stringify({ detail: `'${name}' has no hand pose` }));
+      }
+      sent.push({ name, fingerprint, scope });
+      return { name, topic: "/pose_target", status: "published", detail: "published" };
     },
     exportSavedPositions: async (scope) => ({
       yaml: `joint_targets:\n${list(scope)
@@ -33,8 +63,25 @@ function fakeBackend(initial: SavedPosition[] = []) {
       target_names: list(scope).map((saved) => saved.name),
     }),
   };
-  return { byScope, client };
+  return { byScope, client, sent, cancels: () => cancels };
 }
+
+const HAND = {
+  frame_id: "base_link",
+  position: [0.6, 0.27, 0.22],
+  orientation: [0, 0, 0, 1],
+  fingerprint: "fp1",
+} as SavedPosition["ee_pose"];
+const reachable = (name: string): SavedPosition => ({ ...pose(name), ee_pose: HAND });
+const op = (fields: Partial<Extract<WidgetActionIntent, { type: "position-op" }>>): WidgetActionIntent => ({
+  type: "position-op",
+  op: "go",
+  widgetId: "lib",
+  widgetKind: "position-library",
+  ...fields,
+});
+
+afterEach(() => resetCommandStateForTests());
 
 const capture = (positions = [0.5], jointNames = ["j1"]): WidgetActionIntent => ({
   type: "position-op",
@@ -75,14 +122,15 @@ describe("the position library", () => {
     const { result } = renderHook(() => usePositionLibrary(backend.client, true, scope));
     await waitFor(() => expect(result.current.state.saved).toHaveLength(2));
 
-    let handled = false;
+    let handled: unknown = null;
     act(() => {
       handled = result.current.handleIntent(capture([0.5, -0.2], ["j1", "j2"]));
     });
-    expect(handled).toBe(true);
+    expect(handled).toEqual({ accepted: true });
     expect(result.current.state.busy).toBe(true);
     await waitFor(() => expect(result.current.state.busy).toBe(false));
-    expect(result.current.state.notice).toBe("Captured pose_2.");
+    expect(result.current.state.event).toEqual({ kind: "saved", name: "pose_2" });
+    expect(result.current.state.notice).toBe("");
     expect(result.current.state.saved.map((saved) => saved.name)).toEqual(["pose_1", "pose_3", "pose_2"]);
     expect(backend.byScope.get("cfg:explorer")?.at(-1)).toMatchObject({
       joint_names: ["j1", "j2"],
@@ -90,18 +138,25 @@ describe("the position library", () => {
     });
   });
 
-  it("names the backend's own reason when a capture collides or fails", async () => {
-    const backend = fakeBackend([pose("pose_1")]);
-    // The list the hook holds is stale: another tablet saved pose_2 since.
-    const { result } = renderHook(() => usePositionLibrary(backend.client, true, scope));
+  it("names the backend's own reason when a save is refused", async () => {
+    const client: PositionLibraryClient = {
+      listSavedPositions: async () => [pose("pose_1")],
+      saveSavedPosition: async () => {
+        throw new BloomApiError(
+          "Conflict",
+          409,
+          JSON.stringify({ detail: "The arm is not where it was commanded (in contact or lagging)." }),
+        );
+      },
+    };
+    const { result } = renderHook(() => usePositionLibrary(client, true, scope));
     await waitFor(() => expect(result.current.state.saved).toHaveLength(1));
-    backend.byScope.set("cfg:explorer", [pose("pose_1"), pose("pose_2")]);
 
     act(() => {
       result.current.handleIntent(capture());
     });
     await waitFor(() => expect(result.current.state.busy).toBe(false));
-    expect(result.current.state.notice).toBe("pose_2 already exists.");
+    expect(result.current.state.notice).toBe("The arm is not where it was commanded (in contact or lagging).");
     expect(result.current.state.saved).toHaveLength(1);
   });
 
@@ -160,7 +215,7 @@ describe("the position library", () => {
     });
     await waitFor(() => expect(result.current.state.busy).toBe(false));
     expect(result.current.state.saved.map((saved) => saved.name)).toEqual(["park"]);
-    expect(result.current.state.notice).toBe("Deleted home.");
+    expect(result.current.state.event).toEqual({ kind: "deleted", name: "home" });
   });
 
   it("exports the manager's joint-target block for the poses in scope", async () => {
@@ -176,12 +231,12 @@ describe("the position library", () => {
     });
     await waitFor(() => expect(result.current.state.busy).toBe(false));
     expect(result.current.state.exportYaml).toBe("joint_targets:\n  home: [0.1]");
-    expect(result.current.state.notice).toBe("Exported. Paste into the manager's params.");
+    expect(result.current.state.event).toEqual({ kind: "exported" });
   });
 
   it("says so when the backend has no position library, and leaves other intents alone", async () => {
     const { result } = renderHook(() => usePositionLibrary({}, true, scope));
-    let handled = true;
+    let handled: unknown = true;
     act(() => {
       handled = result.current.handleIntent({
         type: "command",
@@ -190,13 +245,13 @@ describe("the position library", () => {
         purpose: "stop",
       } as unknown as WidgetActionIntent);
     });
-    expect(handled).toBe(false);
+    expect(handled).toBeNull();
     expect(result.current.state.notice).toBe("");
 
     act(() => {
       handled = result.current.handleIntent(capture());
     });
-    expect(handled).toBe(true);
+    expect(handled).toMatchObject({ accepted: false });
     expect(result.current.state).toMatchObject({
       busy: false,
       notice: "This backend does not offer the position library.",
@@ -213,5 +268,192 @@ describe("the position library", () => {
       });
     });
     expect(full.current.state.notice).toBe("This backend does not offer the position library.");
+  });
+
+  it("saves the hand pose with the joints, the way the backend keys it", async () => {
+    const backend = fakeBackend();
+    const { result } = renderHook(() => usePositionLibrary(backend.client, true, scope));
+    act(() => {
+      result.current.handleIntent({
+        ...capture([0.5], ["j1"]),
+        eePose: { frameId: "base_link", position: [0.6, 0.27, 0.22], orientation: [0, 0, 0, 1] },
+      } as WidgetActionIntent);
+    });
+    await waitFor(() => expect(result.current.state.saved).toHaveLength(1));
+    expect(backend.byScope.get("cfg:explorer")?.[0]).toMatchObject({
+      name: "pose_1",
+      ee_pose: { frame_id: "base_link", position: [0.6, 0.27, 0.22], orientation: [0, 0, 0, 1] },
+    });
+  });
+
+  it("renames a pose and shows the list the backend kept, or the backend's reason", async () => {
+    const backend = fakeBackend([pose("pose_1"), pose("home")]);
+    const { result } = renderHook(() => usePositionLibrary(backend.client, true, scope));
+    await waitFor(() => expect(result.current.state.saved).toHaveLength(2));
+
+    act(() => {
+      result.current.handleIntent(op({ op: "rename", name: "pose_1", newName: "pick_up" }));
+    });
+    await waitFor(() => expect(result.current.state.busy).toBe(false));
+    expect(result.current.state.saved.map((saved) => saved.name)).toEqual(["pick_up", "home"]);
+    expect(result.current.state.event).toEqual({ kind: "renamed", name: "pick_up" });
+
+    act(() => {
+      result.current.handleIntent(op({ op: "rename", name: "pick_up", newName: "home" }));
+    });
+    await waitFor(() => expect(result.current.state.busy).toBe(false));
+    expect(result.current.state.notice).toBe("'home' already exists");
+  });
+
+  it("previews the pose an armed Go to would send, and clears it", async () => {
+    const backend = fakeBackend([reachable("pose_1")]);
+    const { result } = renderHook(() => usePositionLibrary(backend.client, true, scope));
+    await waitFor(() => expect(result.current.state.saved).toHaveLength(1));
+
+    act(() => {
+      result.current.handleIntent(op({ op: "preview", name: "pose_1" }));
+    });
+    expect(result.current.state.armed?.ee_pose).toEqual(HAND);
+    act(() => {
+      result.current.handleIntent(op({ op: "preview" }));
+    });
+    expect(result.current.state.armed).toBeNull();
+    expect(backend.sent).toEqual([]);
+  });
+
+  it("drops the preview when the library leaves the screen", async () => {
+    const backend = fakeBackend([reachable("pose_1")]);
+    const { result, rerender } = renderHook(({ enabled }) => usePositionLibrary(backend.client, enabled, scope), {
+      initialProps: { enabled: true },
+    });
+    await waitFor(() => expect(result.current.state.saved).toHaveLength(1));
+    act(() => {
+      result.current.handleIntent(op({ op: "preview", name: "pose_1" }));
+    });
+    rerender({ enabled: false });
+    expect(result.current.state.armed).toBeNull();
+  });
+
+  it("sends a Go to by name, and remembers the store revision it was pressed at", async () => {
+    const backend = fakeBackend([reachable("pose_1")]);
+    act(() => applyCommandStateMessage({ type: "command_state", revision: 41, snapshot: {} }));
+    const { result } = renderHook(() => usePositionLibrary(backend.client, true, scope));
+    await waitFor(() => expect(result.current.state.saved).toHaveLength(1));
+
+    let outcome: unknown;
+    await act(async () => {
+      outcome = await result.current.handleIntent(op({ name: "pose_1", fingerprint: "fp1" }));
+    });
+    expect(outcome).toEqual({ accepted: true, status: "accepted" });
+    expect(backend.sent).toEqual([{ name: "pose_1", fingerprint: "fp1", scope }]);
+    expect(result.current.state.sent).toEqual({ name: "pose_1", revision: 41 });
+    expect(result.current.state.busy).toBe(false);
+  });
+
+  it("reports a refused Go to with the backend's reason and keeps no send", async () => {
+    const backend = fakeBackend([pose("pose_1")]);
+    const { result } = renderHook(() => usePositionLibrary(backend.client, true, scope));
+    await waitFor(() => expect(result.current.state.saved).toHaveLength(1));
+
+    let outcome: unknown;
+    await act(async () => {
+      outcome = await result.current.handleIntent(op({ name: "pose_1", fingerprint: "fp1" }));
+    });
+    expect(outcome).toEqual({ accepted: false, detail: "'pose_1' has no hand pose" });
+    expect(result.current.state.notice).toBe("'pose_1' has no hand pose");
+    expect(result.current.state.sent).toBeNull();
+  });
+
+  it("does not count a simulated Go to as sent", async () => {
+    const client: PositionLibraryClient = {
+      listSavedPositions: async () => [reachable("pose_1")],
+      goToSavedPosition: async (name) => ({ name, topic: "/pose_target", status: "simulated", detail: "No ROS node." }),
+    };
+    const { result } = renderHook(() => usePositionLibrary(client, true, scope));
+    let outcome: unknown;
+    await act(async () => {
+      outcome = await result.current.handleIntent(op({ name: "pose_1", fingerprint: "fp1" }));
+    });
+    expect(outcome).toMatchObject({ accepted: false, detail: "No ROS node." });
+    expect(result.current.state.sent).toBeNull();
+  });
+
+  it("says so when the backend cannot send a saved pose", async () => {
+    const { result } = renderHook(() => usePositionLibrary({}, true, scope));
+    let outcome: unknown;
+    await act(async () => {
+      outcome = await result.current.handleIntent(op({ name: "pose_1" }));
+    });
+    expect(outcome).toMatchObject({ accepted: false });
+    expect(result.current.state.notice).toBe("This backend cannot send a saved pose.");
+  });
+
+  it("records a Go to whose reply never came as sent, unconfirmed", async () => {
+    const client: PositionLibraryClient = {
+      listSavedPositions: async () => [reachable("pose_1")],
+      goToSavedPosition: async () => {
+        throw new Error("Go to pose_1 timed out after 4 s.");
+      },
+    };
+    act(() => applyCommandStateMessage({ type: "command_state", revision: 7, snapshot: {} }));
+    const { result } = renderHook(() => usePositionLibrary(client, true, scope));
+    let outcome: unknown;
+    await act(async () => {
+      outcome = await result.current.handleIntent(op({ name: "pose_1", fingerprint: "fp1" }));
+    });
+    expect(outcome).toMatchObject({ accepted: false, status: "unknown" });
+    expect(result.current.state.sent).toEqual({ name: "pose_1", revision: 7, unconfirmed: true });
+    expect(result.current.state.notice).toBe("");
+  });
+
+  it("cancels a Go to through the backend, and says why when it cannot", async () => {
+    const backend = fakeBackend([reachable("pose_1")]);
+    const { result } = renderHook(() => usePositionLibrary(backend.client, true, scope));
+    await act(async () => {
+      await result.current.handleIntent(op({ op: "cancel" }));
+    });
+    expect(backend.cancels()).toBe(1);
+
+    const failing = renderHook(() =>
+      usePositionLibrary(
+        {
+          cancelGoTo: async () => {
+            throw new BloomApiError("Down", 503, JSON.stringify({ detail: "No publisher." }));
+          },
+        },
+        true,
+        scope,
+      ),
+    );
+    await act(async () => {
+      await failing.result.current.handleIntent(op({ op: "cancel" }));
+    });
+    expect(failing.result.current.state.notice).toBe("No publisher.");
+  });
+
+  it("reloads the list when control changes hands and when the tablet comes back to the front", async () => {
+    const backend = fakeBackend([pose("home")]);
+    const { result, rerender } = renderHook(({ owner }) => usePositionLibrary(backend.client, true, scope, owner), {
+      initialProps: { owner: false },
+    });
+    await waitFor(() => expect(result.current.state.saved).toHaveLength(1));
+    backend.byScope.set("cfg:explorer", [pose("home"), pose("park")]);
+    rerender({ owner: true });
+    await waitFor(() => expect(result.current.state.saved).toHaveLength(2));
+
+    backend.byScope.set("cfg:explorer", [pose("park")]);
+    act(() => {
+      window.dispatchEvent(new Event("focus"));
+    });
+    await waitFor(() => expect(result.current.state.saved.map((saved) => saved.name)).toEqual(["park"]));
+    expect(result.current.state.scope).toEqual(scope);
+  });
+
+  it("keeps a refusal the gate answered until it is cleared", () => {
+    const { result } = renderHook(() => usePositionLibrary({}, false, scope));
+    act(() => result.current.setNotice("STOPPED"));
+    expect(result.current.state.notice).toBe("STOPPED");
+    act(() => result.current.setNotice(""));
+    expect(result.current.state.notice).toBe("");
   });
 });

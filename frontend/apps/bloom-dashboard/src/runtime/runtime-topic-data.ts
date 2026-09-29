@@ -9,6 +9,7 @@ import {
   readNumber,
   readOptionalString,
   resolveSubscriptionTopic,
+  type SavedHandPose,
   sameConfidences,
 } from "@bloom/widgets";
 import { appendSeriesSample, createSeriesSubscriptionRequests, isSeriesWidget, seriesTopics } from "./plot-series-data";
@@ -33,7 +34,7 @@ export function createRuntimeTopicSubscriptionRequests(screen: ScreenConfig): Ru
     ];
   });
   const viewRequests = screen.widgets.flatMap((widget): RuntimeTopicSubscriptionRequest[] =>
-    resolveRobotViewTopics(widget).map((extra) => ({
+    [...resolveRobotViewTopics(widget), ...resolveHandPoseTopics(widget)].map((extra) => ({
       type: "subscribe_topic",
       topic: extra.topic,
       message_type: extra.messageType,
@@ -83,6 +84,68 @@ export function resolveRobotViewTopics(widget: WidgetConfig): RobotViewTopic[] {
     const topic = readOptionalString(widget.settings[extra.setting]);
     return topic?.startsWith("/") ? [{ field: extra.field, messageType: extra.messageType, topic }] : [];
   });
+}
+
+const HAND_POSE_TYPE = "geometry_msgs/msg/PoseStamped";
+
+/** A position library's hand pose topic, saved beside the joints so Go to can send the arm back. */
+function resolveHandPoseTopics(widget: WidgetConfig): { messageType: string; topic: string }[] {
+  if (widget.kind !== "position-library") {
+    return [];
+  }
+  const topic = readOptionalString(widget.settings.eePoseTopic);
+  return topic?.startsWith("/") && topic !== resolveWidgetRuntimeTopic(widget)
+    ? [{ messageType: HAND_POSE_TYPE, topic }]
+    : [];
+}
+
+/** A PoseStamped sample as a saved hand pose, or null when it is not one. */
+function readHandPose(value: unknown): SavedHandPose | null {
+  const record = asRecord(value);
+  const pose = asRecord(record.pose);
+  const position = asRecord(pose.position);
+  const orientation = asRecord(pose.orientation);
+  const numbers = [position.x, position.y, position.z, orientation.x, orientation.y, orientation.z, orientation.w];
+  if (!numbers.every((number) => typeof number === "number" && Number.isFinite(number))) {
+    return null;
+  }
+  const [x, y, z, qx, qy, qz, qw] = numbers as number[];
+  const frameId = asRecord(record.header).frame_id;
+  return {
+    frameId: typeof frameId === "string" ? frameId : "",
+    position: [x as number, y as number, z as number],
+    orientation: [qx as number, qy as number, qz as number, qw as number],
+  };
+}
+
+/**
+ * The pose an armed Go to would send, on every 3D robot view of the screen, drawn as the target triad before the
+ * second press sends it. Null clears it.
+ */
+export function withPosePreview(
+  data: Readonly<Record<string, WidgetDataSnapshot>>,
+  screen: ScreenConfig,
+  pose: { frame_id: string; orientation: readonly number[]; position: readonly number[] } | null,
+): Record<string, WidgetDataSnapshot> {
+  const next = { ...data };
+  for (const widget of screen.widgets) {
+    const current = next[widget.id];
+    if (widget.kind !== "robot-3d" || current?.type !== "robot-3d") {
+      continue;
+    }
+    const [x, y, z] = pose?.position ?? [];
+    const [qx, qy, qz, qw] = pose?.orientation ?? [];
+    next[widget.id] = {
+      ...current,
+      previewPose: pose
+        ? {
+            header: { frame_id: pose.frame_id },
+            pose: { position: { x, y, z }, orientation: { x: qx, y: qy, z: qz, w: qw } },
+          }
+        : undefined,
+    };
+  }
+  return next;
 }
 
 /** The twist the runtime is sending, on every 3D robot view of the screen, so it can draw the commanded motion. */
@@ -148,7 +211,11 @@ function widgetTopics(widget: WidgetConfig): string[] {
     return seriesTopics(widget);
   }
   const own = resolveWidgetRuntimeTopic(widget);
-  return [...(own ? [own] : []), ...resolveRobotViewTopics(widget).map((extra) => extra.topic)];
+  return [
+    ...(own ? [own] : []),
+    ...resolveRobotViewTopics(widget).map((extra) => extra.topic),
+    ...resolveHandPoseTopics(widget).map((extra) => extra.topic),
+  ];
 }
 
 export function appendRuntimeTopicSample(
@@ -200,6 +267,19 @@ export function appendRuntimeTopicSample(
         [viewTopic.field]: topicMessage.value,
         ...arrivedAt,
       };
+      continue;
+    }
+    if (widget.kind === "position-library" && resolveWidgetRuntimeTopic(widget) !== sample.payload.topic) {
+      const hand = readHandPose(topicMessage.value);
+      if (hand) {
+        const existing = currentData[widget.id];
+        nextData = nextData ?? { ...currentData };
+        nextData[widget.id] = {
+          ...(existing?.type === "position-library" ? existing : { type: "position-library", saved: [] }),
+          type: "position-library",
+          eePose: { ...hand, receivedAt: topicMessage.receivedAt },
+        };
+      }
       continue;
     }
     if (resolveWidgetRuntimeTopic(widget) !== sample.payload.topic) {

@@ -14,6 +14,7 @@ from fastapi.responses import JSONResponse
 
 from apps.bloom_api.body_limit import RequestBodyLimitMiddleware
 from apps.bloom_api.routes import api_router
+from apps.bloom_api.routes.runtime_common import manager_facts
 from apps.bloom_api.security import (
     install_api_key_log_redaction,
     install_http_rate_limit,
@@ -58,6 +59,7 @@ from libs.sessions import (
     NoopTeleopCommandGateway,
     RosbagRuntimeRecordingGateway,
     RuntimeAuditLog,
+    RuntimeAuditRecord,
     RuntimeCommandRateLimiter,
     RuntimeRecordingGateway,
     RuntimeSessionManager,
@@ -74,7 +76,14 @@ from libs.sessions.command_state import (
     is_mode_request_topic,
 )
 from libs.sessions.deadman import run_teleop_deadman, zero_stale_teleop
-from libs.sessions.positions import PositionStore, SQLitePositionStore
+from libs.sessions.go_to import (
+    CONTROLLER_FACT_PARAMETERS,
+    LIVE_SAMPLE_SEC,
+    MANAGER_FACT_PARAMETERS,
+    GoToMonitor,
+    passthrough_canceller,
+)
+from libs.sessions.positions import CartesianPose, PositionLibraryError, PositionStore, SQLitePositionStore, bare_frame
 from libs.sessions.stop import DEFAULT_TELEOP_TARGET, LEGACY_TELEOP_TARGET, VISUAL_SERVOING_ON_TOPIC
 from libs.sessions.topics import is_live_subscription_gateway
 
@@ -188,6 +197,9 @@ def create_app(
         state_path=app_settings.runtime_stop_state_path,
         on_reset=app.state.command_state_tracker.record_reset,
     )
+    # The measured tip through TF, when the ROS launcher attaches it; /ee_pose alone is the commanded pose.
+    app.state.tip_pose_source = None
+    app.state.go_to_monitor = create_go_to_monitor(app)
     # STOP never waits for a pool worker, and ROS reads that hang on a node that is down never hold the shared one.
     app.state.runtime_stop_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="bloom-stop")
     app.state.ros_read_limiter = anyio.CapacityLimiter(app_settings.ros_read_concurrency)
@@ -250,6 +262,17 @@ def create_app_configuration_repository(settings: Settings) -> ConfigurationRepo
     return repository
 
 
+def create_tip_pose_source(node: object):
+    """The measured tip through TF; without tf2 on this machine Go to says its offsets are the commanded pose."""
+    try:
+        from libs.ros_adapters.tip_pose import RclpyTipPoseSource
+
+        return RclpyTipPoseSource(node)
+    except Exception:  # noqa: BLE001 - no tf2 here, or a node it cannot listen on: offsets say they are commanded
+        logging.getLogger(__name__).info("No TF listener: saved poses are not verified against the measured tip.")
+        return None
+
+
 def create_camera_frame_gateway(node: object):
     """Publish browser camera frames to ROS. Optional, like every ROS adapter."""
     from libs.ros_adapters.camera_frames import RclpyCameraFrameGateway
@@ -282,6 +305,37 @@ def create_teleop_command_gateway(settings: Settings, node: object) -> TeleopCom
         node,
         flush_after_publish=False,
         command_frame_id=settings.ros_command_frame_id,
+    )
+
+
+def read_hand_pose(app: FastAPI) -> tuple[CartesianPose | None, bool]:
+    """The tip measured through TF while joint states are live; else qontrol's commanded /ee_pose, said to be so."""
+    tracker: CommandStateTracker = app.state.command_state_tracker
+    facts = manager_facts(app)
+    tip = app.state.tip_pose_source
+    if tip is not None and facts.base_frame and facts.tip_frame and tracker.live_joint_names(LIVE_SAMPLE_SEC):
+        measured = tip.lookup(facts.base_frame, facts.tip_frame)
+        if measured is not None:
+            return measured, True
+    live = tracker.live_hand(LIVE_SAMPLE_SEC)
+    if live is None:
+        return None, False
+    try:
+        return CartesianPose(frame_id=bare_frame(live[0]), position=live[1], orientation=live[2]), False
+    except PositionLibraryError:
+        return None, False
+
+
+def create_go_to_monitor(app: FastAPI) -> GoToMonitor:
+    audit_log: RuntimeAuditLog = app.state.runtime_audit_log
+
+    def audit(detail: str) -> None:
+        audit_log.record(RuntimeAuditRecord(channel="runtime_positions", detail=detail, status="accepted"))
+
+    return GoToMonitor(
+        app.state.command_state_store,
+        hand=lambda: read_hand_pose(app),
+        cancel=passthrough_canceller(app.state.runtime_stop_controller.publish_mode_reset, audit),
     )
 
 
@@ -333,16 +387,24 @@ def create_command_state_feedback(app: FastAPI, node: object):
         app.state.ros_parameter_gateway,
         echo_topics=command_state_echo_topics(settings, policy),
         parameters=policy.allowed_parameters,
-        read_only_parameters=(f"{settings.command_state_manager_node}:inputs.sources",),
+        read_only_parameters=(
+            *(f"{settings.command_state_manager_node}:{name}" for name in MANAGER_FACT_PARAMETERS),
+            *(f"{settings.ros_qontrol_node}:{name}" for name in CONTROLLER_FACT_PARAMETERS),
+        ),
         manager_node=settings.command_state_manager_node,
         gripper_topic=settings.gripper_command_topic if is_kinova_robot(settings.robot_name) else None,
     )
 
 
-async def run_command_state_ticker(tracker: CommandStateTracker, period_sec: float = 0.1) -> None:
+async def run_command_state_ticker(
+    tracker: CommandStateTracker, monitor: GoToMonitor | None = None, period_sec: float = 0.1
+) -> None:
     while True:
         try:
             tracker.tick()
+            if monitor is not None:
+                # A TF lookup and maybe a passthrough publish: off the event loop.
+                await asyncio.to_thread(monitor.tick)
         except Exception:  # noqa: BLE001 - the next tick tries again
             logging.getLogger(__name__).exception("Command state tick failed.")
         await asyncio.sleep(period_sec)
@@ -418,7 +480,7 @@ def start_teleop_deadman(app: FastAPI) -> asyncio.Task | None:
 async def _runtime_lifespan(app: FastAPI) -> AsyncIterator[None]:
     deadman = start_teleop_deadman(app)
     app.state.teleop_deadman_task = deadman
-    ticker = asyncio.create_task(run_command_state_ticker(app.state.command_state_tracker))
+    ticker = asyncio.create_task(run_command_state_ticker(app.state.command_state_tracker, app.state.go_to_monitor))
     try:
         yield
     finally:
