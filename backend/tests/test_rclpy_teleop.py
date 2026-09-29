@@ -1,6 +1,8 @@
 import sys
 from types import ModuleType
 
+import pytest
+
 from libs.ros_adapters.rclpy_teleop import RclpyTeleopCommandGateway
 from libs.sessions import TeleopCommand, TeleopVector3
 
@@ -82,3 +84,56 @@ def install_fake_ros_messages(monkeypatch) -> None:
     monkeypatch.setitem(sys.modules, "geometry_msgs", geometry_msgs)
     monkeypatch.setitem(sys.modules, "geometry_msgs.msg", geometry_msgs_msg)
     monkeypatch.setitem(sys.modules, "rclpy", rclpy)
+
+
+class CountingNode(RecordingNode):
+    def __init__(self) -> None:
+        super().__init__()
+        self.created: list[str] = []
+
+    def create_publisher(self, message_cls: type, topic: str, qos_profile: int) -> RecordingPublisher:
+        self.created.append(topic)
+        return super().create_publisher(message_cls, topic, qos_profile)
+
+
+def teleop(target: str = "/teleop_cmd") -> TeleopCommand:
+    return TeleopCommand(
+        angular=TeleopVector3(x=0.0, y=0.0, z=0.0),
+        linear=TeleopVector3(x=0.1, y=0.0, z=0.0),
+        mode=0,
+        seq=1,
+        target=target,
+    )
+
+
+def test_a_gateway_that_does_not_flush_never_spins_and_reuses_its_publisher(monkeypatch) -> None:
+    install_fake_ros_messages(monkeypatch)
+
+    def refuse_spin(node, timeout_sec=0):
+        raise AssertionError("a non-flushing gateway must not spin the node")
+
+    sys.modules["rclpy"].spin_once = refuse_spin  # type: ignore[attr-defined]
+    node = CountingNode()
+    gateway = RclpyTeleopCommandGateway(node, flush_after_publish=False)
+
+    gateway.publish(teleop())
+    gateway.publish(teleop())
+
+    assert node.created == ["/teleop_cmd"]
+    assert len(node.publishers["/teleop_cmd"].messages) == 2
+
+
+def test_without_the_message_packages_publishing_names_the_missing_one(monkeypatch) -> None:
+    install_fake_ros_messages(monkeypatch)
+    node = RecordingNode()
+
+    monkeypatch.setitem(sys.modules, "extender_msgs.msg", None)
+    with pytest.raises(RuntimeError, match="extender_msgs is required to publish teleop commands"):
+        RclpyTeleopCommandGateway(node).publish(teleop())
+
+    install_fake_ros_messages(monkeypatch)
+    monkeypatch.setitem(sys.modules, "geometry_msgs.msg", None)
+    with pytest.raises(RuntimeError, match="geometry_msgs is required to publish teleop commands"):
+        RclpyTeleopCommandGateway(node).publish(teleop())
+
+    assert node.publishers["/teleop_cmd"].messages == []

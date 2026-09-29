@@ -3,6 +3,6 @@ import { coverage } from "../../vitest-coverage.mjs";
 
 export default defineConfig({
   test: {
-    coverage: coverage({ lines: 84, branches: 75 }),
+    coverage: coverage({ lines: 88, branches: 80 }),
   },
 });

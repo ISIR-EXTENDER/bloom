@@ -8,7 +8,13 @@ from types import SimpleNamespace
 
 import pytest
 
-from libs.ros_adapters.parameters import RclpyRosParameterGateway, RosParameterRequest
+from libs.ros_adapters.parameters import (
+    NoopRosParameterGateway,
+    RclpyRosParameterGateway,
+    RosParameterReading,
+    RosParameterRequest,
+    forget_pending_request,
+)
 
 INTEGER, DOUBLE = 2, 3
 
@@ -128,3 +134,114 @@ def test_a_timed_out_call_is_removed_from_the_client() -> None:
 
     [removed] = node.clients["/n/get_parameters"].removed
     assert removed.cancelled
+
+
+class UndeclaringNode(FakeNode):
+    """A node that answers nothing for the name: it does not declare it, so its type is unknown."""
+
+    def answer(self, service: str, message: SimpleNamespace) -> object | None:
+        if service.endswith("get_parameters"):
+            return SimpleNamespace(values=[])
+        return super().answer(service, message)
+
+
+class SilentlyRefusingNode(FakeNode):
+    def answer(self, service: str, message: SimpleNamespace) -> object | None:
+        if service.endswith("get_parameters"):
+            return super().answer(service, message)
+        return SimpleNamespace(results=[SimpleNamespace(successful=False, reason="")])
+
+
+class PartialNode:
+    """Declares some names; like rclcpp, answers nothing at all when one requested name is undeclared."""
+
+    def __init__(self, declared: dict[str, object], available: bool = True) -> None:
+        self.declared = declared
+        self.available = available
+        self.created: list[str] = []
+
+    def create_client(self, _service_cls, service: str) -> FakeClient:
+        self.created.append(service)
+        client = FakeClient(self, service)
+        if not self.available:
+            client.wait_for_service = lambda timeout_sec: False  # type: ignore[method-assign]
+        return client
+
+    def answer(self, service: str, message: SimpleNamespace) -> object:
+        names = list(message.names)
+        if all(name in self.declared for name in names):
+            return SimpleNamespace(values=[SimpleNamespace(value=self.declared[name]) for name in names])
+        return SimpleNamespace(values=[])
+
+
+def test_a_float_is_sent_as_is_without_asking_the_declared_type() -> None:
+    node = FakeNode(DOUBLE)
+
+    RclpyRosParameterGateway(node).set(RosParameterRequest(node="/n", name="gain", value=2.5))
+
+    assert [(v.type, v.value) for v in node.set_values] == [(DOUBLE, 2.5)]
+    assert list(node.clients) == ["/n/set_parameters"]
+
+
+def test_a_node_that_refuses_the_value_fails_with_its_reason() -> None:
+    node = FakeNode(INTEGER)
+
+    with pytest.raises(RuntimeError, match="Wrong parameter type"):
+        RclpyRosParameterGateway(node).set(RosParameterRequest(node="/n", name="count", value=2.5))
+
+
+def test_a_refusal_without_a_reason_still_names_the_node_and_parameter() -> None:
+    node = SilentlyRefusingNode(DOUBLE)
+
+    with pytest.raises(RuntimeError, match="/n refused gain."):
+        RclpyRosParameterGateway(node).set(RosParameterRequest(node="/n", name="gain", value=1.5))
+
+
+def test_a_whole_number_stays_an_integer_when_the_node_does_not_declare_the_parameter() -> None:
+    node = UndeclaringNode(INTEGER)
+
+    receipt = RclpyRosParameterGateway(node).set(RosParameterRequest(node="/n", name="count", value=3))
+
+    assert receipt.value == 3 and isinstance(receipt.value, int)
+    assert [(v.type, v.value) for v in node.set_values] == [(INTEGER, 3)]
+
+
+def test_an_undeclared_name_in_a_batch_is_read_as_none_without_losing_the_others() -> None:
+    node = PartialNode({"gain": 2.0, "inputs.sources": ("/joystick", "/servo")})
+    gateway = RclpyRosParameterGateway(node)
+
+    values = gateway.get_values("/n", ("gain", "missing", "inputs.sources"))
+    readings = gateway.get("/n", ("gain", "missing", "inputs.sources"))
+
+    assert values == {"gain": 2.0, "missing": None, "inputs.sources": ["/joystick", "/servo"]}
+    assert readings == (
+        RosParameterReading(node="/n", name="gain", value=2.0),
+        RosParameterReading(node="/n", name="missing", value=None),
+        # Arrays are not a settable scalar; the reading says the value is not one.
+        RosParameterReading(node="/n", name="inputs.sources", value=None),
+    )
+    assert gateway.get_values("/n", ("missing",)) == {"missing": None}
+    # One client for the node's service, however many reads.
+    assert node.created == ["/n/get_parameters"]
+
+
+def test_a_node_without_parameter_services_is_reported_by_name() -> None:
+    node = PartialNode({"gain": 2.0}, available=False)
+
+    with pytest.raises(RuntimeError, match="Node /n does not offer its parameter services."):
+        RclpyRosParameterGateway(node, wait_for_service_sec=0.01).get("/n", ("gain",))
+
+
+def test_a_client_without_a_pending_table_still_has_its_future_cancelled() -> None:
+    future = FakeFuture(None)
+
+    forget_pending_request(SimpleNamespace(), future)
+
+    assert future.cancelled
+
+
+def test_without_ros_every_reading_is_undeclared() -> None:
+    assert NoopRosParameterGateway().get("/n", ("gain", "count")) == (
+        RosParameterReading(node="/n", name="gain", value=None),
+        RosParameterReading(node="/n", name="count", value=None),
+    )

@@ -1,7 +1,9 @@
 """Bloom subscribes with the QoS a topic's publishers offer, as ``ros2 topic echo`` does."""
 
 import os
+import sys
 import time
+import types
 from types import SimpleNamespace
 
 import pytest
@@ -13,6 +15,7 @@ from libs.ros_adapters.qos import (
     VOLATILE,
     AdaptiveSubscription,
     QosChoice,
+    build_qos_profile,
 )
 from libs.ros_adapters.rclpy_topic_streams import RclpyRuntimeTopicSubscriptionGateway
 from libs.sessions.topics import RuntimeTopicSubscription
@@ -217,3 +220,108 @@ def test_a_latched_publisher_that_starts_after_bloom_is_picked_up(ros_node) -> N
     spin_until(executor, received)
     handle.close()
     assert received and received[0].value == {"data": "late"}
+
+
+class FlakyGraphNode(GraphNode):
+    """A node whose graph read, timer creation or subscription creation can be made to fail."""
+
+    def __init__(self, publishers=(), *, timer_error=None) -> None:
+        super().__init__(publishers)
+        self.timer_error = timer_error
+        self.graph_error: Exception | None = None
+        self.create_error: Exception | None = None
+
+    def get_publishers_info_by_topic(self, topic):
+        if self.graph_error is not None:
+            raise self.graph_error
+        return super().get_publishers_info_by_topic(topic)
+
+    def create_subscription(self, message_cls, topic, callback, qos):
+        if self.create_error is not None:
+            raise self.create_error
+        return super().create_subscription(message_cls, topic, callback, qos)
+
+    def create_timer(self, period, callback):
+        if self.timer_error is not None:
+            raise self.timer_error
+        return super().create_timer(period, callback)
+
+
+def test_the_rclpy_profile_carries_the_chosen_policies(monkeypatch: pytest.MonkeyPatch) -> None:
+    qos = types.ModuleType("rclpy.qos")
+    qos.HistoryPolicy = SimpleNamespace(KEEP_LAST="keep_last")  # type: ignore[attr-defined]
+    qos.QoSReliabilityPolicy = SimpleNamespace(RELIABLE="rel", BEST_EFFORT="be")  # type: ignore[attr-defined]
+    qos.QoSDurabilityPolicy = SimpleNamespace(TRANSIENT_LOCAL="tl", VOLATILE="vol")  # type: ignore[attr-defined]
+    qos.QoSProfile = lambda **kwargs: kwargs  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "rclpy", types.ModuleType("rclpy"))
+    monkeypatch.setitem(sys.modules, "rclpy.qos", qos)
+
+    assert build_qos_profile(QosChoice(RELIABLE, TRANSIENT_LOCAL, 5)) == {
+        "history": "keep_last",
+        "depth": 5,
+        "reliability": "rel",
+        "durability": "tl",
+    }
+    assert build_qos_profile(QosChoice(BEST_EFFORT, VOLATILE, 1)) == {
+        "history": "keep_last",
+        "depth": 1,
+        "reliability": "be",
+        "durability": "vol",
+    }
+
+
+def test_without_rclpy_a_profile_cannot_be_built(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setitem(sys.modules, "rclpy", None)
+    monkeypatch.setitem(sys.modules, "rclpy.qos", None)
+
+    with pytest.raises(RuntimeError, match="rclpy is required to subscribe to ROS topics"):
+        build_qos_profile(QosChoice(RELIABLE, VOLATILE, 10))
+
+
+def test_a_poll_timer_that_cannot_be_created_leaves_no_subscription_behind() -> None:
+    node = FlakyGraphNode(timer_error=RuntimeError("no timers"))
+
+    with pytest.raises(RuntimeError, match="no timers"):
+        subscribe(node)
+
+    assert node.destroyed == [1]
+
+
+def test_a_tick_already_queued_when_the_subscription_closed_does_nothing() -> None:
+    node = GraphNode()
+    subscription = subscribe(node)
+    [late_tick] = node.timers
+    subscription.close()
+    node.publishers.append(publisher("RELIABLE", "TRANSIENT_LOCAL"))
+
+    late_tick()
+
+    assert len(node.created) == 1
+    assert node.destroyed == [1]
+
+
+def test_a_graph_that_cannot_be_read_keeps_the_compatible_qos_and_stops_polling() -> None:
+    node = FlakyGraphNode()
+    subscription = subscribe(node)
+    node.graph_error = RuntimeError("context shut down")
+
+    node.tick()
+
+    assert subscription.qos == QosChoice(BEST_EFFORT, VOLATILE, 10)
+    assert node.timers == []
+    assert len(node.created) == 1
+
+
+def test_a_resubscription_that_fails_keeps_the_first_subscription_working() -> None:
+    node = FlakyGraphNode()
+    subscription = subscribe(node)
+    node.publishers.append(publisher("RELIABLE", "TRANSIENT_LOCAL"))
+    node.create_error = RuntimeError("cannot create")
+
+    node.tick()
+
+    assert subscription.qos == QosChoice(BEST_EFFORT, VOLATILE, 10)
+    assert node.destroyed == []
+    assert node.timers == []
+    subscription.close()
+    assert node.destroyed == [1]

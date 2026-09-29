@@ -1348,6 +1348,8 @@ node.create_subscription(String, "/robot_description", on_description, QoSProfil
 # Markers of every kind the view draws: the shared-control rviz shapes, a coloured trajectory, a label on
 # the tool link, a cube list, and every six seconds the robot's own first mesh for three seconds.
 markers = node.create_publisher(MarkerArray, "${MARKERS}", 10)
+# The same markers on the topic the Bloom Debug app's view reads.
+debug_markers = node.create_publisher(MarkerArray, "${STACK.goalMarkers}", 10)
 def make(kind, index, frame="base_link"):
     marker = Marker()
     marker.header.frame_id = frame
@@ -1383,6 +1385,7 @@ def publish_markers():
     cubes.points.extend(Point(x=0.4, y=0.25, z=0.1 + 0.06 * step) for step in range(3))
     array.markers.append(cubes)
     markers.publish(array)
+    debug_markers.publish(array)
 node.create_timer(1.0, publish_markers)
 def publish_mesh_marker():
     if not description["mesh"]:

@@ -182,7 +182,8 @@ function WebcamPreview({
   }, [preferenceKey, selectedDeviceId]);
 
   useEffect(() => {
-    if (!selectedDeviceId || devices.some((device) => device.deviceId === selectedDeviceId)) {
+    // Until the list has arrived there is nothing to check against: a remembered camera must survive a reload.
+    if (!selectedDeviceId || devices.length === 0 || devices.some((device) => device.deviceId === selectedDeviceId)) {
       return;
     }
     setSelectedDeviceId("");
@@ -218,6 +219,8 @@ function WebcamPreview({
         setStatus("ready");
       } catch {
         if (isCurrent) {
+          // Listed even now, so a remembered camera that was unplugged gives way to the default one.
+          setDevices(await listWebcamDevices());
           setStatus("error");
         }
       }

@@ -20,6 +20,7 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import type { URDFRobot } from "urdf-loader";
 import { CommandIndicator, commandPose } from "./robot-3d-command";
 import { GoalMarkers, type PoseArraySample } from "./robot-3d-goals";
+import { drivableJointCount, type JointStateSample, jointsMoved, readJointValues } from "./robot-3d-joints";
 import {
   asRecord,
   disposeObject,
@@ -33,7 +34,7 @@ import { createMeshCache, fitDistance, parseRobot, resolveRobotFrame, resolveToo
 import { readScenePalette, type ScenePalette, samePalette, watchThemeChange } from "./robot-3d-palette";
 import type { CommandedTwist, RobotModelSource } from "./types";
 
-export type JointStateSample = { name?: unknown; position?: unknown };
+export type { JointStateSample } from "./robot-3d-joints";
 export type PoseSample = { header?: unknown; pose?: unknown };
 export type { MarkerSample } from "./robot-3d-markers";
 
@@ -88,8 +89,6 @@ export type SceneStatus = {
 /** Without a description the view asks again this often; with one, it checks for a new robot this often. */
 export const MODEL_RETRY_MS = 3000;
 export const MODEL_REFRESH_MS = 10000;
-/** A joint that moved less than this since the last draw has not moved. */
-const JOINT_EPSILON = 1e-5;
 /** The manager's name for the tool frame; the widget's own tool link counts as well. */
 const EFFECTOR_FRAME_ID = "effector_frame";
 
@@ -468,32 +467,21 @@ export default function RobotScene({
     live.invalidate();
   }, [robot, command, eeLink]);
 
-  // Joint states drive the model; a name the URDF does not know is ignored.
+  // Joint states drive the model; a name the URDF does not know, or a mimic its master drives, is ignored.
   useEffect(() => {
     const live = stage.current;
     if (!robot || !live || !jointState) {
       return;
     }
-    const names = Array.isArray(jointState.name) ? jointState.name : [];
-    const positions = Array.isArray(jointState.position) ? jointState.position : [];
-    const values: Record<string, number> = {};
-    let changed = false;
-    names.forEach((name, index) => {
-      const position = positions[index];
-      if (typeof name === "string" && typeof position === "number" && Number.isFinite(position) && robot.joints[name]) {
-        values[name] = position;
-        const previous = appliedJoints.current[name];
-        changed ||= previous === undefined || Math.abs(previous - position) > JOINT_EPSILON;
-      }
-    });
+    const values = readJointValues(robot, jointState);
     const driven = Object.keys(values).length;
-    const total = Object.values(robot.joints).filter((joint) => joint.jointType !== "fixed").length;
+    const total = drivableJointCount(robot);
     if (driven !== live.shown.joints.driven || total !== live.shown.joints.total) {
       live.shown.joints = { driven, total };
       live.report();
     }
     // A still robot publishes the same state thirty times a second; nothing to redraw.
-    if (!changed) {
+    if (!jointsMoved(appliedJoints.current, values)) {
       return;
     }
     appliedJoints.current = values;
@@ -513,15 +501,7 @@ export default function RobotScene({
     if (!robot || !live || !ghost) {
       return;
     }
-    const names = Array.isArray(target?.name) ? target.name : [];
-    const positions = Array.isArray(target?.position) ? target.position : [];
-    const values: Record<string, number> = {};
-    names.forEach((name, index) => {
-      const position = positions[index];
-      if (typeof name === "string" && typeof position === "number" && Number.isFinite(position) && ghost.joints[name]) {
-        values[name] = position;
-      }
-    });
+    const values = readJointValues(ghost, target);
     const visible = Object.keys(values).length > 0;
     if (visible) {
       ghost.setJointValues(values);
@@ -634,11 +614,14 @@ export default function RobotScene({
   return <div className="bloom-robot-3d-canvas" ref={mount} />;
 }
 
-/** Frames what is drawn: the meshes, not the empty links a URDF may declare metres away. */
+/**
+ * Frames what is drawn: the meshes, not the empty links a URDF may declare metres away, nor the hidden
+ * command arrow and twin, which would frame a metre of nothing.
+ */
 function fitCamera(root: Object3D, camera: PerspectiveCamera, controls: OrbitControls) {
   root.updateMatrixWorld(true);
   const box = new Box3();
-  root.traverse((child) => {
+  root.traverseVisible((child) => {
     if (child instanceof Mesh && !isMarkerObject(child)) {
       box.expandByObject(child);
     }

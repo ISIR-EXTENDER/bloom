@@ -42,9 +42,9 @@ branch = true
 source = ["apps", "libs"]
 
 [tool.coverage.report]
-# Lines and branches together, as coverage.py counts them: 92.1% on 2026-09-28 without ROS on the path (CI's
+# Lines and branches together, as coverage.py counts them: 97.0% on 2026-09-29 without ROS on the path (CI's
 # case; with rosidl a few more branches run). A drop below the floor fails `make coverage`.
-fail_under = 90
+fail_under = 95
 precision = 2
 exclude_also = ["if TYPE_CHECKING:", "^\\s*\\.\\.\\.$"]
 

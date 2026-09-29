@@ -142,6 +142,8 @@ def create_app(
             app_settings.max_manager_linear_acceleration,
             app_settings.max_manager_angular_acceleration,
             app_settings.max_jaco_angular_velocity,
+            app_settings.max_snake_gain,
+            app_settings.max_jaco_min_radius,
         )
         + BEHAVIOUR_PARAMETER_BOUNDS
         + petanque_parameter_bounds(

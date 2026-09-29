@@ -19,12 +19,19 @@ MANAGER_NODE = "/cartesian_manager"
 
 
 def manager_parameter_bounds(
-    max_linear_acceleration: float, max_angular_acceleration: float, max_jaco_angular_velocity: float
+    max_linear_acceleration: float,
+    max_angular_acceleration: float,
+    max_jaco_angular_velocity: float,
+    max_snake_gain: float = 10.0,
+    max_jaco_min_radius: float = 1.0,
 ) -> tuple[tuple[str, float, float], ...]:
     return (
         (f"{MANAGER_NODE}:rate_limiter.max_linear_acceleration", 0.0, max_linear_acceleration),
         (f"{MANAGER_NODE}:rate_limiter.max_angular_acceleration", 0.0, max_angular_acceleration),
         (f"{MANAGER_NODE}:shapers.jaco.max_angular_velocity", 0.0, max_jaco_angular_velocity),
+        # The Builder's snake-gain slider stops at 10; the jaco radius is a distance from the tool, in metres.
+        (f"{MANAGER_NODE}:shapers.snake.gain", 0.0, max_snake_gain),
+        (f"{MANAGER_NODE}:shapers.jaco.min_radius", 0.0, max_jaco_min_radius),
     )
 
 

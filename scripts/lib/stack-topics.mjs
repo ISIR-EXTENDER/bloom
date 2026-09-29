@@ -8,6 +8,7 @@ export const STACK = {
   cameraImage: "/camera/color/image_raw/compressed",
   eePose: "/ee_pose",
   eeVelocity: "/ee_velocity",
+  goalMarkers: "/goal_markers",
   gripper: "/gripper_controller/commands",
   hubAnalogInput: "/hub/analogic_input",
   hubDigitalInput: "/hub/digital_input",
@@ -20,6 +21,10 @@ export const STACK = {
   mode: "/mode_request",
   petanqueResultImage: "/petanque/measure/result_image/compressed",
   petanqueState: "/petanque_state_machine/change_state",
+  // The QP controller names its command topic in code (qontrol_velocity_controller.cpp), not under its
+  // controller namespace; the overload flag is under the namespace the manager configs give it.
+  qontrolCommands: "/qontrol_controller/commands",
+  qontrolEffortOverload: "/qontrol_explorer/effort_overload",
   rosout: "/rosout",
   servoError: "/visual_servoing/error_TAGtoTAGd",
   servoManagerInput: "/visual_servoing_cartesian_command",

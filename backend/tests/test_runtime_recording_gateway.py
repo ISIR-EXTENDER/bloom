@@ -1,8 +1,11 @@
+import logging
+import subprocess
 from pathlib import Path
 
 import pytest
 
 from libs.sessions.recording import (
+    NoopRuntimeRecordingGateway,
     RosbagRuntimeRecordingGateway,
     RuntimeRecordingRequest,
     build_recording_id,
@@ -127,3 +130,118 @@ def test_closing_the_api_stops_every_recording(monkeypatch: pytest.MonkeyPatch, 
         assert processes[0].terminated is False
 
     assert processes[0].terminated is True
+
+
+def test_without_a_recorder_a_start_is_simulated_and_its_stop_still_answered() -> None:
+    gateway = NoopRuntimeRecordingGateway()
+    request = RuntimeRecordingRequest(topics=("/joint_states",), output_folder="data/recordings", label="run")
+
+    started = gateway.start(request)
+    stopped = gateway.stop(started.recording_id)
+
+    assert started.status == "simulated"
+    assert started.recording_id.startswith("simulated-")
+    assert (started.topics, started.output_folder) == (("/joint_states",), "data/recordings")
+    assert (stopped.status, stopped.recording_id, stopped.topics) == ("stopped", started.recording_id, ())
+    assert gateway.start(request).recording_id != started.recording_id
+
+
+def make_gateway(monkeypatch: pytest.MonkeyPatch, tmp_path: Path, process_factory=FakeRosbagProcess):
+    processes: list[FakeRosbagProcess] = []
+
+    def fake_popen(command: list[str], stderr: object, stdout: object, text: bool) -> FakeRosbagProcess:
+        processes.append(process_factory(command=command, stderr=stderr, stdout=stdout, text=text))
+        return processes[-1]
+
+    monkeypatch.setattr("libs.sessions.recording.which", lambda executable: f"/usr/bin/{executable}")
+    return RosbagRuntimeRecordingGateway(base_directory=tmp_path, popen_factory=fake_popen), processes
+
+
+def test_stopping_an_unknown_recording_is_answered_rather_than_raised(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    gateway, _ = make_gateway(monkeypatch, tmp_path)
+
+    receipt = gateway.stop("rosbag-never-started")
+
+    assert receipt.status == "stopped"
+    assert receipt.recording_id == "rosbag-never-started"
+    assert "not found or already stopped" in receipt.detail
+    assert (receipt.topics, receipt.output_folder) == ((), "")
+
+
+def test_a_recording_id_already_tracked_is_never_replaced(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    monkeypatch.setattr("libs.sessions.recording.build_recording_id", lambda request: "rosbag-fixed")
+    gateway, processes = make_gateway(monkeypatch, tmp_path)
+    request = RuntimeRecordingRequest(topics=("/joint_states",), output_folder="rec")
+    gateway.start(request)
+
+    with pytest.raises(RuntimeError, match="already tracked as rosbag-fixed"):
+        gateway.start(request)
+
+    assert len(processes) == 1
+    assert gateway.stop("rosbag-fixed").status == "stopped"
+    assert processes[0].terminated
+
+
+class ExitedProcess(FakeRosbagProcess):
+    def poll(self) -> int:
+        return 0
+
+
+class StuckProcess(FakeRosbagProcess):
+    def wait(self, timeout: int | None = None) -> int:
+        self.wait_calls += 1
+        if not self.killed:
+            raise subprocess.TimeoutExpired(cmd=self.command, timeout=timeout or 0)
+        return -9
+
+
+def test_a_recorder_that_already_exited_is_not_terminated_again(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    gateway, processes = make_gateway(monkeypatch, tmp_path, ExitedProcess)
+    started = gateway.start(RuntimeRecordingRequest(topics=("/joint_states",), output_folder="rec"))
+
+    stopped = gateway.stop(started.recording_id)
+
+    assert processes[0].terminated is False
+    assert stopped.status == "stopped"
+    assert stopped.output_folder == started.output_folder
+
+
+def test_a_recorder_that_ignores_terminate_is_killed(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    gateway, processes = make_gateway(monkeypatch, tmp_path, StuckProcess)
+    started = gateway.start(RuntimeRecordingRequest(topics=("/joint_states",), output_folder="rec"))
+
+    stopped = gateway.stop(started.recording_id)
+
+    assert processes[0].terminated and processes[0].killed
+    assert processes[0].wait_calls == 2
+    assert stopped.status == "stopped"
+
+
+class UnstoppableProcess(FakeRosbagProcess):
+    def terminate(self) -> None:
+        raise OSError("process vanished mid-terminate")
+
+
+def test_shutdown_stops_the_other_recordings_when_one_will_not_stop(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    def factory(command: list[str], stderr: object, stdout: object, text: bool) -> FakeRosbagProcess:
+        cls = UnstoppableProcess if "/bad" in command else FakeRosbagProcess
+        return cls(command=command, stderr=stderr, stdout=stdout, text=text)
+
+    gateway, processes = make_gateway(monkeypatch, tmp_path, factory)
+    bad = gateway.start(RuntimeRecordingRequest(topics=("/bad",), output_folder="rec"))
+    good = gateway.start(RuntimeRecordingRequest(topics=("/good",), output_folder="rec"))
+    caplog.set_level(logging.ERROR, logger="libs.sessions.recording")
+
+    gateway.stop_all()
+
+    [good_process] = [process for process in processes if "/good" in process.command]
+    assert good_process.terminated
+    assert "not found or already stopped" in gateway.stop(bad.recording_id).detail
+    assert "not found or already stopped" in gateway.stop(good.recording_id).detail
+    assert any(bad.recording_id in record.getMessage() for record in caplog.records)

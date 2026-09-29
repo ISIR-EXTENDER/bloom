@@ -60,6 +60,8 @@ class Settings(BaseModel):
     seed_dir: Path = Field(default=DEFAULT_SEED_DIR)
     allowed_ros_message_types: tuple[str, ...] = (
         "geometry_msgs/msg/TwistStamped",
+        # The Builder's "Vector3 mapping" toggle preset publishes a structured payload with named fields.
+        "geometry_msgs/msg/Vector3",
         "sensor_msgs/msg/CompressedImage",
         "sensor_msgs/msg/JointState",
         "std_msgs/msg/Bool",
@@ -173,6 +175,9 @@ class Settings(BaseModel):
     max_manager_linear_acceleration: float = Field(default=6.0, gt=0, allow_inf_nan=False)
     max_manager_angular_acceleration: float = Field(default=6.0, gt=0, allow_inf_nan=False)
     max_jaco_angular_velocity: float = Field(default=1.2, gt=0, allow_inf_nan=False)
+    #: The snake gain's slider stops at 10 (3x the shipped 3.0); the jaco radius is a distance from the tool.
+    max_snake_gain: float = Field(default=10.0, gt=0, allow_inf_nan=False)
+    max_jaco_min_radius: float = Field(default=1.0, gt=0, allow_inf_nan=False)
     #: Petanque throw tuning: the admin sliders' ranges. The controller divides by total_duration squared and
     #: takes tan(finish angle), so the duration stays above zero and the angle short of pi/2.
     min_petanque_total_duration: float = Field(default=0.5, gt=0, allow_inf_nan=False)
@@ -448,6 +453,10 @@ class Settings(BaseModel):
             ),
             max_jaco_angular_velocity=_read_float_env(
                 "BLOOM_MAX_JACO_ANGULAR_VELOCITY", cls.model_fields["max_jaco_angular_velocity"].default
+            ),
+            max_snake_gain=_read_float_env("BLOOM_MAX_SNAKE_GAIN", cls.model_fields["max_snake_gain"].default),
+            max_jaco_min_radius=_read_float_env(
+                "BLOOM_MAX_JACO_MIN_RADIUS", cls.model_fields["max_jaco_min_radius"].default
             ),
             min_petanque_total_duration=_read_float_env(
                 "BLOOM_MIN_PETANQUE_TOTAL_DURATION", cls.model_fields["min_petanque_total_duration"].default

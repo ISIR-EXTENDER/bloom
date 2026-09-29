@@ -1,3 +1,6 @@
+import threading
+import time
+
 from fastapi.testclient import TestClient
 
 from apps.bloom_api.main import create_app
@@ -174,3 +177,57 @@ def test_stop_zeroes_topics_and_skips_permissions_that_are_not_topics() -> None:
 
     assert response.status_code == 200
     assert {command.target for command in gateway.commands} == {"/joystick_cartesian_command"}
+
+
+def test_a_source_without_both_a_node_and_a_name_is_ignored() -> None:
+    parameters = ManagerParameters({"topics.joystick_command": "/lab_joystick"})
+    directory = TeleopTargetDirectory(
+        (), parameters, ("topics.joystick_command", "/cartesian_manager:", ":topics.x", MANAGER_INPUTS[0])
+    )
+
+    directory.refresh()
+
+    assert directory.targets() == ("/lab_joystick",)
+
+
+def poller_threads() -> list[threading.Thread]:
+    return [thread for thread in threading.enumerate() if thread.name == "teleop-target-directory"]
+
+
+def test_the_directory_polls_the_manager_in_the_background_until_stopped() -> None:
+    answered = threading.Event()
+    reads: list[str] = []
+
+    class CountingParameters(ManagerParameters):
+        def get(self, node: str, names: tuple[str, ...]) -> tuple[RosParameterReading, ...]:
+            reads.append(node)
+            answered.set()
+            return super().get(node, names)
+
+    parameters = CountingParameters({"topics.joystick_command": "/lab_joystick"})
+    directory = TeleopTargetDirectory((), parameters, MANAGER_INPUTS, refresh_sec=0.01)
+
+    directory.start()
+    directory.start()
+    assert answered.wait(2.0)
+    assert len(poller_threads()) == 1
+    directory.stop()
+    deadline = time.monotonic() + 2.0
+    while poller_threads() and time.monotonic() < deadline:
+        time.sleep(0.01)
+
+    assert poller_threads() == []
+    assert directory.targets() == ("/lab_joystick",)
+    settled = len(reads)
+    time.sleep(0.05)
+    assert len(reads) == settled
+
+
+def test_without_sources_there_is_nothing_to_poll() -> None:
+    directory = TeleopTargetDirectory(("/joystick_cartesian_command",), ManagerParameters(None), ())
+
+    directory.start()
+
+    assert poller_threads() == []
+    assert directory.targets() == ("/joystick_cartesian_command",)
+    directory.stop()

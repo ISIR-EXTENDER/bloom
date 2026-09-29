@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import sys
+import types
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -10,7 +12,12 @@ from apps.bloom_api.main import create_app
 from apps.bloom_api.settings import Settings
 from libs.config import InMemoryConfigurationRepository
 from libs.ros_adapters.parameters import RosParameterReading
-from libs.ros_adapters.robot_model import RclpyRobotModelGateway, resolve_package_asset
+from libs.ros_adapters.robot_model import (
+    NoopRobotModelGateway,
+    RclpyRobotModelGateway,
+    ament_share_directory,
+    resolve_package_asset,
+)
 
 URDF = '<robot name="explorer"><link name="base_link"/></robot>'
 
@@ -124,3 +131,46 @@ def test_a_robot_that_is_not_running_is_unavailable_rather_than_an_error() -> No
     """The view polls this route until the robot appears; a launch that has not happened is not a fault."""
     gateway = RclpyRobotModelGateway(AbsentNodeParameterGateway(), "/robot_state_publisher")
     assert gateway.description() is None
+
+
+def test_without_ros_no_mesh_is_served() -> None:
+    assert NoopRobotModelGateway().asset("explorer_description", "meshes/visual/link1.dae") is None
+
+
+def install_fake_ament_index(monkeypatch, share_by_package: dict[str, Path]) -> None:
+    packages = types.ModuleType("ament_index_python.packages")
+
+    class PackageNotFoundError(KeyError):
+        pass
+
+    def get_package_share_directory(package: str) -> str:
+        try:
+            return str(share_by_package[package])
+        except KeyError as exc:
+            raise PackageNotFoundError(package) from exc
+
+    packages.PackageNotFoundError = PackageNotFoundError  # type: ignore[attr-defined]
+    packages.get_package_share_directory = get_package_share_directory  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "ament_index_python", types.ModuleType("ament_index_python"))
+    monkeypatch.setitem(sys.modules, "ament_index_python.packages", packages)
+
+
+def test_the_rclpy_gateway_finds_meshes_through_the_ament_index(tmp_path: Path, monkeypatch) -> None:
+    share = tmp_path / "share" / "explorer_description"
+    (share / "meshes").mkdir(parents=True)
+    (share / "meshes" / "link1.stl").write_bytes(b"solid")
+    install_fake_ament_index(monkeypatch, {"explorer_description": share})
+    gateway = RclpyRobotModelGateway(FakeParameterGateway(URDF), "/robot_state_publisher")
+
+    assert gateway.asset("explorer_description", "meshes/link1.stl") == share / "meshes" / "link1.stl"
+    assert gateway.asset("explorer_description", "meshes/missing.stl") is None
+    assert gateway.asset("not_installed", "meshes/link1.stl") is None
+    assert ament_share_directory("explorer_description") == share
+    assert ament_share_directory("not_installed") is None
+
+
+def test_without_the_ament_index_no_package_share_is_known(monkeypatch) -> None:
+    monkeypatch.setitem(sys.modules, "ament_index_python", None)
+    monkeypatch.setitem(sys.modules, "ament_index_python.packages", None)
+
+    assert ament_share_directory("explorer_description") is None

@@ -18,6 +18,6 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     setupFiles: ["./src/test/setup.ts"],
-    coverage: coverage({ lines: 88, branches: 84 }),
+    coverage: coverage({ lines: 93, branches: 87 }),
   },
 });

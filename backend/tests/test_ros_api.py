@@ -216,6 +216,25 @@ def test_publish_ros_topic_uses_configured_gateway() -> None:
     ]
 
 
+def test_publish_ros_topic_takes_the_vector3_toggle_preset() -> None:
+    # The Builder offers a "Vector3 mapping" toggle preset; the deployment allowlist must let it through.
+    gateway = RecordingRosPublisherGateway()
+    client = TestClient(
+        create_app(Settings(environment="test"), InMemoryConfigurationRepository(), ros_publisher_gateway=gateway)
+    )
+    payload = {"topic": "/ui/vector", "message_type": "geometry_msgs/msg/Vector3"}
+
+    response = client.post("/api/v1/ros/topics/publish", json={**payload, "payload": {"x": 0.1, "y": 0.0, "z": 0.0}})
+
+    assert response.status_code == 200, response.text
+    assert gateway.requests[-1].payload == {"x": 0.1, "y": 0.0, "z": 0.0}
+    # A structured payload is still shaped: a non-finite component is refused before the gateway sees it.
+    overflow = '{"topic": "/ui/vector", "message_type": "geometry_msgs/msg/Vector3", "payload": {"x": 1e400}}'
+    refused = client.post("/api/v1/ros/topics/publish", content=overflow, headers={"Content-Type": "application/json"})
+    assert refused.status_code == 422, refused.text
+    assert len(gateway.requests) == 1
+
+
 def test_publish_ros_topic_defaults_to_simulated_when_ros_is_not_configured(client: TestClient) -> None:
     response = client.post(
         "/api/v1/ros/topics/publish",

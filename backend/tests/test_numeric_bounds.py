@@ -100,6 +100,9 @@ PARAMETER_SET = "/api/v1/ros/parameters/set"
         ("rate_limiter.max_linear_acceleration", 1e300, 2.0),
         ("rate_limiter.max_angular_acceleration", 6.5, 2.0),
         ("shapers.jaco.max_angular_velocity", 1.3, 0.4),
+        # The gain and the radius are unbounded on the manager; the seeds' sliders and the shipped values fit.
+        ("shapers.snake.gain", 10.5, 3.0),
+        ("shapers.jaco.min_radius", 1.5, 0.05),
     ],
 )
 def test_parameter_set_refuses_a_limit_so_high_it_disables_itself(name: str, too_high: float, shipped: float) -> None:
@@ -112,6 +115,12 @@ def test_parameter_set_refuses_a_limit_so_high_it_disables_itself(name: str, too
     )
     audit = test_client.get("/api/v1/runtime/audit").json()
     assert any(record["status"] == "rejected" and record["target"].endswith(name) for record in audit["records"])
+
+
+def test_a_lab_can_raise_the_snake_gain_cap_in_settings() -> None:
+    body = {"node": "/cartesian_manager", "name": "shapers.snake.gain", "value": 12.0}
+    assert client().post(PARAMETER_SET, json=body).status_code == 422
+    assert client(max_snake_gain=15.0).post(PARAMETER_SET, json=body).status_code == 200
 
 
 def test_a_lab_can_raise_the_acceleration_cap_in_settings() -> None:

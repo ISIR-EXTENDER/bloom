@@ -52,9 +52,9 @@ export function isGuidedTourOfferDismissed(tourKey: string): boolean {
 
 export function dismissGuidedTourOffer(tourKey: string): void {
   try {
-    const dismissed = JSON.parse(window.localStorage.getItem(OFFER_STORAGE_KEY) ?? "[]");
-    const next = Array.isArray(dismissed) ? Array.from(new Set([...dismissed, tourKey])) : [tourKey];
-    window.localStorage.setItem(OFFER_STORAGE_KEY, JSON.stringify(next));
+    // A corrupt entry is replaced, or the offer would come back on every visit.
+    const dismissed = readDismissedOffers();
+    window.localStorage.setItem(OFFER_STORAGE_KEY, JSON.stringify(Array.from(new Set([...dismissed, tourKey]))));
   } catch {
     // A blocked store only means the offer shows again next time.
   }
@@ -63,11 +63,19 @@ export function dismissGuidedTourOffer(tourKey: string): void {
 /** Settings brings the offer back: the key leaves the dismissed list, so it shows on the next entry too. */
 export function restoreGuidedTourOffer(tourKey: string): void {
   try {
-    const dismissed = JSON.parse(window.localStorage.getItem(OFFER_STORAGE_KEY) ?? "[]");
-    const next = Array.isArray(dismissed) ? dismissed.filter((key) => key !== tourKey) : [];
+    const next = readDismissedOffers().filter((key) => key !== tourKey);
     window.localStorage.setItem(OFFER_STORAGE_KEY, JSON.stringify(next));
   } catch {
     // A blocked store never hid it in the first place.
+  }
+}
+
+function readDismissedOffers(): string[] {
+  try {
+    const dismissed = JSON.parse(window.localStorage.getItem(OFFER_STORAGE_KEY) ?? "[]");
+    return Array.isArray(dismissed) ? dismissed.filter((entry): entry is string => typeof entry === "string") : [];
+  } catch {
+    return [];
   }
 }
 

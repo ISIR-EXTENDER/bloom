@@ -1,5 +1,5 @@
 // One coverage shape for every frontend package: run vitest per package, never from the frontend root.
-// Thresholds are floors about two points under what each package held on 2026-09-28; a drop below them fails
+// Thresholds are floors about two points under what each package held on 2026-09-29; a drop below them fails
 // the run. Raise a floor when a package gains ground, never lower one to let a change through.
 
 /**
