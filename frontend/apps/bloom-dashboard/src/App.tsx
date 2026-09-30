@@ -180,6 +180,16 @@ export function App({
   }, [activeRouteKey]);
 
   useEffect(() => {
+    if (!isRuntimeSessionView || !window.matchMedia("(any-pointer: coarse)").matches) {
+      return;
+    }
+
+    const preventContextMenu = (event: Event) => event.preventDefault();
+    document.addEventListener("contextmenu", preventContextMenu);
+    return () => document.removeEventListener("contextmenu", preventContextMenu);
+  }, [isRuntimeSessionView]);
+
+  useEffect(() => {
     saveRuntimeUserPreferences(runtimeUserPreferences);
   }, [runtimeUserPreferences]);
 

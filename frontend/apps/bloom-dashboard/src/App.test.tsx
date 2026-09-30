@@ -106,6 +106,28 @@ describe("App", () => {
     expect(await screen.findByRole("heading", { level: 2, name: "Main" })).toBeVisible();
   });
 
+  it("suppresses the context menu on touch runtime screens but not in the builder", async () => {
+    vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: true }));
+    window.history.replaceState(null, "", "#/runtime");
+
+    const { unmount } = render(<App configurationClient={createConfigurationClient()} />);
+    expect(await screen.findByRole("heading", { level: 1, name: "Runtime library" })).toBeVisible();
+
+    const runtimeEvent = new MouseEvent("contextmenu", { bubbles: true, cancelable: true });
+    document.dispatchEvent(runtimeEvent);
+    expect(runtimeEvent.defaultPrevented).toBe(true);
+
+    unmount();
+    window.history.replaceState(null, "", "#/builder/screen");
+    render(<App configurationClient={createConfigurationClient()} />);
+    expect(await screen.findByRole("heading", { level: 2, name: "Main" })).toBeVisible();
+
+    const builderEvent = new MouseEvent("contextmenu", { bubbles: true, cancelable: true });
+    document.dispatchEvent(builderEvent);
+    expect(builderEvent.defaultPrevented).toBe(false);
+    vi.unstubAllGlobals();
+  });
+
   it("restores a direct supervisor route for its exact application", async () => {
     window.history.replaceState(null, "", "#/runtime/supervisor/robot-monitor/robot-monitor");
     const runtimeActionClient = createRuntimeActionClient();

@@ -133,6 +133,12 @@ textarea {
   flex-direction: column;
 }
 
+@media (any-pointer: coarse) {
+  .app-shell-runtime-app {
+    -webkit-touch-callout: none;
+  }
+}
+
 .app-shell-runtime-app > * {
   min-height: 0;
 }
